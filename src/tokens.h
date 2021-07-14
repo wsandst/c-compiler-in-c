@@ -48,10 +48,5 @@ Tokens tokenize(char* source);
 // Create a new Tokens object
 Tokens tokens_new(int initial_size);
 
-// Add a token object to the end of the vector 
-void tokens_push(Tokens *tokens, Token token);
-
-// Sort the tokens based on the src_pos attribute
-void tokens_sort(Tokens *tokens);
-
-void tokens_free(Tokens *tokens);
+// Remove NULL elements from the token array
+void tokens_trim();

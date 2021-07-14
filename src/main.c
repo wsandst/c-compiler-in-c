@@ -1,15 +1,13 @@
 #include <stdio.h>
 #include "tokens.h"
+#include "string_helpers.h"
 
 int main() {
-    Tokens tokens = tokens_new(1);
-    Token test_token;
-    printf("size:%i, max_size:%i\n", tokens.size, tokens.max_size);
-    for (int i = 0; i < 10; i++)
-    {
-        tokens_push(&tokens, test_token);
-        printf("size:%i, max_size:%i\n", tokens.size, tokens.max_size);
-    }
+    char* str = "hello there";
+
+    //printf("str_contains(): %i\n", str_contains(str, "there "));
+
+    //str_vec_free(&str_vec);
     
     return 0;
 }
