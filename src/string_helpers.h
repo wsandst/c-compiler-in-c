@@ -1,3 +1,4 @@
+#pragma once
 #include <stdbool.h>
 #include <stdlib.h>
 #include <string.h>
@@ -28,10 +29,15 @@ void str_vec_realloc(StrVector *str_vec, int new_size);
 // Free the vector memory and the containing strings?
 void str_vec_free(StrVector *str_vec);
 
+void str_vec_print(StrVector *str_vec);
+
 // Split a char array based on delimiter and return a StrVector
 StrVector str_split(char* str, char delimiter);
 
 // ======================== String Helpers =============================
+
+// Copy a C String
+char* str_copy(char *str);
 
 // Copy a C String substring
 char* str_substr(const char *string, int length);
@@ -44,3 +50,7 @@ bool str_endswith(char *str, char *match);
 
 // Does the string contain the string provided?
 int str_contains(char *str, char *match);
+
+char* str_fill(char *str, int length, char c);
+
+char* str_strip(char *str);

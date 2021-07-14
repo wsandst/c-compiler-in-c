@@ -11,6 +11,10 @@ StrVector str_vec_new(int initial_size) {
     return tokens;
 }
 
+char* str_copy(char *str) {
+    return str_substr(str, strlen(str));
+}
+
 // Copy a substring of a string. Remember to free it later!
 char* str_substr(const char *string, int length)
 {
@@ -73,6 +77,14 @@ StrVector str_split(char* str, char delimiter) {
     return str_vec;
 }
 
+void str_vec_print(StrVector* str_vec) {
+    for (size_t i = 0; i < str_vec->size; i++)
+    {
+        printf("%s\n", str_vec->elems[i]);
+    }
+    
+}
+
 // ======================== String Helpers =============================
 
 // Does the string start with the string provided? Return 0 if not,
@@ -126,4 +138,26 @@ int str_contains(char *str, char* match) {
         str++;
     }
     return 0;
+}
+
+char* str_fill(char *str, int length, char c) {
+    char* filled_str = str_copy(str);
+    for (size_t i = 0; i < length; i++)
+    {
+        str[i] = c;
+    }
+    return filled_str;
+}
+
+char* str_strip(char *str) {
+    int length = strlen(str);
+    char *start = str;
+    while (*start == ' ' || *start == '\n' || *start == '\t') {
+        start++;
+    }
+    char *end = str+length;
+    while (*end == ' ' || *end == '\n' || *end == '\t') {
+        start--;
+    }
+    return str_substr(start, end - str);
 }

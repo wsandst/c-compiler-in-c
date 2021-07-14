@@ -1,11 +1,12 @@
 /*
 Take in a source file as a string and return an array of TOKENS
 */
-
+#pragma once
 #include <stdlib.h>
 #include <string.h>
+#include "string_helpers.h"
 
-enum TokenType {TK_NONE, TK_OP, TK_IDENT, TK_TYPE, TK_KEYWORD, TK_DELIMITER, TK_COMMENT, TK_PREPROCESSOR};
+enum TokenType {TK_NONE, TK_OP, TK_IDENT, TK_TYPE, TK_KEYWORD, TK_VALUE, TK_DELIMITER, TK_COMMENT, TK_PREPROCESSOR};
 
 enum OpType {TK_PLUS, TK_MINUS, TK_EXP, TK_MULT, TK_DIV, TK_MOD, TK_RIGHTSHIFT, TK_LEFTSHIFT, TK_BITOR, TK_BITAND,
         TK_COMPL, TK_XOR, TK_NOT, TK_AND, TK_OR, TK_EQ, TK_NEQ, TK_ASSIGN, TK_GT, TK_LT, TK_LTE, TK_GTE, TK_QST};
@@ -44,10 +45,29 @@ struct Tokens {
     int size;
 };
 
-Tokens tokenize(char* source);
-
 // Create a new Tokens object
 Tokens tokens_new(int size);
 
 // Remove NULL elements from the token array
-void tokens_trim();
+void tokens_trim(Tokens* tokens);
+
+void tokens_print(Tokens* tokens);
+
+Tokens tokenize(char* source);
+
+void tokenize_preprocessor(Tokens *tokens, StrVector *split_src);
+
+void tokenize_comments(Tokens *tokens);
+
+void tokenize_strings(Tokens *tokens);
+void tokenize_chars(Tokens *tokens);
+
+void tokenize_keywords(Tokens *tokens);
+void tokenize_types(Tokens *tokens);
+void tokenize_ops(Tokens *tokens);
+
+void tokenize_idents(Tokens *tokens);
+
+void tokenize_delims(Tokens *tokens);
+
+void tokenize_values(Tokens *tokens);
