@@ -3,14 +3,14 @@
 
 
 int main() {
-    char* str = "  This is source code \n \
+    /*char* str = "  This is source code \n \
         #hello!    \n \
         // Comment ! \n"
-        "/*\n"
-        "addawd\n"
-        "*/ abc\n";
+        "\" This is a string! \"";*/
 
-    tokenize(str);
+    char* str = "\"This \\\"is a string\" abc \"another one\" mdd 'this \" is a char tho'";
+
+    Tokens tokens = tokenize(str);
     
     return 0;
 }
