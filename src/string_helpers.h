@@ -2,6 +2,10 @@
 #include <stdlib.h>
 #include <string.h>
 
+/*
+Contains a string vector and various string helpers
+*/
+
 // ======================== String Vector =============================
 
 struct StrVector {
@@ -14,9 +18,6 @@ typedef struct StrVector StrVector;
 
 // Create a new string vector
 StrVector str_vec_new(int initial_size);
-
-// Copy a C String
-char* str_substr(const char *string, int length);
 
 // Add an element to the end of the vector
 void str_vec_push(StrVector *str_vec, char* str);
@@ -31,6 +32,9 @@ void str_vec_free(StrVector *str_vec);
 StrVector str_split(char* str, char delimiter);
 
 // ======================== String Helpers =============================
+
+// Copy a C String substring
+char* str_substr(const char *string, int length);
 
 // Does the string start with the string provided?
 bool str_startswith(char *str, char *match);

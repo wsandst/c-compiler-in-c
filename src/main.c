@@ -5,9 +5,12 @@
 int main() {
     char* str = "hello there";
 
-    //printf("str_contains(): %i\n", str_contains(str, "there "));
+    Tokens tokens = tokens_new(10);
+    tokens.elems[2].type = TK_OP;
+    tokens.elems[5].type = TK_OP;
+    tokens_trim(&tokens);
 
-    //str_vec_free(&str_vec);
+    printf("Tokens: %i\n", tokens.size);
     
     return 0;
 }
