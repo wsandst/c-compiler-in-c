@@ -1,5 +1,9 @@
 #include "tokens.h"
 
+/*
+TODO: Implement handling of comments in strings and reverse
+*/
+
 Tokens tokenize(char* src) {
     int src_length = strlen(src);
     Tokens tokens = tokens_new(src_length);
@@ -19,6 +23,7 @@ Tokens tokenize(char* src) {
     tokenize_preprocessor(&tokens, &lines);
     tokenize_comments(&tokens, &lines);
     tokenize_strings(&tokens, &lines);
+    tokenize_keywords(&tokens, &lines);
 
     str_vec_print(&lines);
 
@@ -161,6 +166,49 @@ void tokenize_strings(Tokens *tokens, StrVector *str_split) {
                 tokens->elems[string_src_pos].data.string = str_substr(str+quote_start, search_str - (str + quote_start));
                 str_fill(str+quote_start-1, search_str - (str + quote_start) + 2, ' ');
             }
+        }
+        src_pos += strlen(str);
+    }
+}
+
+void tokenize_keywords(Tokens* tokens, StrVector *str_split) {
+    tokenize_keyword(tokens, str_split, "while", TK_WHILE);
+    tokenize_keyword(tokens, str_split, "do", TK_DO);
+    tokenize_keyword(tokens, str_split, "if", TK_IF);
+    tokenize_keyword(tokens, str_split, "else", TK_ELSE);
+    tokenize_keyword(tokens, str_split, "for", TK_FOR);
+    tokenize_keyword(tokens, str_split, "break", TK_BREAK);
+    tokenize_keyword(tokens, str_split, "continue", TK_CONTINUE);
+    tokenize_keyword(tokens, str_split, "return", TK_RETURN);
+    tokenize_keyword(tokens, str_split, "switch", TK_SWITCH);
+    tokenize_keyword(tokens, str_split, "case", TK_CASE);
+    tokenize_keyword(tokens, str_split, "default", TK_DEFAULT);
+    tokenize_keyword(tokens, str_split, "goto", TK_GOTO);
+    tokenize_keyword(tokens, str_split, "label", TK_LABEL);
+    tokenize_keyword(tokens, str_split, "typedef", TK_TYPEDEF);
+    tokenize_keyword(tokens, str_split, "include", TK_INCLUDE);
+    tokenize_keyword(tokens, str_split, "define", TK_DEFINE);
+    tokenize_keyword(tokens, str_split, "const", TK_CONST);
+    tokenize_keyword(tokens, str_split, "long", TK_LONG);
+    tokenize_keyword(tokens, str_split, "short", TK_SHORT);
+    tokenize_keyword(tokens, str_split, "signed", TK_SIGNED);
+    tokenize_keyword(tokens, str_split, "unsigned", TK_UNSIGNED);
+    tokenize_keyword(tokens, str_split, "struct", TK_STRUCT);
+    tokenize_keyword(tokens, str_split, "union", TK_UNION);
+}
+
+void tokenize_keyword(Tokens* tokens, StrVector *str_split, char* keyword, enum KeywordType type) {
+    int src_pos = 0;
+    int keyword_length = strlen(keyword);
+    for (size_t i = 0; i < str_split->size; i++)
+    {
+        char* str = str_split->elems[i];
+        int match_i = 0;
+        while (match_i = str_contains_word(str, keyword)) {
+            char* start = str + match_i-1;
+            str_fill(start, keyword_length, ' ');
+            tokens->elems[src_pos+match_i-1].type = TK_KEYWORD;
+            tokens->elems[src_pos+match_i-1].sub_type.literal = type;
         }
         src_pos += strlen(str);
     }

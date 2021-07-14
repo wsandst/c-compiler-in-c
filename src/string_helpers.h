@@ -51,6 +51,10 @@ bool str_endswith(char *str, char *match);
 // Does the string contain the string provided?
 int str_contains(char *str, char *match);
 
+// Does the string contain the string word provided?
+// A word has to end with either whitespace or ({[:.
+int str_contains_word(char *str, char *match);
+
 char* str_fill(char *str, int length, char c);
 
 char* str_strip(char *str);

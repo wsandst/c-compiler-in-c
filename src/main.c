@@ -27,7 +27,7 @@ char* load_file_to_string(char* filename) {
 }
 
 int main() {
-    char* src = load_file_to_string("test_source.c");
+    char* src = load_file_to_string("test_source.cpp");
 
     Tokens tokens = tokenize(src);
 

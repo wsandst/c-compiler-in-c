@@ -140,6 +140,38 @@ int str_contains(char *str, char* match) {
     return 0;
 }
 
+// Does the string contain the string word provided?
+// A word has to end with either whitespace or ({[:.
+int str_contains_word(char *str, char* match) {
+    char* cur_match_char = match;
+    char* match_end = match;
+    char* str_start = str;
+    while(*match_end != '\0') match_end++;
+    while (*str != '\0') {
+        if (*cur_match_char == *str) {
+            cur_match_char++;
+            if (cur_match_char == match_end) {
+                // Check if the last char matches
+                str++;
+                if (*str == '\0' || *str == ' ' || *str == '\n' || *str == '\t' || 
+                        *str == ':' || *str == "." || *str == "," || *str == "(" ||
+                        *str == "{" || *str == "[") {
+                    return str - str_start - (match_end - match) + 1;
+                }
+                else {
+                    cur_match_char = match; 
+                }
+                
+            }
+        }
+        else {
+            cur_match_char = match; 
+        }
+        str++;
+    }
+    return 0;
+}
+
 char* str_fill(char *str, int length, char c) {
     char* filled_str = str_copy(str);
     for (size_t i = 0; i < length; i++)
