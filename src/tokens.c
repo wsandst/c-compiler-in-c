@@ -32,7 +32,7 @@ Tokens tokenize(char* src) {
 Tokens tokens_new(int size) {
     Tokens tokens;
     tokens.size = size;
-    tokens.elems = malloc(size*sizeof(Token));
+    tokens.elems = calloc(size, sizeof(Token));
     return tokens;
 }
 
