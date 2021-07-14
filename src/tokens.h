@@ -51,6 +51,9 @@ struct Tokens {
 // Create a new Tokens object
 Tokens tokens_new(int size);
 
+// Free the Token object
+void tokens_free(Tokens *tokens);
+
 // Remove NULL elements from the token array
 void tokens_trim(Tokens* tokens);
 

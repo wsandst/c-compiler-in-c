@@ -5,6 +5,7 @@
 
 /*
 Contains a string vector and various string helpers
+TODO: Contains word does not check the start of a word, if it is a space or not etc. This is bad!
 */
 
 // ======================== String Vector =============================
@@ -59,7 +60,7 @@ int str_contains(char *str, char *match);
 // A word has to end with either whitespace or ({[:.
 int str_contains_word(char *str, char *match);
 
-// Return a copy of the string, filled to a certain char
+// Fill a str to char c, inplace. Has to be a mutable str!
 char* str_fill(char *str, int length, char c);
 
 // Strip all whitespace from the start and the end of string

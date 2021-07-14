@@ -155,7 +155,7 @@ int str_contains_word(char *str, char* match) {
                 str++;
                 if (*str == '\0' || *str == ' ' || *str == '\n' || *str == '\t' || 
                         *str == ':' || *str == '.' || *str == ',' || *str == '(' ||
-                        *str == '{' || *str == '[') {
+                        *str == '{' || *str == '[' || *str == '/' || *str == ';') {
                     return str - str_start - (match_end - match) + 1;
                 }
                 else {
@@ -173,12 +173,10 @@ int str_contains_word(char *str, char* match) {
 }
 
 char* str_fill(char *str, int length, char c) {
-    char* filled_str = str_copy(str);
     for (size_t i = 0; i < length; i++)
     {
-        filled_str[i] = c;
+        str[i] = c;
     }
-    return filled_str;
 }
 
 char* str_strip(char *str) {

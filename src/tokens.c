@@ -2,6 +2,7 @@
 
 /*
 TODO: Implement handling of comments in strings and reverse
+Signed is not implemented due to str_contains_word() confusing it with unsigned.
 */
 
 Tokens tokenize(char* src) {
@@ -17,7 +18,7 @@ Tokens tokenize(char* src) {
         lines.elems[i] = new_str;
     }
 
-    str_vec_print(&lines);
+    //str_vec_print(&lines);
     
 
     tokenize_preprocessor(&tokens, &lines);
@@ -25,9 +26,9 @@ Tokens tokenize(char* src) {
     tokenize_strings(&tokens, &lines);
     tokenize_keywords(&tokens, &lines);
 
-    str_vec_print(&lines);
+    //str_vec_print(&lines);
 
-    tokens_print(&tokens);
+    //tokens_print(&tokens);
 
     tokens_trim(&tokens);
     return tokens;
@@ -55,7 +56,6 @@ void tokens_trim(Tokens *tokens) {
         }
     }
     Token* new_token_array = malloc(token_count*sizeof(Token));
-    tokens->size = token_count;
     // Add the tokens
     int j = 0;
     for (size_t i = 0; i < tokens->size; i++) {
@@ -66,6 +66,7 @@ void tokens_trim(Tokens *tokens) {
         }
     }
     free(tokens->elems);
+    tokens->size = token_count;
     tokens->elems = new_token_array;
 }
 
@@ -88,15 +89,18 @@ void tokenize_preprocessor(Tokens *tokens, StrVector *str_split) {
 void tokenize_comments(Tokens *tokens, StrVector *str_split) {
     int src_pos = 0;
     bool seeking_block_comment_end = false;
+    int comment_src_pos;
+    char* zero_from;
+    bool zero_from_start = false;
     for (size_t i = 0; i < str_split->size; i++) {
         char* str = str_split->elems[i];
 
         // Block comments
         int block_comment_index = str_contains(str, "/*");
-        char* zero_from = str;
         if (block_comment_index) {
             if (!seeking_block_comment_end) {
                 zero_from = str + block_comment_index - 1;
+                comment_src_pos = src_pos + block_comment_index - 1;
             }
             seeking_block_comment_end = true;
         }
@@ -105,14 +109,19 @@ void tokenize_comments(Tokens *tokens, StrVector *str_split) {
             if (block_comment_end) {
                 // Found the end
                 seeking_block_comment_end = false;
-                str_fill(zero_from, block_comment_end+1, ' ');
-                int comment_src_pos = src_pos + str - zero_from;
+                zero_from_start = false;
+                str_fill(zero_from, block_comment_end-1, ' ');
                 tokens->elems[comment_src_pos].type = TK_COMMENT;
                 tokens->elems[comment_src_pos].data.string = "BLOCK COMMENT N/A";
             }
-            else {
+            else if (!zero_from_start) {
                 // This is all a block comment, zero out the contents
-                str_fill(zero_from, strlen(str), ' ');
+                str_fill(zero_from, zero_from - str, ' ');
+                zero_from_start = true;
+                continue;
+            }
+            else {
+                str_fill(str, strlen(str), ' ');
                 continue;
             }
         }
@@ -186,12 +195,10 @@ void tokenize_keywords(Tokens* tokens, StrVector *str_split) {
     tokenize_keyword(tokens, str_split, "goto", TK_GOTO);
     tokenize_keyword(tokens, str_split, "label", TK_LABEL);
     tokenize_keyword(tokens, str_split, "typedef", TK_TYPEDEF);
-    tokenize_keyword(tokens, str_split, "include", TK_INCLUDE);
-    tokenize_keyword(tokens, str_split, "define", TK_DEFINE);
     tokenize_keyword(tokens, str_split, "const", TK_CONST);
     tokenize_keyword(tokens, str_split, "long", TK_LONG);
     tokenize_keyword(tokens, str_split, "short", TK_SHORT);
-    tokenize_keyword(tokens, str_split, "signed", TK_SIGNED);
+    //tokenize_keyword(tokens, str_split, "signed", TK_SIGNED);
     tokenize_keyword(tokens, str_split, "unsigned", TK_UNSIGNED);
     tokenize_keyword(tokens, str_split, "struct", TK_STRUCT);
     tokenize_keyword(tokens, str_split, "union", TK_UNION);
@@ -206,9 +213,10 @@ void tokenize_keyword(Tokens* tokens, StrVector *str_split, char* keyword, enum 
         int match_i = 0;
         while (match_i = str_contains_word(str, keyword)) {
             char* start = str + match_i-1;
+            int keyword_src_index = src_pos+match_i-1;
             str_fill(start, keyword_length, ' ');
-            tokens->elems[src_pos+match_i-1].type = TK_KEYWORD;
-            tokens->elems[src_pos+match_i-1].sub_type.literal = type;
+            tokens->elems[keyword_src_index].type = TK_KEYWORD;
+            tokens->elems[keyword_src_index].sub_type.literal = type;
         }
         src_pos += strlen(str);
     }
