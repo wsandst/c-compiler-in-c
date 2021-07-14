@@ -17,6 +17,7 @@ Tokens tokenize(char* src) {
     
 
     tokenize_preprocessor(&tokens, &lines);
+    tokenize_comments(&tokens, &lines);
 
     str_vec_print(&lines);
 
@@ -77,6 +78,54 @@ void tokenize_preprocessor(Tokens *tokens, StrVector *str_split) {
     }
 }
 
+// We do not handle the edge case of a // or /* */ inside a string literal ""
+/* */
+void tokenize_comments(Tokens *tokens, StrVector *str_split) {
+    int src_pos = 0;
+    bool seeking_block_comment_end = false;
+    for (size_t i = 0; i < str_split->size; i++)
+    {
+        char* str = str_split->elems[i];
+
+        // Block comments
+        int block_comment_index = str_contains(str, "/*");
+        char* zero_from = str;
+        if (block_comment_index) {
+            if (!seeking_block_comment_end) {
+                zero_from = str + block_comment_index - 1;
+            }
+            seeking_block_comment_end = true;
+        }
+        if (seeking_block_comment_end) {
+            int block_comment_end = str_contains(str, "*/");
+            if (block_comment_end) {
+                // Found the end
+                seeking_block_comment_end = false;
+                str_fill(zero_from, block_comment_end+1, ' ');
+                int comment_src_pos = src_pos + str - zero_from;
+                tokens->elems[comment_src_pos].type = TK_COMMENT;
+                tokens->elems[comment_src_pos].data.string = "BLOCK COMMENT N/A";
+            }
+            else {
+                // This is all a block comment, zero out the contents
+                str_fill(zero_from, strlen(str), ' ');
+                continue;
+            }
+        }
+
+        // Single line comments
+        int comment_index = str_contains(str, "//");
+        if (comment_index) {
+            int comment_src_pos = src_pos + comment_index + 1;
+            char* comment_start = str + comment_index - 1;
+            tokens->elems[comment_src_pos].type = TK_COMMENT;
+            tokens->elems[comment_src_pos].data.string = str_substr(comment_start, strlen(comment_start));
+            str_fill(comment_start, strlen(comment_start), ' ');
+        }
+        src_pos += strlen(str);
+    }
+}
+
 void tokens_print(Tokens* tokens) {
     for (size_t i = 0; i < tokens->size; i++)
     {
@@ -91,7 +140,7 @@ void tokens_print(Tokens* tokens) {
         else if (t.type == TK_VALUE) {
             printf("V: %i", t.data.ivalue);
         }
-        printf("], ");
+        printf("], \n");
     }
     
 }

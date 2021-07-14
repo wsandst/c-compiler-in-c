@@ -3,8 +3,12 @@
 
 
 int main() {
-    char* str = "  This is source code \n   #hello!    \n \
-        Interesting! #hmm";
+    char* str = "  This is source code \n \
+        #hello!    \n \
+        // Comment ! \n"
+        "/*\n"
+        "addawd\n"
+        "*/ abc\n";
 
     tokenize(str);
     

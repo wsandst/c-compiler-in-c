@@ -57,17 +57,17 @@ Tokens tokenize(char* source);
 
 void tokenize_preprocessor(Tokens *tokens, StrVector *split_src);
 
-void tokenize_comments(Tokens *tokens);
+void tokenize_comments(Tokens *tokens, StrVector *str_split);
 
-void tokenize_strings(Tokens *tokens);
-void tokenize_chars(Tokens *tokens);
+void tokenize_strings(Tokens *tokens, StrVector *str_split);
+void tokenize_chars(Tokens *tokens, StrVector *str_split);
 
-void tokenize_keywords(Tokens *tokens);
-void tokenize_types(Tokens *tokens);
-void tokenize_ops(Tokens *tokens);
+void tokenize_keywords(Tokens *tokens, StrVector *str_split);
+void tokenize_types(Tokens *tokens, StrVector *str_split);
+void tokenize_ops(Tokens *tokens, StrVector *str_split);
 
-void tokenize_idents(Tokens *tokens);
+void tokenize_idents(Tokens *tokens, StrVector *str_split);
 
-void tokenize_delims(Tokens *tokens);
+void tokenize_delims(Tokens *tokens, StrVector *str_split);
 
-void tokenize_values(Tokens *tokens);
+void tokenize_values(Tokens *tokens, StrVector *str_split);
