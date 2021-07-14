@@ -25,6 +25,7 @@ Tokens tokenize(char* src) {
     tokenize_comments(&tokens, &lines);
     tokenize_strings(&tokens, &lines);
     tokenize_keywords(&tokens, &lines);
+    tokenize_ops(&tokens, &lines);
 
     //str_vec_print(&lines);
 
@@ -108,11 +109,16 @@ void tokenize_comments(Tokens *tokens, StrVector *str_split) {
             int block_comment_end = str_contains(str, "*/");
             if (block_comment_end) {
                 // Found the end
-                seeking_block_comment_end = false;
-                zero_from_start = false;
-                str_fill(zero_from, block_comment_end-1, ' ');
+                if (zero_from_start) {
+                    str_fill(str, block_comment_end + 1, ' ');
+                }
+                else {
+                    str_fill(zero_from, zero_from - str + block_comment_end + 1, ' ');
+                }
                 tokens->elems[comment_src_pos].type = TK_COMMENT;
                 tokens->elems[comment_src_pos].data.string = "BLOCK COMMENT N/A";
+                seeking_block_comment_end = false;
+                zero_from_start = false;
             }
             else if (!zero_from_start) {
                 // This is all a block comment, zero out the contents
@@ -222,9 +228,57 @@ void tokenize_keyword(Tokens* tokens, StrVector *str_split, char* keyword, enum 
             str_fill(start, keyword_length, ' ');
             tokens->elems[keyword_src_index].type = TK_KEYWORD;
             tokens->elems[keyword_src_index].sub_type.keyword = type;
+            tokens->elems[keyword_src_index].data.string = keyword;
         }
         src_pos += strlen(str);
     }
+}
+
+void tokenize_ops(Tokens* tokens, StrVector *str_split) {
+    // Similar to keywords tokenization, except we want to isolate words
+    // which only have >=<
+    tokenize_op(tokens, str_split, "||", TK_OR);
+    tokenize_op(tokens, str_split, "&&", TK_AND);
+    tokenize_op(tokens, str_split, ">>", TK_RIGHTSHIFT);
+    tokenize_op(tokens, str_split, "<<", TK_LEFTSHIFT);
+    tokenize_op(tokens, str_split, "==", TK_EQ);
+    tokenize_op(tokens, str_split, "!=", TK_NEQ);
+    tokenize_op(tokens, str_split, "**", TK_EXP);
+    tokenize_op(tokens, str_split, ">=", TK_GTE);
+    tokenize_op(tokens, str_split, "<=", TK_LTE);
+    tokenize_op(tokens, str_split, "+", TK_PLUS);
+    tokenize_op(tokens, str_split, "-", TK_MINUS);
+    tokenize_op(tokens, str_split, "*", TK_MULT);
+    tokenize_op(tokens, str_split, "/", TK_DIV);
+    tokenize_op(tokens, str_split, "%", TK_MOD);
+    tokenize_op(tokens, str_split, "|", TK_BITOR);
+    tokenize_op(tokens, str_split, "&", TK_BITAND);
+    tokenize_op(tokens, str_split, "~", TK_COMPL);
+    tokenize_op(tokens, str_split, "^", TK_XOR);
+    tokenize_op(tokens, str_split, ">", TK_GT);
+    tokenize_op(tokens, str_split, "<", TK_LT);
+    tokenize_op(tokens, str_split, "!", TK_NOT);
+    tokenize_op(tokens, str_split, "=", TK_ASSIGN);
+    tokenize_op(tokens, str_split, "?", TK_QST);
+}
+
+void tokenize_op(Tokens* tokens, StrVector *str_split, char* op, enum OpType type) {
+    int src_pos = 0;
+    int op_length = strlen(op);
+    for (size_t i = 0; i < str_split->size; i++)
+    {
+        char* str = str_split->elems[i];
+        int match_i = 0;
+        while (match_i = str_contains(str, op)) {
+            char* start = str + match_i-1;
+            int keyword_src_index = src_pos+match_i-1;
+            str_fill(start, op_length, ' ');
+            tokens->elems[keyword_src_index].type = TK_OP;
+            tokens->elems[keyword_src_index].sub_type.keyword = type;
+            tokens->elems[keyword_src_index].data.string = op;
+        }
+        src_pos += strlen(str);
+    } 
 }
 
 void tokens_print(Tokens* tokens) {

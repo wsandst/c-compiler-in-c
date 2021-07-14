@@ -49,7 +49,7 @@ void test_tokenizer() {
     tokens_free(&tokens);
 
     // Keywords
-    src = "unsigned if else:while/do;for(break{continue.return,switch[case\ndefault " 
+    src = "unsigned if else:while do;for(break{continue.return,switch[case\ndefault " 
           "goto label typedef struct union const long short signed "
           "int float double char void";
     tokens = tokenize(src);
@@ -79,6 +79,34 @@ void test_tokenizer() {
     assert(tokens.elems[23].sub_type.keyword == TK_DOUBLE);
     assert(tokens.elems[24].sub_type.keyword == TK_CHAR);
     assert(tokens.elems[25].sub_type.keyword == TK_VOID);
+    tokens_free(&tokens);
+
+    // Test ops
+    src = "|| && >> << == != ** >= <= + - * / % | & ~ ^ > < ! = ?";
+    tokens = tokenize(src);
+    assert(tokens.elems[0].sub_type.op == TK_OR);
+    assert(tokens.elems[1].sub_type.op == TK_AND);
+    assert(tokens.elems[2].sub_type.op == TK_RIGHTSHIFT);
+    assert(tokens.elems[3].sub_type.op == TK_LEFTSHIFT);
+    assert(tokens.elems[4].sub_type.op == TK_EQ);
+    assert(tokens.elems[5].sub_type.op == TK_NEQ);
+    assert(tokens.elems[6].sub_type.op == TK_EXP);
+    assert(tokens.elems[7].sub_type.op == TK_GTE);
+    assert(tokens.elems[8].sub_type.op == TK_LTE);
+    assert(tokens.elems[9].sub_type.op == TK_PLUS);
+    assert(tokens.elems[10].sub_type.op == TK_MINUS);
+    assert(tokens.elems[11].sub_type.op == TK_MULT);
+    assert(tokens.elems[12].sub_type.op == TK_DIV);
+    assert(tokens.elems[13].sub_type.op == TK_MOD);
+    assert(tokens.elems[14].sub_type.op == TK_BITOR);
+    assert(tokens.elems[15].sub_type.op == TK_BITAND);
+    assert(tokens.elems[16].sub_type.op == TK_COMPL);
+    assert(tokens.elems[17].sub_type.op == TK_XOR);
+    assert(tokens.elems[18].sub_type.op == TK_GT);
+    assert(tokens.elems[19].sub_type.op == TK_LT);
+    assert(tokens.elems[20].sub_type.op == TK_NOT);
+    assert(tokens.elems[21].sub_type.op == TK_ASSIGN);
+    assert(tokens.elems[22].sub_type.op == TK_QST);
 
     printf("[TEST] Passed tokenizer tests!\n");
 }
