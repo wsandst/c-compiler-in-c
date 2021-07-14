@@ -59,7 +59,7 @@ void test_helper_funcs() {
     assert(str_contains(test_str, " hello") == 0);
 
     // str_contains_word()
-    test_str = "word1: word2\n word3( word4 word5not word6";
+    test_str = "word1: word2\n word3( word4 word5not notword5 word6";
     assert(str_contains_word(test_str, "word1"));
     assert(str_contains_word(test_str, "word2"));
     assert(str_contains_word(test_str, "word3"));

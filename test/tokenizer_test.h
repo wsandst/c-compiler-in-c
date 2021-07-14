@@ -50,7 +50,7 @@ void test_tokenizer() {
 
     // Keywords
     src = "unsigned if else:while/do;for(break{continue.return,switch[case\ndefault " 
-          "goto label typedef struct union const long short";
+          "goto label typedef struct union const long short signed";
     tokens = tokenize(src);
     assert(tokens.elems[0].sub_type.keyword == TK_UNSIGNED);
     assert(tokens.elems[1].sub_type.keyword == TK_IF);
@@ -72,6 +72,7 @@ void test_tokenizer() {
     assert(tokens.elems[17].sub_type.keyword == TK_CONST);
     assert(tokens.elems[18].sub_type.keyword == TK_LONG);
     assert(tokens.elems[19].sub_type.keyword == TK_SHORT);
+    assert(tokens.elems[20].sub_type.keyword == TK_SIGNED);
 
     printf("[TEST] Passed tokenizer tests!\n");
 }

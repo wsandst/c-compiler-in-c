@@ -2,7 +2,7 @@
 
 /*
 TODO: Implement handling of comments in strings and reverse
-Signed is not implemented due to str_contains_word() confusing it with unsigned.
+Left to tokenize: 
 */
 
 Tokens tokenize(char* src) {
@@ -198,10 +198,15 @@ void tokenize_keywords(Tokens* tokens, StrVector *str_split) {
     tokenize_keyword(tokens, str_split, "const", TK_CONST);
     tokenize_keyword(tokens, str_split, "long", TK_LONG);
     tokenize_keyword(tokens, str_split, "short", TK_SHORT);
-    //tokenize_keyword(tokens, str_split, "signed", TK_SIGNED);
+    tokenize_keyword(tokens, str_split, "signed", TK_SIGNED);
     tokenize_keyword(tokens, str_split, "unsigned", TK_UNSIGNED);
     tokenize_keyword(tokens, str_split, "struct", TK_STRUCT);
     tokenize_keyword(tokens, str_split, "union", TK_UNION);
+    tokenize_keyword(tokens, str_split, "int", TK_INT);
+    tokenize_keyword(tokens, str_split, "float", TK_FLOAT);
+    tokenize_keyword(tokens, str_split, "double", TK_DOUBLE);
+    tokenize_keyword(tokens, str_split, "char", TK_CHAR);
+    tokenize_keyword(tokens, str_split, "void", TK_VOID);
 }
 
 void tokenize_keyword(Tokens* tokens, StrVector *str_split, char* keyword, enum KeywordType type) {
@@ -216,7 +221,7 @@ void tokenize_keyword(Tokens* tokens, StrVector *str_split, char* keyword, enum 
             int keyword_src_index = src_pos+match_i-1;
             str_fill(start, keyword_length, ' ');
             tokens->elems[keyword_src_index].type = TK_KEYWORD;
-            tokens->elems[keyword_src_index].sub_type.literal = type;
+            tokens->elems[keyword_src_index].sub_type.keyword = type;
         }
         src_pos += strlen(str);
     }

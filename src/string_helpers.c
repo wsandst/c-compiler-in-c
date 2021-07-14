@@ -153,10 +153,10 @@ int str_contains_word(char *str, char* match) {
             if (cur_match_char == match_end) {
                 // Check if the last char matches
                 str++;
-                if (*str == '\0' || *str == ' ' || *str == '\n' || *str == '\t' || 
-                        *str == ':' || *str == '.' || *str == ',' || *str == '(' ||
-                        *str == '{' || *str == '[' || *str == '/' || *str == ';') {
-                    return str - str_start - (match_end - match) + 1;
+                int index = str - str_start - (match_end - match) + 1;
+                char* before_word = str_start + index - 2;
+                if (!isalnum(*str) && (before_word < str_start || !isalnum(*before_word))) {
+                    return index;
                 }
                 else {
                     cur_match_char = match; 
