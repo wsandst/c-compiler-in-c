@@ -1,8 +1,9 @@
 #include <stdio.h>
-#include "../src/string_helpers.h"
+#include "string_helpers_test.h"
+#include "tokenizer_test.h"
 
 int main() {
-    printf("Test!\n");
-    StrVector test = str_split("hello world", " ");
+    printf("[TEST] Running all tests...\n");
+    test_string_helpers();
     return 0;
 }

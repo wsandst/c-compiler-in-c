@@ -9,6 +9,7 @@ Contains a string vector and various string helpers
 
 // ======================== String Vector =============================
 
+// Represents a String Vector (reallocating array)
 struct StrVector {
     char **elems;
     int size;
@@ -17,10 +18,10 @@ struct StrVector {
 
 typedef struct StrVector StrVector;
 
-// Create a new string vector
+// Create a new StrVector
 StrVector str_vec_new(int initial_size);
 
-// Add an element to the end of the vector
+// Add an element, a C string, to the end of the vector
 void str_vec_push(StrVector *str_vec, char* str);
 
 // Reallocate the vector size
@@ -29,12 +30,15 @@ void str_vec_realloc(StrVector *str_vec, int new_size);
 // Free the vector memory and the containing strings?
 void str_vec_free(StrVector *str_vec);
 
+// Print the C strings in the vector
 void str_vec_print(StrVector *str_vec);
 
-// Split a char array based on delimiter and return a StrVector
+// Split a C string based on a delimiter and return a StrVector
 StrVector str_split(char* str, char delimiter);
 
 // ======================== String Helpers =============================
+// IMPORTANT: These all work on C strings. Without a terminating NULL character,
+// many of these functions will crash or loop forever!
 
 // Copy a C String
 char* str_copy(char *str);
@@ -55,6 +59,8 @@ int str_contains(char *str, char *match);
 // A word has to end with either whitespace or ({[:.
 int str_contains_word(char *str, char *match);
 
+// Return a copy of the string, filled to a certain char
 char* str_fill(char *str, int length, char c);
 
+// Strip all whitespace from the start and the end of string
 char* str_strip(char *str);

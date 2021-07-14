@@ -154,8 +154,8 @@ int str_contains_word(char *str, char* match) {
                 // Check if the last char matches
                 str++;
                 if (*str == '\0' || *str == ' ' || *str == '\n' || *str == '\t' || 
-                        *str == ':' || *str == "." || *str == "," || *str == "(" ||
-                        *str == "{" || *str == "[") {
+                        *str == ':' || *str == '.' || *str == ',' || *str == '(' ||
+                        *str == '{' || *str == '[') {
                     return str - str_start - (match_end - match) + 1;
                 }
                 else {
@@ -176,7 +176,7 @@ char* str_fill(char *str, int length, char c) {
     char* filled_str = str_copy(str);
     for (size_t i = 0; i < length; i++)
     {
-        str[i] = c;
+        filled_str[i] = c;
     }
     return filled_str;
 }
@@ -184,12 +184,12 @@ char* str_fill(char *str, int length, char c) {
 char* str_strip(char *str) {
     int length = strlen(str);
     char *start = str;
-    while (*start == ' ' || *start == '\n' || *start == '\t') {
+    char *end = str+length-1;
+    while ((*start == ' ' || *start == '\n' || *start == '\t') && end != start) {
         start++;
     }
-    char *end = str+length;
-    while (*end == ' ' || *end == '\n' || *end == '\t') {
-        start--;
+    while ((*end == ' ' || *end == '\n' || *end == '\t') && end != start) {
+        end--;
     }
-    return str_substr(start, end - str);
+    return str_substr(start, end - start+1);
 }
