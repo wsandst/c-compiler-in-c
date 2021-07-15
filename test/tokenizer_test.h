@@ -4,6 +4,7 @@
 #include <string.h>
 
 #include "../src/tokens.h"
+#include "../src/file_helpers.h"
 
 void test_tokenizer_preprocessor();
 void test_tokenizer_comments();
@@ -23,6 +24,8 @@ void test_tokenizer() {
     test_tokenizer_idents();
     test_tokenizer_values();
     test_tokenizer_delims();
+
+    test_tokenizer_large_src();
 
     printf("[TEST] Passed tokenizer tests!\n");
 }
@@ -193,4 +196,52 @@ void test_tokenizer_values() {
     assert(tokens.elems[6].type == TK_LFLOAT);
     assert(tokens.elems[7].type == TK_DELIMITER);
     tokens_free(&tokens);
+}
+
+void test_tokenizer_large_src() {
+    char* src = load_file_to_string("test/resources/tokenizer_test.c");
+
+    // Manually tokenize
+    // We need access to the overwritten StrVector lines to ensure every token was grabbed
+    int src_length = strlen(src);
+    Tokens tokens = tokens_new(src_length);
+
+    StrVector lines = str_split(src, '\n');
+    for (size_t i = 0; i < lines.size; i++)
+    {
+        char* new_str = str_strip(lines.elems[i]);
+        free(lines.elems[i]);
+        lines.elems[i] = new_str;
+    }
+    
+    tokenize_preprocessor(&tokens, &lines);
+    tokenize_comments(&tokens, &lines);
+    tokenize_strings(&tokens, &lines);
+    tokenize_keywords(&tokens, &lines);
+    tokenize_ops(&tokens, &lines);
+    tokenize_idents(&tokens, &lines);
+    tokenize_values(&tokens, &lines);
+    tokenize_delims(&tokens, &lines);
+
+    // Make sure every token was grabbed, only whitespace should be left
+    for (size_t i = 0; i < lines.size; i++)
+    {
+        char* str = lines.elems[i];
+        while (*str != '\0') {
+            if (*str != ' ' && *str != '\t' && *str != '\n') {
+                assert(false);
+            }
+            str++;
+        }
+    }
+
+    tokens_trim(&tokens);
+
+    // Check some tokens manually to make sure everything works as intended
+    assert(tokens.elems[0].type == TK_PREPROCESSOR);
+    assert(tokens.elems[2].type == TK_IDENT);
+    assert(tokens.elems[tokens.size-1].type == TK_DELIMITER);
+    assert(tokens.elems[tokens.size-6].type == TK_DELIMITER);
+    assert(tokens.elems[tokens.size-7].type == TK_IDENT);
+    assert(tokens.elems[tokens.size-8].type == TK_OP);
 }

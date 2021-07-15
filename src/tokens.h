@@ -1,10 +1,16 @@
 /*
-Take in a source file as a string and return an array of TOKENS
+These functions perform tokenization of C source code. 
+This is the first step of a compiler. The semantics of the language are 
+separated into the Token type. To minimize dependencies to allow for self-compilation,
+the tokenization is done manually using various string helpers found in string_helpers.c
+Normally most of this would be done using regex.
 */
 #pragma once
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <ctype.h>
+
 #include "string_helpers.h"
 
 enum TokenType {TK_NONE, TK_OP, TK_IDENT, TK_TYPE, TK_KEYWORD, TK_DELIMITER, TK_COMMENT, TK_PREPROCESSOR,
@@ -44,6 +50,8 @@ struct Tokens {
     int size;
 };
 
+// ========= Tokens object functionality ===========
+
 // Create a new Tokens object
 Tokens tokens_new(int size);
 
@@ -54,6 +62,8 @@ void tokens_free(Tokens *tokens);
 void tokens_trim(Tokens* tokens);
 
 void tokens_print(Tokens* tokens);
+
+// ========= Tokenization functions ===========
 
 Tokens tokenize(char* source);
 
@@ -68,10 +78,14 @@ void tokenize_keywords(Tokens *tokens, StrVector *str_split);
 void tokenize_keyword(Tokens* tokens, StrVector *str_split, char* keyword, enum KeywordType type);
 
 void tokenize_ops(Tokens *tokens, StrVector *str_split);
+// Helper for tokenize_ops
 void tokenize_op(Tokens* tokens, StrVector *str_split, char* op, enum OpType type);
 
 void tokenize_idents(Tokens *tokens, StrVector *str_split);
 
-void tokenize_delims(Tokens *tokens, StrVector *str_split);
-
 void tokenize_values(Tokens *tokens, StrVector *str_split);
+// Helpers for tokenize_values()
+void tokenize_ints(Tokens *tokens, StrVector *str_split);
+void tokenize_floats(Tokens *tokens, StrVector *str_split);
+
+void tokenize_delims(Tokens *tokens, StrVector *str_split);
