@@ -81,6 +81,7 @@ void tokenize_preprocessor(Tokens *tokens, StrVector *str_split) {
         if (str_startswith(str, "#")) {
             tokens->elems[src_pos].type = TK_PREPROCESSOR;
             tokens->elems[src_pos].value.string = str_copy(str);
+            tokens->elems[src_pos].string_repr = tokens->elems[src_pos].value.string;
             str_fill(str, strlen(str), ' ');
         }
         src_pos += strlen(str);
@@ -141,6 +142,7 @@ void tokenize_comments(Tokens *tokens, StrVector *str_split) {
             char* comment_start = str + comment_index - 1;
             tokens->elems[comment_src_pos].type = TK_COMMENT;
             tokens->elems[comment_src_pos].value.string = str_substr(comment_start, strlen(comment_start));
+            tokens->elems[comment_src_pos].string_repr = tokens->elems[comment_src_pos].value.string;
             str_fill(comment_start, strlen(comment_start), ' ');
         }
         src_pos += strlen(str);
@@ -164,6 +166,7 @@ void tokenize_strings(Tokens *tokens, StrVector *str_split) {
                 int string_src_pos = src_pos + s_quote_start + 1;
                 tokens->elems[string_src_pos].type = TK_LCHAR;
                 tokens->elems[string_src_pos].value.string = str_substr(str+s_quote_start, search_str - (str + s_quote_start));
+                tokens->elems[string_src_pos].string_repr = tokens->elems[string_src_pos].value.string;
                 str_fill(str+s_quote_start-1, search_str - (str + s_quote_start) + 2, ' ');
             }
         }
@@ -179,6 +182,7 @@ void tokenize_strings(Tokens *tokens, StrVector *str_split) {
                 int string_src_pos = src_pos + quote_start + 1;
                 tokens->elems[string_src_pos].type = TK_LSTRING;
                 tokens->elems[string_src_pos].value.string = str_substr(str+quote_start, search_str - (str + quote_start));
+                tokens->elems[string_src_pos].string_repr = tokens->elems[string_src_pos].value.string;
                 str_fill(str+quote_start-1, search_str - (str + quote_start) + 2, ' ');
             }
         }
@@ -304,6 +308,7 @@ void tokenize_idents(Tokens *tokens, StrVector *str_split) {
                     int length = str - ident_start;
                     tokens->elems[src_pos-length].type = TK_IDENT;
                     tokens->elems[src_pos-length].value.string = str_substr(ident_start, length);
+                    tokens->elems[src_pos-length].string_repr = tokens->elems[src_pos-length].value.string;
                     str_fill(ident_start, length, ' ');
                     matching_ident = false;
                 }
@@ -321,6 +326,7 @@ void tokenize_idents(Tokens *tokens, StrVector *str_split) {
             int length = str - ident_start;
             tokens->elems[src_pos-length].type = TK_IDENT;
             tokens->elems[src_pos-length].value.string = str_substr(ident_start, length);
+            tokens->elems[src_pos-length].string_repr = tokens->elems[src_pos-length].value.string;
             str_fill(ident_start, length, ' ');
             matching_ident = false;
         }
@@ -359,6 +365,7 @@ void tokenize_ints(Tokens *tokens, StrVector *str_split) {
                     int length = str - ident_start;
                     tokens->elems[src_pos-length].type = TK_LINT;
                     tokens->elems[src_pos-length].value.string = str_substr(ident_start, length);
+                    tokens->elems[src_pos-length].string_repr = tokens->elems[src_pos-length].value.string;
                     str_fill(ident_start, length, ' ');
                     matching = false;
                 }
@@ -376,6 +383,7 @@ void tokenize_ints(Tokens *tokens, StrVector *str_split) {
             int length = str - ident_start;
             tokens->elems[src_pos-length].type = TK_LINT;
             tokens->elems[src_pos-length].value.string = str_substr(ident_start, length);
+            tokens->elems[src_pos-length].string_repr = tokens->elems[src_pos-length].value.string;
             str_fill(ident_start, length, ' ');
             matching = false;
         }
@@ -422,6 +430,7 @@ void tokenize_floats(Tokens *tokens, StrVector *str_split) {
                     int length = str - ident_start;
                     tokens->elems[src_pos-length].type = TK_LFLOAT;
                     tokens->elems[src_pos-length].value.string = str_substr(ident_start, length);
+                    tokens->elems[src_pos-length].string_repr = tokens->elems[src_pos-length].value.string;
                     str_fill(ident_start, length, ' ');
                     matching = false;
                     found_dot = false;
@@ -440,6 +449,7 @@ void tokenize_floats(Tokens *tokens, StrVector *str_split) {
             int length = str - ident_start;
             tokens->elems[src_pos-length].type = TK_LFLOAT;
             tokens->elems[src_pos-length].value.string = str_substr(ident_start, length);
+            tokens->elems[src_pos-length].string_repr = tokens->elems[src_pos-length].value.string;
             str_fill(ident_start, length, ' ');
             matching = false;
             found_dot = false;
@@ -457,51 +467,61 @@ void tokenize_delims(Tokens *tokens, StrVector *str_split) {
                     *str = ' ';
                     tokens->elems[src_pos].type = TK_DELIMITER;
                     tokens->elems[src_pos].value.delim = DL_OPENBRACE;
+                    tokens->elems[src_pos].string_repr = "{";
                     break;
                 case '}':
                     *str = ' ';
                     tokens->elems[src_pos].type = TK_DELIMITER;
                     tokens->elems[src_pos].value.delim = DL_CLOSEBRACE;
+                    tokens->elems[src_pos].string_repr = "}";
                     break;
                 case '(':
                     *str = ' ';
                     tokens->elems[src_pos].type = TK_DELIMITER;
                     tokens->elems[src_pos].value.delim = DL_OPENPAREN;
+                    tokens->elems[src_pos].string_repr = "(";
                     break;
                 case ')':
                     *str = ' ';
                     tokens->elems[src_pos].type = TK_DELIMITER;
                     tokens->elems[src_pos].value.delim = DL_CLOSEPAREN;
+                    tokens->elems[src_pos].string_repr = ")";
                     break;
                 case '[':
                     *str = ' ';
                     tokens->elems[src_pos].type = TK_DELIMITER;
                     tokens->elems[src_pos].value.delim = DL_OPENBRACKET;
+                    tokens->elems[src_pos].string_repr = "[";
                     break;
                 case ']':
                     *str = ' ';
                     tokens->elems[src_pos].type = TK_DELIMITER;
                     tokens->elems[src_pos].value.delim = DL_CLOSEBRACKET;
+                    tokens->elems[src_pos].string_repr = "]";
                     break;
                 case '.':
                     *str = ' ';
                     tokens->elems[src_pos].type = TK_DELIMITER;
                     tokens->elems[src_pos].value.delim = DL_DOT;
+                    tokens->elems[src_pos].string_repr = ".";
                     break;
                 case ',':
                     *str = ' ';
                     tokens->elems[src_pos].type = TK_DELIMITER;
                     tokens->elems[src_pos].value.delim = DL_COMMA;
+                    tokens->elems[src_pos].string_repr = ",";
                     break;
                 case ';':
                     *str = ' ';
                     tokens->elems[src_pos].type = TK_DELIMITER;
                     tokens->elems[src_pos].value.delim = DL_SEMICOLON;
+                    tokens->elems[src_pos].string_repr = ";";
                     break;
                 case ':':
                     *str = ' ';
                     tokens->elems[src_pos].type = TK_DELIMITER;
                     tokens->elems[src_pos].value.delim = DL_COLON;
+                    tokens->elems[src_pos].string_repr = ":";
                     break;
             }
             src_pos++;
@@ -518,10 +538,10 @@ void tokens_print(Tokens* tokens) {
             continue;
         }
         if (t.string_repr != 0) {
-            printf("[T:%i, V:%i, STR:%s]\n", t.type, t.value.ivalue, t.string_repr);
+            printf("[T: %i, V: %i, STR: \"%s\"]\n", t.type, t.value.ivalue, t.string_repr);
         }
         else {
-            printf("[T:%i, V:%i]\n", t.type, t.value.ivalue);
+            printf("[T: %i, V: %i]\n", t.type, t.value.ivalue);
         }
     }
 }
