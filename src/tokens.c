@@ -517,16 +517,11 @@ void tokens_print(Tokens* tokens) {
         if (t.type == TK_NONE) {
             continue;
         }
-        printf("[T:%i, TS:%i ", t.type, t.value.keyword);
-        if (t.type == TK_COMMENT || t.type == TK_PREPROCESSOR) {
-            printf("V: %s", t.value.string);
-        } 
-        else if (t.type == TK_LSTRING) {
-            printf("V: \"%s\"", t.value.string);
-        } 
-        else if (t.type == TK_LCHAR) {
-            printf("V: \'%s\'", t.value.string);
+        if (t.string_repr != 0) {
+            printf("[T:%i, V:%i, STR:%s]\n", t.type, t.value.ivalue, t.string_repr);
         }
-        printf("], \n");
+        else {
+            printf("[T:%i, V:%i]\n", t.type, t.value.ivalue);
+        }
     }
 }

@@ -1,7 +1,9 @@
 #pragma once
 #include <stdbool.h>
 #include <stdlib.h>
+#include <stdio.h>
 #include <string.h>
+#include <ctype.h>
 
 /*
 Contains a string vector and various string helpers
@@ -61,7 +63,7 @@ int str_contains(char *str, char *match);
 int str_contains_word(char *str, char *match);
 
 // Fill a str to char c, inplace. Has to be a mutable str!
-char* str_fill(char *str, int length, char c);
+void str_fill(char *str, int length, char c);
 
 // Strip all whitespace from the start and the end of string
 char* str_strip(char *str);

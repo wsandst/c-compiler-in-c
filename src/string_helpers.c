@@ -172,9 +172,8 @@ int str_contains_word(char *str, char* match) {
     return 0;
 }
 
-char* str_fill(char *str, int length, char c) {
-    for (size_t i = 0; i < length; i++)
-    {
+void str_fill(char *str, int length, char c) {
+    for (size_t i = 0; i < length; i++) {
         str[i] = c;
     }
 }

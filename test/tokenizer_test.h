@@ -6,13 +6,19 @@
 #include "../src/tokens.h"
 #include "../src/file_helpers.h"
 
+// Declarations
+void test_tokenizer();
 void test_tokenizer_preprocessor();
 void test_tokenizer_comments();
 void test_tokenizer_strings();
 void test_tokenizer_keywords();
 void test_tokenizer_ops();
+void test_tokenizer_idents();
+void test_tokenizer_values();
 void test_tokenizer_delims();
+void test_tokenizer_large_src();
 
+// Definitions
 void test_tokenizer() {
     printf("[TEST] Running tokenizer tests...\n");
 
@@ -155,7 +161,6 @@ void test_tokenizer_idents() {
     assert(tokens.elems[6].type == TK_IDENT);
     assert(tokens.elems[7].type == TK_IDENT);
     assert(strcmp(tokens.elems[7].value.string, "_a") == 0);
-    Token test = tokens.elems[8];
     assert(tokens.elems[8].type == TK_IDENT);
     assert(strcmp(tokens.elems[8].value.string, "_") == 0);
     assert(tokens.elems[9].type == TK_IDENT);
@@ -190,7 +195,6 @@ void test_tokenizer_values() {
     assert(strcmp(tokens.elems[2].value.string, "3134") == 0);
     assert(tokens.elems[3].type == TK_DELIMITER);
     // Floats
-    Token test = tokens.elems[4];
     assert(tokens.elems[4].type == TK_LFLOAT);
     assert(tokens.elems[5].type == TK_LFLOAT);
     assert(tokens.elems[6].type == TK_LFLOAT);

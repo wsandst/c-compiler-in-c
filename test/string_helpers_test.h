@@ -5,6 +5,10 @@
 
 #include "../src/string_helpers.h"
 
+void test_string_helpers();
+void test_str_vec();
+void test_helper_funcs();
+
 void test_string_helpers() {
     printf("[TEST] Running string helper tests...\n");
     test_str_vec();
