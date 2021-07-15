@@ -7,9 +7,8 @@ Take in a source file as a string and return an array of TOKENS
 #include <string.h>
 #include "string_helpers.h"
 
-enum TokenType {TK_NONE, TK_OP, TK_IDENT, TK_TYPE, TK_KEYWORD, TK_LITERAL, TK_DELIMITER, TK_COMMENT, TK_PREPROCESSOR};
-
-enum LiteralType {TK_LINT, TK_LFLOAT, TK_LSTRING, TK_LCHAR};
+enum TokenType {TK_NONE, TK_OP, TK_IDENT, TK_TYPE, TK_KEYWORD, TK_LITERAL, TK_DELIMITER, TK_COMMENT, TK_PREPROCESSOR,
+            TK_LINT, TK_LFLOAT, TK_LSTRING, TK_LCHAR};
 
 enum OpType {TK_PLUS, TK_MINUS, TK_EXP, TK_MULT, TK_DIV, TK_MOD, TK_RIGHTSHIFT, TK_LEFTSHIFT, TK_BITOR, TK_BITAND,
         TK_COMPL, TK_XOR, TK_NOT, TK_AND, TK_OR, TK_EQ, TK_NEQ, TK_ASSIGN, TK_GT, TK_LT, TK_LTE, TK_GTE, TK_QST};
@@ -26,20 +25,18 @@ typedef struct Tokens Tokens;
 
 struct Token {
     enum TokenType type;
-    union sub_type {
-        enum KeywordType keyword;
-        enum OpType op;
-        enum DelimType delim;
-        enum LiteralType literal;
-    } sub_type;
-    union data {
+    union value {
         char* string;
         int ivalue;
         float fvalue;
         double dvalue;
         char cvalue;
-    } data;
+        enum KeywordType keyword;
+        enum OpType op;
+        enum DelimType delim;
+    } value;
     int src_pos;
+    char* string_repr;
 };
 
 struct Tokens {

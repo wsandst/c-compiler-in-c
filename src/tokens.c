@@ -79,7 +79,7 @@ void tokenize_preprocessor(Tokens *tokens, StrVector *str_split) {
         // Is this a preprocessor line?
         if (str_startswith(str, "#")) {
             tokens->elems[src_pos].type = TK_PREPROCESSOR;
-            tokens->elems[src_pos].data.string = str_copy(str);
+            tokens->elems[src_pos].value.string = str_copy(str);
             str_fill(str, strlen(str), ' ');
         }
         src_pos += strlen(str);
@@ -117,7 +117,7 @@ void tokenize_comments(Tokens *tokens, StrVector *str_split) {
                     str_fill(zero_from, zero_from - str + block_comment_end + 1, ' ');
                 }
                 tokens->elems[comment_src_pos].type = TK_COMMENT;
-                tokens->elems[comment_src_pos].data.string = "BLOCK COMMENT N/A";
+                tokens->elems[comment_src_pos].value.string = "BLOCK COMMENT N/A";
                 seeking_block_comment_end = false;
                 zero_from_start = false;
             }
@@ -139,7 +139,7 @@ void tokenize_comments(Tokens *tokens, StrVector *str_split) {
             int comment_src_pos = src_pos + comment_index + 1;
             char* comment_start = str + comment_index - 1;
             tokens->elems[comment_src_pos].type = TK_COMMENT;
-            tokens->elems[comment_src_pos].data.string = str_substr(comment_start, strlen(comment_start));
+            tokens->elems[comment_src_pos].value.string = str_substr(comment_start, strlen(comment_start));
             str_fill(comment_start, strlen(comment_start), ' ');
         }
         src_pos += strlen(str);
@@ -161,9 +161,8 @@ void tokenize_strings(Tokens *tokens, StrVector *str_split) {
                     search_str++;
                 }
                 int string_src_pos = src_pos + s_quote_start + 1;
-                tokens->elems[string_src_pos].type = TK_LITERAL;
-                tokens->elems[string_src_pos].sub_type.literal = TK_LCHAR;
-                tokens->elems[string_src_pos].data.string = str_substr(str+s_quote_start, search_str - (str + s_quote_start));
+                tokens->elems[string_src_pos].type = TK_LCHAR;
+                tokens->elems[string_src_pos].value.string = str_substr(str+s_quote_start, search_str - (str + s_quote_start));
                 str_fill(str+s_quote_start-1, search_str - (str + s_quote_start) + 2, ' ');
             }
         }
@@ -177,9 +176,8 @@ void tokenize_strings(Tokens *tokens, StrVector *str_split) {
                     search_str++;
                 }
                 int string_src_pos = src_pos + quote_start + 1;
-                tokens->elems[string_src_pos].type = TK_LITERAL;
-                tokens->elems[string_src_pos].sub_type.literal = TK_LSTRING;
-                tokens->elems[string_src_pos].data.string = str_substr(str+quote_start, search_str - (str + quote_start));
+                tokens->elems[string_src_pos].type = TK_LSTRING;
+                tokens->elems[string_src_pos].value.string = str_substr(str+quote_start, search_str - (str + quote_start));
                 str_fill(str+quote_start-1, search_str - (str + quote_start) + 2, ' ');
             }
         }
@@ -228,8 +226,8 @@ void tokenize_keyword(Tokens* tokens, StrVector *str_split, char* keyword, enum 
             int keyword_src_index = src_pos+match_i-1;
             str_fill(start, keyword_length, ' ');
             tokens->elems[keyword_src_index].type = TK_KEYWORD;
-            tokens->elems[keyword_src_index].sub_type.keyword = type;
-            tokens->elems[keyword_src_index].data.string = keyword;
+            tokens->elems[keyword_src_index].value.keyword = type;
+            tokens->elems[keyword_src_index].string_repr = keyword;
         }
         src_pos += strlen(str);
     }
@@ -275,8 +273,8 @@ void tokenize_op(Tokens* tokens, StrVector *str_split, char* op, enum OpType typ
             int keyword_src_index = src_pos+match_i-1;
             str_fill(start, op_length, ' ');
             tokens->elems[keyword_src_index].type = TK_OP;
-            tokens->elems[keyword_src_index].sub_type.keyword = type;
-            tokens->elems[keyword_src_index].data.string = op;
+            tokens->elems[keyword_src_index].value.keyword = type;
+            tokens->elems[keyword_src_index].string_repr = op;
         }
         src_pos += strlen(str);
     } 
@@ -304,7 +302,7 @@ void tokenize_idents(Tokens *tokens, StrVector *str_split) {
                 if (!isalnum(*str)) { // Found end of identifier
                     int length = str - ident_start;
                     tokens->elems[src_pos-length].type = TK_IDENT;
-                    tokens->elems[src_pos-length].data.string = str_substr(ident_start, length);
+                    tokens->elems[src_pos-length].value.string = str_substr(ident_start, length);
                     str_fill(ident_start, length, ' ');
                     matching_ident = false;
                 }
@@ -321,7 +319,7 @@ void tokenize_idents(Tokens *tokens, StrVector *str_split) {
         if (matching_ident) { // Found end of identifier, line ended
             int length = str - ident_start;
             tokens->elems[src_pos-length].type = TK_IDENT;
-            tokens->elems[src_pos-length].data.string = str_substr(ident_start, length);
+            tokens->elems[src_pos-length].value.string = str_substr(ident_start, length);
             str_fill(ident_start, length, ' ');
             matching_ident = false;
         }
@@ -335,16 +333,16 @@ void tokens_print(Tokens* tokens) {
         if (t.type == TK_NONE) {
             continue;
         }
-        printf("[T:%i, TS:%i ", t.type, t.sub_type.keyword);
+        printf("[T:%i, TS:%i ", t.type, t.value.keyword);
         if (t.type == TK_COMMENT || t.type == TK_PREPROCESSOR) {
-            printf("V: %s", t.data.string);
+            printf("V: %s", t.value.string);
         } 
         else if (t.type == TK_LITERAL) {
-            if (t.sub_type.literal == TK_LSTRING) {
-                printf("V: \"%s\"", t.data.string);
+            if (t.type == TK_LSTRING) {
+                printf("V: \"%s\"", t.value.string);
             }
-            else if (t.sub_type.literal == TK_LCHAR) {
-                printf("V: \'%s\'", t.data.string);
+            else if (t.type == TK_LCHAR) {
+                printf("V: \'%s\'", t.value.string);
             }
         }
         printf("], \n");
