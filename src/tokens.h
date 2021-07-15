@@ -7,7 +7,7 @@ Take in a source file as a string and return an array of TOKENS
 #include <string.h>
 #include "string_helpers.h"
 
-enum TokenType {TK_NONE, TK_OP, TK_IDENT, TK_TYPE, TK_KEYWORD, TK_LITERAL, TK_DELIMITER, TK_COMMENT, TK_PREPROCESSOR,
+enum TokenType {TK_NONE, TK_OP, TK_IDENT, TK_TYPE, TK_KEYWORD, TK_DELIMITER, TK_COMMENT, TK_PREPROCESSOR,
             TK_LINT, TK_LFLOAT, TK_LSTRING, TK_LCHAR};
 
 enum OpType {OP_PLUS, OP_MINUS, OP_EXP, OP_MULT, OP_DIV, OP_MOD, OP_RIGHTSHIFT, OP_LEFTSHIFT, OP_BITOR, OP_BITAND,

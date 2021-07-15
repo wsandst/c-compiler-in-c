@@ -2,7 +2,7 @@
 
 /*
 TODO: Implement handling of comments in strings and reverse
-Left to tokenize: 
+Implement tokenization of Hex int values
 */
 
 Tokens tokenize(char* src) {
@@ -20,16 +20,16 @@ Tokens tokenize(char* src) {
 
     //str_vec_print(&lines);
     
-
     tokenize_preprocessor(&tokens, &lines);
     tokenize_comments(&tokens, &lines);
     tokenize_strings(&tokens, &lines);
     tokenize_keywords(&tokens, &lines);
     tokenize_ops(&tokens, &lines);
     tokenize_idents(&tokens, &lines);
+    tokenize_values(&tokens, &lines);
     tokenize_delims(&tokens, &lines);
 
-    str_vec_print(&lines);
+    //str_vec_print(&lines);
 
     //tokens_print(&tokens);
 
@@ -327,6 +327,126 @@ void tokenize_idents(Tokens *tokens, StrVector *str_split) {
     }
 }
 
+// Tokenize int and float literals
+// Floats: 1.3f, 1.3, .3
+// Ints: 34312, 0xFAFA, don't do binary for now
+void tokenize_values(Tokens *tokens, StrVector *str_split) {
+    tokenize_ints(tokens, str_split);
+    tokenize_floats(tokens, str_split);
+}
+
+void tokenize_ints(Tokens *tokens, StrVector *str_split) {
+    int src_pos = 0;
+    char* ident_start;
+    bool matching = false;
+    for (size_t i = 0; i < str_split->size; i++) {
+        bool prev_is_whitespace = true;
+        char* str = str_split->elems[i];
+        while (*str != '\0') {
+            if (!matching) {
+                if (isdigit(*str) && prev_is_whitespace) { // Found start of int
+                    matching = true;
+                    ident_start = str;
+                }
+            }
+            else {
+                if (isalpha(*str) || *str == '_' || *str == '.') { // Invalid character in int
+                    matching = false;
+                    prev_is_whitespace = false;
+                    continue;
+                }
+                else if (!isalnum(*str)) { // End of int
+                    int length = str - ident_start;
+                    tokens->elems[src_pos-length].type = TK_LINT;
+                    tokens->elems[src_pos-length].value.string = str_substr(ident_start, length);
+                    str_fill(ident_start, length, ' ');
+                    matching = false;
+                }
+            }
+            if (!isalnum(*str) && *str != '_' && *str != '.') {
+                prev_is_whitespace = true;
+            }
+            else {
+                prev_is_whitespace = false;
+            }
+            str++;
+            src_pos++;
+        }
+        if (matching) { // Found end of identifier, line ended
+            int length = str - ident_start;
+            tokens->elems[src_pos-length].type = TK_LINT;
+            tokens->elems[src_pos-length].value.string = str_substr(ident_start, length);
+            str_fill(ident_start, length, ' ');
+            matching = false;
+        }
+    }
+}
+
+// Very similar to int, except there has to be a dot somewhere, either as first char or somewhere inside
+void tokenize_floats(Tokens *tokens, StrVector *str_split) {
+    int src_pos = 0;
+    char* ident_start;
+    bool matching = false;
+    bool found_dot = false;
+    bool found_digit = false;
+    for (size_t i = 0; i < str_split->size; i++) {
+        bool prev_is_whitespace = true;
+        char* str = str_split->elems[i];
+        while (*str != '\0') {
+            if (!matching) {
+                if ((isdigit(*str) || *str == '.') && prev_is_whitespace) { // Found start of int
+                    matching = true;
+                    ident_start = str;
+                    if (*str == '.') {
+                        found_dot = true;
+                    }
+                    else if (isdigit(*str)) {
+                        found_digit = true;
+                    }
+                }
+            }
+            else {
+                if (*str == '.') {
+                    found_dot = true;
+                }
+                else if (isdigit(*str)) {
+                    found_digit = true;
+                }
+                else if (isalpha(*str) || *str == '_' || (!isalpha(*str) && (!found_digit || !found_dot))) { // Invalid character in int
+                    matching = false;
+                    prev_is_whitespace = false;
+                    found_dot = false;
+                    continue;
+                }
+                else if (!isalnum(*str)) { // End of int
+                    int length = str - ident_start;
+                    tokens->elems[src_pos-length].type = TK_LFLOAT;
+                    tokens->elems[src_pos-length].value.string = str_substr(ident_start, length);
+                    str_fill(ident_start, length, ' ');
+                    matching = false;
+                    found_dot = false;
+                }
+            }
+            if (!isalnum(*str) && *str != '_' && *str != '.') {
+                prev_is_whitespace = true;
+            }
+            else {
+                prev_is_whitespace = false;
+            }
+            str++;
+            src_pos++;
+        }
+        if (matching) { // Found end of identifier, line ended
+            int length = str - ident_start;
+            tokens->elems[src_pos-length].type = TK_LFLOAT;
+            tokens->elems[src_pos-length].value.string = str_substr(ident_start, length);
+            str_fill(ident_start, length, ' ');
+            matching = false;
+            found_dot = false;
+        }
+    }
+}
+
 void tokenize_delims(Tokens *tokens, StrVector *str_split) {
     int src_pos = 0;
     for (size_t i = 0; i < str_split->size; i++) {
@@ -401,15 +521,12 @@ void tokens_print(Tokens* tokens) {
         if (t.type == TK_COMMENT || t.type == TK_PREPROCESSOR) {
             printf("V: %s", t.value.string);
         } 
-        else if (t.type == TK_LITERAL) {
-            if (t.type == TK_LSTRING) {
-                printf("V: \"%s\"", t.value.string);
-            }
-            else if (t.type == TK_LCHAR) {
-                printf("V: \'%s\'", t.value.string);
-            }
+        else if (t.type == TK_LSTRING) {
+            printf("V: \"%s\"", t.value.string);
+        } 
+        else if (t.type == TK_LCHAR) {
+            printf("V: \'%s\'", t.value.string);
         }
         printf("], \n");
     }
-    
 }

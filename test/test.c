@@ -6,5 +6,6 @@ int main() {
     printf("[TEST] Running all tests...\n");
     test_string_helpers();
     test_tokenizer();
+    printf("[TEST] Passed all tests!\n");
     return 0;
 }

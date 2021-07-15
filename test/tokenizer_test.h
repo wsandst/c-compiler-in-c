@@ -21,6 +21,7 @@ void test_tokenizer() {
     test_tokenizer_keywords();
     test_tokenizer_ops();
     test_tokenizer_idents();
+    test_tokenizer_values();
     test_tokenizer_delims();
 
     printf("[TEST] Passed tokenizer tests!\n");
@@ -142,26 +143,25 @@ void test_tokenizer_idents() {
     // Identifiers
     char* src = "int x = 5; \n abc \n a \n _a \n 1a \n _ \na";
     Tokens tokens = tokenize(src);
-    tokens_print(&tokens);
     assert(tokens.elems[0].type == TK_KEYWORD);
     assert(tokens.elems[1].type == TK_IDENT);
     assert(tokens.elems[2].type == TK_OP);
-    assert(tokens.elems[3].type == TK_DELIMITER);
-    assert(tokens.elems[4].type == TK_IDENT);
+    assert(tokens.elems[3].type == TK_LINT);
+    assert(tokens.elems[4].type == TK_DELIMITER);
     assert(tokens.elems[5].type == TK_IDENT);
     assert(tokens.elems[6].type == TK_IDENT);
-    assert(strcmp(tokens.elems[6].value.string, "_a") == 0);
-    Token test = tokens.elems[7];
     assert(tokens.elems[7].type == TK_IDENT);
-    assert(strcmp(tokens.elems[7].value.string, "_") == 0);
+    assert(strcmp(tokens.elems[7].value.string, "_a") == 0);
+    Token test = tokens.elems[8];
     assert(tokens.elems[8].type == TK_IDENT);
+    assert(strcmp(tokens.elems[8].value.string, "_") == 0);
+    assert(tokens.elems[9].type == TK_IDENT);
     tokens_free(&tokens);
 }
 
 void test_tokenizer_delims() {
     char* src = "{}()[],.;:";
     Tokens tokens = tokenize(src);
-    tokens_print(&tokens);
     assert(tokens.elems[0].type == TK_DELIMITER);
     assert(tokens.elems[0].value.delim == DL_OPENBRACE);
     assert(tokens.elems[1].value.delim == DL_CLOSEBRACE);
@@ -173,5 +173,24 @@ void test_tokenizer_delims() {
     assert(tokens.elems[7].value.delim == DL_DOT);
     assert(tokens.elems[8].value.delim == DL_SEMICOLON);
     assert(tokens.elems[9].value.delim == DL_COLON);
+    tokens_free(&tokens);
+}
+
+void test_tokenizer_values() {
+    char* src = "13; \n3134\n 53asd; 1.3 .3 3. 1.3b ;";
+    Tokens tokens = tokenize(src);
+    // Ints
+    assert(tokens.elems[0].type == TK_LINT);
+    assert(strcmp(tokens.elems[0].value.string, "13") == 0);
+    assert(tokens.elems[1].type == TK_DELIMITER);
+    assert(tokens.elems[2].type == TK_LINT);
+    assert(strcmp(tokens.elems[2].value.string, "3134") == 0);
+    assert(tokens.elems[3].type == TK_DELIMITER);
+    // Floats
+    Token test = tokens.elems[4];
+    assert(tokens.elems[4].type == TK_LFLOAT);
+    assert(tokens.elems[5].type == TK_LFLOAT);
+    assert(tokens.elems[6].type == TK_LFLOAT);
+    assert(tokens.elems[7].type == TK_DELIMITER);
     tokens_free(&tokens);
 }
