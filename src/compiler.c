@@ -1,4 +1,5 @@
 #include "tokens.h"
+#include "parser.h"
 #include "file_helpers.h"
 
 int main() {

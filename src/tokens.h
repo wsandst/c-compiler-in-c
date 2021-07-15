@@ -13,18 +13,89 @@ Normally most of this would be done using regex.
 
 #include "string_helpers.h"
 
-enum TokenType {TK_NONE, TK_OP, TK_IDENT, TK_TYPE, TK_KEYWORD, TK_DELIMITER, TK_COMMENT, TK_PREPROCESSOR,
-            TK_LINT, TK_LFLOAT, TK_LSTRING, TK_LCHAR};
+enum TokenType {
+    TK_NONE, 
+    TK_OP, 
+    TK_IDENT, 
+    TK_TYPE, 
+    TK_KEYWORD, 
+    TK_DELIMITER, 
+    TK_COMMENT, 
+    TK_PREPROCESSOR,
+    TK_LINT, 
+    TK_LFLOAT, 
+    TK_LSTRING, 
+    TK_LCHAR
+};
 
-enum OpType {OP_PLUS, OP_MINUS, OP_EXP, OP_MULT, OP_DIV, OP_MOD, OP_RIGHTSHIFT, OP_LEFTSHIFT, OP_BITOR, OP_BITAND,
-        OP_COMPL, OP_XOR, OP_NOT, OP_AND, OP_OR, OP_EQ, OP_NEQ, OP_ASSIGN, OP_GT, OP_LT, OP_LTE, OP_GTE, OP_QST};
+enum OpType {
+    OP_PLUS, 
+    OP_MINUS, 
+    OP_EXP, 
+    OP_MULT, 
+    OP_DIV, 
+    OP_MOD, 
+    OP_RIGHTSHIFT, 
+    OP_LEFTSHIFT, 
+    OP_BITOR, 
+    OP_BITAND,
+    OP_COMPL, 
+    OP_XOR, 
+    OP_NOT, 
+    OP_AND, 
+    OP_OR, 
+    OP_EQ, 
+    OP_NEQ, 
+    OP_ASSIGN, 
+    OP_GT, 
+    OP_LT, 
+    OP_LTE, 
+    OP_GTE, 
+    OP_QST};
 
-enum KeywordType {KW_IF, KW_ELSE, KW_WHILE, KW_DO, KW_FOR, KW_BREAK, KW_CONTINUE, KW_RETURN, KW_SWITCH, KW_CASE, KW_DEFAULT, KW_GOTO,
-            KW_LABEL, KW_TYPEDEF, KW_INCLUDE, KW_DEFINE, KW_CONST, KW_LONG, KW_SHORT, KW_SIGNED, KW_UNSIGNED, KW_STRUCT, KW_UNION, 
-            KW_INT, KW_FLOAT, KW_DOUBLE, KW_CHAR, KW_VOID};
+enum KeywordType {
+    KW_IF, 
+    KW_ELSE, 
+    KW_WHILE, 
+    KW_DO, 
+    KW_FOR, 
+    KW_BREAK, 
+    KW_CONTINUE, 
+    KW_RETURN, 
+    KW_SWITCH, 
+    KW_CASE, 
+    KW_DEFAULT, 
+    KW_GOTO,
+    KW_LABEL, 
+    KW_TYPEDEF, 
+    KW_INCLUDE, 
+    KW_DEFINE, 
+    KW_CONST, 
+    KW_LONG, 
+    KW_SHORT, 
+    KW_SIGNED, 
+    KW_UNSIGNED, 
+    KW_STRUCT, 
+    KW_UNION, 
+    KW_INT, 
+    KW_FLOAT, 
+    KW_DOUBLE, 
+    KW_CHAR, 
+    KW_VOID
+};
 
-enum DelimType {DL_SEMICOLON, DL_COMMA, DL_COLON, DL_DOT, DL_OPENPAREN, DL_CLOSEPAREN, 
-    DL_OPENBRACE, DL_CLOSEBRACE, DL_OPENBRACKET, DL_CLOSEBRACKET};
+enum DelimType {
+    DL_SEMICOLON, 
+    DL_COMMA, 
+    DL_COLON, 
+    DL_DOT, 
+    DL_OPENPAREN, 
+    DL_CLOSEPAREN, 
+    DL_OPENBRACE, 
+    DL_CLOSEBRACE, 
+    DL_OPENBRACKET, 
+    DL_CLOSEBRACKET
+};
 
 typedef struct Token Token;
 typedef struct Tokens Tokens;
