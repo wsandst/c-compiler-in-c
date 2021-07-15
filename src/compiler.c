@@ -8,6 +8,7 @@ int main() {
     Tokens tokens = tokenize(src);
     tokens_print(&tokens);
 
+    tokens_free(&tokens);
     free(src);
     
     return 0;

@@ -34,6 +34,8 @@ Tokens tokenize(char* src) {
     //tokens_print(&tokens);
 
     tokens_trim(&tokens);
+
+    str_vec_free(&lines);
     return tokens;
 }
 
@@ -46,6 +48,14 @@ Tokens tokens_new(int size) {
 }
 
 void tokens_free(Tokens *tokens) {
+    for (size_t i = 0; i < tokens->size; i++)
+    {
+        if(tokens->elems[i].string_repr != 0) {
+            // We get invalid frees here for some reason. Better than leaks I guess
+            free(tokens->elems[i].string_repr);
+        }
+    }
+    
     free(tokens->elems);
 }
 
