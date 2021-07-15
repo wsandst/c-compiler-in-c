@@ -26,8 +26,9 @@ Tokens tokenize(char* src) {
     tokenize_strings(&tokens, &lines);
     tokenize_keywords(&tokens, &lines);
     tokenize_ops(&tokens, &lines);
+    tokenize_idents(&tokens, &lines);
 
-    //str_vec_print(&lines);
+    str_vec_print(&lines);
 
     //tokens_print(&tokens);
 
@@ -222,7 +223,7 @@ void tokenize_keyword(Tokens* tokens, StrVector *str_split, char* keyword, enum 
     {
         char* str = str_split->elems[i];
         int match_i = 0;
-        while (match_i = str_contains_word(str, keyword)) {
+        while ((match_i = str_contains_word(str, keyword))) {
             char* start = str + match_i-1;
             int keyword_src_index = src_pos+match_i-1;
             str_fill(start, keyword_length, ' ');
@@ -269,7 +270,7 @@ void tokenize_op(Tokens* tokens, StrVector *str_split, char* op, enum OpType typ
     {
         char* str = str_split->elems[i];
         int match_i = 0;
-        while (match_i = str_contains(str, op)) {
+        while ((match_i = str_contains(str, op))) {
             char* start = str + match_i-1;
             int keyword_src_index = src_pos+match_i-1;
             str_fill(start, op_length, ' ');
@@ -281,6 +282,52 @@ void tokenize_op(Tokens* tokens, StrVector *str_split, char* op, enum OpType typ
     } 
 }
 
+void tokenize_idents(Tokens *tokens, StrVector *str_split) {
+    // Find words (separated by non-alphanum characters) which
+    // starts with an alpha char or _, made up of only alphanum characters
+    // Make a new version of str_contains_word? str_contains_alpha_word?
+    int src_pos = 0;
+    char* ident_start;
+    bool matching_ident = false;
+    for (size_t i = 0; i < str_split->size; i++) {
+        char* str_start = str_split->elems[i];
+        char* str = str_start;
+        bool prev_is_whitespace = true;
+        while (*str != '\0') {
+            if (!matching_ident) {
+                if ((isalpha(*str) || *str == '_') && prev_is_whitespace) { // Found start of identifier
+                    matching_ident = true;
+                    ident_start = str;
+                }
+            }
+            else {
+                if (!isalnum(*str)) { // Found end of identifier
+                    int length = str - ident_start;
+                    tokens->elems[src_pos-length].type = TK_IDENT;
+                    tokens->elems[src_pos-length].data.string = str_substr(ident_start, length);
+                    str_fill(ident_start, length, ' ');
+                    matching_ident = false;
+                }
+            }
+            if (!isalnum(*str) && *str != '_') {
+                prev_is_whitespace = true;
+            }
+            else {
+                prev_is_whitespace = false;
+            }
+            str++;
+            src_pos++;
+        }
+        if (matching_ident) { // Found end of identifier, line ended
+            int length = str - ident_start;
+            tokens->elems[src_pos-length].type = TK_IDENT;
+            tokens->elems[src_pos-length].data.string = str_substr(ident_start, length);
+            str_fill(ident_start, length, ' ');
+            matching_ident = false;
+        }
+    }
+}
+
 void tokens_print(Tokens* tokens) {
     for (size_t i = 0; i < tokens->size; i++)
     {
@@ -288,7 +335,7 @@ void tokens_print(Tokens* tokens) {
         if (t.type == TK_NONE) {
             continue;
         }
-        printf("[T:%i, TS:%i ", t.type, t.sub_type);
+        printf("[T:%i, TS:%i ", t.type, t.sub_type.keyword);
         if (t.type == TK_COMMENT || t.type == TK_PREPROCESSOR) {
             printf("V: %s", t.data.string);
         } 
@@ -296,7 +343,7 @@ void tokens_print(Tokens* tokens) {
             if (t.sub_type.literal == TK_LSTRING) {
                 printf("V: \"%s\"", t.data.string);
             }
-            else if (t.sub_type.literal == TK_CHAR) {
+            else if (t.sub_type.literal == TK_LCHAR) {
                 printf("V: \'%s\'", t.data.string);
             }
         }

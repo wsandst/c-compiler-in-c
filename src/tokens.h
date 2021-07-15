@@ -3,6 +3,7 @@ Take in a source file as a string and return an array of TOKENS
 */
 #pragma once
 #include <stdlib.h>
+#include <stdio.h>
 #include <string.h>
 #include "string_helpers.h"
 
@@ -67,8 +68,10 @@ void tokenize_strings(Tokens *tokens, StrVector *str_split);
 void tokenize_chars(Tokens *tokens, StrVector *str_split);
 
 void tokenize_keywords(Tokens *tokens, StrVector *str_split);
-void tokenize_types(Tokens *tokens, StrVector *str_split);
+void tokenize_keyword(Tokens* tokens, StrVector *str_split, char* keyword, enum KeywordType type);
+
 void tokenize_ops(Tokens *tokens, StrVector *str_split);
+void tokenize_op(Tokens* tokens, StrVector *str_split, char* op, enum OpType type);
 
 void tokenize_idents(Tokens *tokens, StrVector *str_split);
 

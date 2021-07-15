@@ -18,7 +18,7 @@ char* str_copy(char *str) {
 // Copy a substring of a string. Remember to free it later!
 char* str_substr(const char *string, int length)
 {
-	char *output_string = calloc(length+1, sizeof(*output_string));
+	char *output_string = calloc(length+1, sizeof(char));
 	memcpy(output_string, string, length*sizeof(char));
 	return output_string;
 }
