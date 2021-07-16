@@ -20,6 +20,7 @@ char* str_substr(const char *string, int length)
 {
 	char *output_string = calloc(length+1, sizeof(char));
 	memcpy(output_string, string, length*sizeof(char));
+    *(output_string+length) = '\0';
 	return output_string;
 }
 

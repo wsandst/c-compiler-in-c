@@ -250,4 +250,6 @@ void test_tokenizer_large_src() {
     assert(tokens.elems[tokens.size-8].type == TK_OP);
 
     tokens_free(&tokens);
+    str_vec_free(&lines);
+    free(src);
 }

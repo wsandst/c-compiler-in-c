@@ -1,21 +1,22 @@
 #include "parser.h"
 
-void ast_free(AST *ast) {
-    ast_node_free(ast->program);
-}
 
 // Linked list used for freeing memory correctly
-ASTNode *ast_node_end = NULL;
+ASTNode *ast_node_mem_end = NULL;
+ASTNode *ast_node_mem_start;
 
 ASTNode *ast_node_new(ASTNodeType type, int count) {
     ASTNode* node = calloc(count, sizeof(ASTNode));
     node->type = type;
 
     // Memory managment, linked list used for freeing later
-    if (ast_node_end != NULL) {
-        ast_node_end->next_mem = node;
+    if (ast_node_mem_end != NULL) {
+        ast_node_mem_end->next_mem = node;
     }
-    ast_node_end = node;
+    else {
+        ast_node_mem_start = node;
+    }
+    ast_node_mem_end = node;
 
     return node;
 }
@@ -28,10 +29,36 @@ void ast_node_free(ASTNode *ast_node) {
     free(ast_node);
 }
 
+// Linked list used for freeing memory correctly
+ASTNode *function_mem_end = NULL;
+ASTNode *function_mem_start;
+
 Function *function_new(char *name) {
     Function* func = calloc(1, sizeof(Function));
     func->name = name;
+
+    // Memory managment, linked list used for freeing later
+    if (function_mem_end != NULL) {
+        function_mem_end->next_mem = func;
+    }
+    else {
+        function_mem_start = func;
+    }
+    function_mem_end = func;
+
     return func;
+}
+
+void function_free(Function *func) {
+    if (func->next_mem != NULL) {
+        ast_node_free(func->next_mem);
+    }
+    free(func);
+}
+
+void ast_free(AST *ast) {
+    ast_node_free(ast_node_mem_start);
+    function_free(function_mem_start);
 }
 
 // This should be done recursively. Go deeper if necessary or backtrack. Always keep track of the position in the source

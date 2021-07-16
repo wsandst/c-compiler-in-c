@@ -96,6 +96,8 @@ struct Function {
     VarTypeEnum return_type;
     VarTypeEnum* params;
     ASTNode *body;
+
+    Function *next_mem; // Linked list used for freeing memory correctly
 };
 
 struct ASTNode {
