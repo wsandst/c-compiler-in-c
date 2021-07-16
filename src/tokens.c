@@ -3,6 +3,7 @@
 /*
 TODO: Implement handling of comments in strings and reverse
 Implement tokenization of Hex int values
+I don't handle -> correctly. Treat as operator? Or delimiter?
 */
 
 Tokens tokenize(char* src) {
@@ -50,8 +51,8 @@ Tokens tokens_new(int size) {
 void tokens_free(Tokens *tokens) {
     for (size_t i = 0; i < tokens->size; i++)
     {
-        if(tokens->elems[i].string_repr != 0) {
-            // We get invalid frees here for some reason. Better than leaks I guess
+        if(tokens->elems[i].requires_string_free) {
+            // We get invalid frees here for some reason.
             free(tokens->elems[i].string_repr);
         }
     }
@@ -92,6 +93,7 @@ void tokenize_preprocessor(Tokens *tokens, StrVector *str_split) {
             tokens->elems[src_pos].type = TK_PREPROCESSOR;
             tokens->elems[src_pos].value.string = str_copy(str);
             tokens->elems[src_pos].string_repr = tokens->elems[src_pos].value.string;
+            tokens->elems[src_pos].requires_string_free = true;
             str_fill(str, strlen(str), ' ');
         }
         src_pos += strlen(str);
@@ -153,6 +155,7 @@ void tokenize_comments(Tokens *tokens, StrVector *str_split) {
             tokens->elems[comment_src_pos].type = TK_COMMENT;
             tokens->elems[comment_src_pos].value.string = str_substr(comment_start, strlen(comment_start));
             tokens->elems[comment_src_pos].string_repr = tokens->elems[comment_src_pos].value.string;
+            tokens->elems[comment_src_pos].requires_string_free = true;
             str_fill(comment_start, strlen(comment_start), ' ');
         }
         src_pos += strlen(str);
@@ -177,6 +180,7 @@ void tokenize_strings(Tokens *tokens, StrVector *str_split) {
                 tokens->elems[string_src_pos].type = TK_LCHAR;
                 tokens->elems[string_src_pos].value.string = str_substr(str+s_quote_start, search_str - (str + s_quote_start));
                 tokens->elems[string_src_pos].string_repr = tokens->elems[string_src_pos].value.string;
+                tokens->elems[string_src_pos].requires_string_free = true;
                 str_fill(str+s_quote_start-1, search_str - (str + s_quote_start) + 2, ' ');
             }
         }
@@ -193,6 +197,7 @@ void tokenize_strings(Tokens *tokens, StrVector *str_split) {
                 tokens->elems[string_src_pos].type = TK_LSTRING;
                 tokens->elems[string_src_pos].value.string = str_substr(str+quote_start, search_str - (str + quote_start));
                 tokens->elems[string_src_pos].string_repr = tokens->elems[string_src_pos].value.string;
+                tokens->elems[string_src_pos].requires_string_free = true;
                 str_fill(str+quote_start-1, search_str - (str + quote_start) + 2, ' ');
             }
         }
@@ -319,6 +324,7 @@ void tokenize_idents(Tokens *tokens, StrVector *str_split) {
                     tokens->elems[src_pos-length].type = TK_IDENT;
                     tokens->elems[src_pos-length].value.string = str_substr(ident_start, length);
                     tokens->elems[src_pos-length].string_repr = tokens->elems[src_pos-length].value.string;
+                    tokens->elems[src_pos-length].requires_string_free = true;
                     str_fill(ident_start, length, ' ');
                     matching_ident = false;
                 }
@@ -337,6 +343,7 @@ void tokenize_idents(Tokens *tokens, StrVector *str_split) {
             tokens->elems[src_pos-length].type = TK_IDENT;
             tokens->elems[src_pos-length].value.string = str_substr(ident_start, length);
             tokens->elems[src_pos-length].string_repr = tokens->elems[src_pos-length].value.string;
+            tokens->elems[src_pos-length].requires_string_free = true;
             str_fill(ident_start, length, ' ');
             matching_ident = false;
         }
@@ -376,6 +383,7 @@ void tokenize_ints(Tokens *tokens, StrVector *str_split) {
                     tokens->elems[src_pos-length].type = TK_LINT;
                     tokens->elems[src_pos-length].value.string = str_substr(ident_start, length);
                     tokens->elems[src_pos-length].string_repr = tokens->elems[src_pos-length].value.string;
+                    tokens->elems[src_pos-length].requires_string_free = true;
                     str_fill(ident_start, length, ' ');
                     matching = false;
                 }
@@ -394,6 +402,7 @@ void tokenize_ints(Tokens *tokens, StrVector *str_split) {
             tokens->elems[src_pos-length].type = TK_LINT;
             tokens->elems[src_pos-length].value.string = str_substr(ident_start, length);
             tokens->elems[src_pos-length].string_repr = tokens->elems[src_pos-length].value.string;
+            tokens->elems[src_pos-length].requires_string_free = true;
             str_fill(ident_start, length, ' ');
             matching = false;
         }
@@ -441,6 +450,7 @@ void tokenize_floats(Tokens *tokens, StrVector *str_split) {
                     tokens->elems[src_pos-length].type = TK_LFLOAT;
                     tokens->elems[src_pos-length].value.string = str_substr(ident_start, length);
                     tokens->elems[src_pos-length].string_repr = tokens->elems[src_pos-length].value.string;
+                    tokens->elems[src_pos-length].requires_string_free = true;
                     str_fill(ident_start, length, ' ');
                     matching = false;
                     found_dot = false;
@@ -460,6 +470,7 @@ void tokenize_floats(Tokens *tokens, StrVector *str_split) {
             tokens->elems[src_pos-length].type = TK_LFLOAT;
             tokens->elems[src_pos-length].value.string = str_substr(ident_start, length);
             tokens->elems[src_pos-length].string_repr = tokens->elems[src_pos-length].value.string;
+            tokens->elems[src_pos-length].requires_string_free = true;
             str_fill(ident_start, length, ' ');
             matching = false;
             found_dot = false;

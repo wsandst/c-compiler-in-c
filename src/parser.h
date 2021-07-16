@@ -1,6 +1,7 @@
 #pragma once
 #include <stdbool.h>
 #include "tokens.h"
+#include "string.h"
 
 typedef enum VarTypeEnum VarTypeEnum;
 typedef enum BinaryOpType BinaryOpType;
@@ -54,6 +55,7 @@ enum UnaryOpType {
     UOP_DEREF,      // unary *
     UOP_NOT,        // unary !
     UOP_COMPL,      // unary ~
+    UOP_SIZEOF,     // should this be considered an op?
 };
 
 enum ASTNodeType {
@@ -72,28 +74,24 @@ enum ASTNodeType {
     //AST_GOTO,       // "goto"
     //AST_LABEL,      // Labeled statement
     AST_FUNC_CALL,  // Function call
+    AST_FUNC,
     AST_STMT,
     AST_VAR,        // Variable
     AST_NUM,        // Integer
     AST_CAST,       // Type cast
-};
-
-struct VarType {
-    VarTypeEnum type;
-    int size; //sizeof()
-    bool is_unsigned;
+    AST_ASSIGN, // This is actually an operation in C. Start out like this?
 };
 
 struct Variable {
     Variable *next;
     char* name;
     VarTypeEnum type;
+    int size;
+    // Need to represent scope somehow
 };
 
 // Functions are stored outside of the main AST
-
 struct Function {
-    Function *next;
     char* name;
     VarTypeEnum return_type;
     VarTypeEnum* params;
@@ -127,27 +125,45 @@ struct ASTNode {
 
     // Function
     ASTNode *args;
+    VarTypeEnum ret_type;
+    ASTNode *ret; // necessary?
     // return?
 
     ASTNode *body;
     // Literal
     long long int ival;
     long double fval;
+
+    char *debug;
+    ASTNode *next_mem; // Linked list used for freeing memory correctly
 };
 
 struct AST {
-    ASTNode program;
-    Function *functions;
-    Variable *variables;
+    ASTNode *program;
+    Function *functions; // Hashmap here as well
+    Variable *variables; // Hashmap probably? Or map to integers
 };
 
 // AST functionality
-// Create a new AST
-AST ast_new();
 
 // Free the memory of the AST
 void ast_free(AST *ast);
 
+ASTNode *ast_node_new(ASTNodeType type, int count);
+
+void ast_node_free(ASTNode *ast_node);
+
+Function *function_new(char* name);
+
+void function_free(Function *func);
 
 // Take in a list of tokens and return an Abstract Syntax Tree
-AST parse(Tokens tokens);
+AST parse(Tokens *tokens);
+
+int find_main_index(Tokens *tokens);
+
+void parse_decend(Tokens *tokens, int token_index, ASTNode *node);
+
+void parse_decend_func(Tokens *tokens, int token_i, ASTNode *node);
+
+VarTypeEnum token_type_to_var_type(enum KeywordType type);

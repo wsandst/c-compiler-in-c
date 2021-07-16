@@ -51,7 +51,8 @@ enum OpType {
     OP_LT, 
     OP_LTE, 
     OP_GTE, 
-    OP_QST};
+    OP_QST
+};
 
 enum KeywordType {
     KW_IF, 
@@ -114,6 +115,7 @@ struct Token {
     } value;
     int src_pos;
     char* string_repr;
+    bool requires_string_free;
 };
 
 struct Tokens {

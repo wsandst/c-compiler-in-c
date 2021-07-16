@@ -49,7 +49,7 @@ void str_vec_realloc(StrVector *str_vec, int new_size) {
 
 // Free the vector memory
 void str_vec_free(StrVector *str_vec) {
-    for (int i = 0; i < str_vec->size+1; i++) {
+    for (int i = 0; i < str_vec->size; i++) {
         free(str_vec->elems[i]);
     }
     free(str_vec->elems);

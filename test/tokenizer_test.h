@@ -248,4 +248,6 @@ void test_tokenizer_large_src() {
     assert(tokens.elems[tokens.size-6].type == TK_DELIMITER);
     assert(tokens.elems[tokens.size-7].type == TK_IDENT);
     assert(tokens.elems[tokens.size-8].type == TK_OP);
+
+    tokens_free(&tokens);
 }
