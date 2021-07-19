@@ -1,5 +1,6 @@
 #pragma once
 #include <stdio.h>
+#include <stdlib.h>
 
 char* load_file_to_string(char* filename) {
     FILE *file = fopen(filename, "r");
@@ -23,4 +24,16 @@ char* load_file_to_string(char* filename) {
 
     fclose(file);
     return buffer;
+}
+
+void write_string_to_file(char* filename, char *src) {
+    FILE *file = fopen(filename, "wb");
+    fputs(src, file);
+    fclose(file);
+}
+
+// Compile Intel-syntax ASM using NASM and link with ld
+void compile_asm(char *asm_src) {
+    write_string_to_file("output.asm", asm_src);
+    system("nasm -f elf64 output.asm && ld -o output output.o && rm output.o");
 }
