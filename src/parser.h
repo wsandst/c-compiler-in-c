@@ -168,4 +168,4 @@ void parse_decend(Tokens *tokens, int token_index, ASTNode *node);
 
 void parse_decend_func(Tokens *tokens, int token_i, ASTNode *node);
 
-VarTypeEnum token_type_to_var_type(enum KeywordType type);
+VarTypeEnum token_type_to_var_type(enum TokenType type);

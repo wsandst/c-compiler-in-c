@@ -78,11 +78,40 @@ AST parse(Tokens *tokens) {
     entry->func = main_func;
     ast.program = entry;
 
-    parse_decend(tokens, main_index, entry);
+    //parse_decend(tokens, main_index, entry);
 
     return ast;
 }
 
+// Current token being parsed, simplifies code a lot 
+Token* parse_token;
+
+void expect(enum TokenType type) {
+    if (parse_token->type != type) {
+        //error_message("Unexpected symbol");
+    }
+    parse_token++;
+}
+
+bool accept(enum TokenType type) {
+    if (parse_token->type == type) {
+        parse_token++;
+        return true;
+    }
+    else {
+        return false;
+    }
+}
+
+void parse_func_def(ASTNode *node) {
+
+
+}
+
+void parse_block(ASTNode *node) {
+    //if (accept(DL_SEM))
+}
+/*
 void parse_decend(Tokens *tokens, int token_i, ASTNode *node) {
     switch (node->type) {
         case AST_FUNC:
@@ -128,6 +157,7 @@ void parse_decend_func(Tokens *tokens, int token_i, ASTNode *node) {
 
     node->func_args = arg_nodes;
 }
+*/
 
 int find_main_index(Tokens *tokens) {
     for (size_t i = 0; i < tokens->size; i++) {
@@ -139,17 +169,25 @@ int find_main_index(Tokens *tokens) {
     return -1;
 }
 
-VarTypeEnum token_type_to_var_type(enum KeywordType type) {
+VarTypeEnum token_type_to_var_type(enum TokenType type) {
     switch (type) {
-        case KW_INT:
+        case TK_KW_INT:
             return TY_INT;
-        case KW_FLOAT:
+        case TK_KW_FLOAT:
             return TY_FLOAT;
-        case KW_DOUBLE:
+        case TK_KW_DOUBLE:
             return TY_DOUBLE;
-        case KW_CHAR:
+        case TK_KW_CHAR:
             return TY_CHAR;
         default:
             return 0;
     }
 }
+
+// I need to match the (), {} and [] pairs, so that I can easily find the matching one
+// Or make a function for this, find_matching_end_delimiter()
+// Then I can 
+
+/* if (symbol == int {
+    while symbol != 
+}*/

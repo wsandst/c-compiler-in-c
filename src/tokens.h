@@ -15,87 +15,78 @@ Normally most of this would be done using regex.
 
 enum TokenType {
     TK_NONE, 
-    TK_OP, 
     TK_IDENT, 
     TK_TYPE, 
-    TK_KEYWORD, 
-    TK_DELIMITER, 
     TK_COMMENT, 
     TK_PREPROCESSOR,
     TK_LINT, 
     TK_LFLOAT, 
     TK_LSTRING, 
-    TK_LCHAR
-};
-
-enum OpType {
-    OP_PLUS, 
-    OP_MINUS, 
-    OP_EXP, 
-    OP_MULT, 
-    OP_DIV, 
-    OP_MOD, 
-    OP_RIGHTSHIFT, 
-    OP_LEFTSHIFT, 
-    OP_BITOR, 
-    OP_BITAND,
-    OP_COMPL, 
-    OP_XOR, 
-    OP_NOT, 
-    OP_AND, 
-    OP_OR, 
-    OP_EQ, 
-    OP_NEQ, 
-    OP_ASSIGN, 
-    OP_GT, 
-    OP_LT, 
-    OP_LTE, 
-    OP_GTE, 
-    OP_QST
-};
-
-enum KeywordType {
-    KW_IF, 
-    KW_ELSE, 
-    KW_WHILE, 
-    KW_DO, 
-    KW_FOR, 
-    KW_BREAK, 
-    KW_CONTINUE, 
-    KW_RETURN, 
-    KW_SWITCH, 
-    KW_CASE, 
-    KW_DEFAULT, 
-    KW_GOTO,
-    KW_LABEL, 
-    KW_TYPEDEF, 
-    KW_INCLUDE, 
-    KW_DEFINE, 
-    KW_CONST, 
-    KW_LONG, 
-    KW_SHORT, 
-    KW_SIGNED, 
-    KW_UNSIGNED, 
-    KW_STRUCT, 
-    KW_UNION, 
-    KW_INT, 
-    KW_FLOAT, 
-    KW_DOUBLE, 
-    KW_CHAR, 
-    KW_VOID
-};
-
-enum DelimType {
-    DL_SEMICOLON, 
-    DL_COMMA, 
-    DL_COLON, 
-    DL_DOT, 
-    DL_OPENPAREN, 
-    DL_CLOSEPAREN, 
-    DL_OPENBRACE, 
-    DL_CLOSEBRACE, 
-    DL_OPENBRACKET, 
-    DL_CLOSEBRACKET
+    TK_LCHAR,
+    // Delimiters
+    TK_DL_SEMICOLON, 
+    TK_DL_COMMA, 
+    TK_DL_COLON, 
+    TK_DL_DOT, 
+    TK_DL_OPENPAREN, 
+    TK_DL_CLOSEPAREN, 
+    TK_DL_OPENBRACE, 
+    TK_DL_CLOSEBRACE, 
+    TK_DL_OPENBRACKET, 
+    TK_DL_CLOSEBRACKET,
+    // Operations
+    TK_OP_PLUS, 
+    TK_OP_MINUS, 
+    TK_OP_EXP, 
+    TK_OP_MULT, 
+    TK_OP_DIV, 
+    TK_OP_MOD, 
+    TK_OP_RIGHTSHIFT, 
+    TK_OP_LEFTSHIFT, 
+    TK_OP_BITOR, 
+    TK_OP_BITAND,
+    TK_OP_COMPL, 
+    TK_OP_XOR, 
+    TK_OP_NOT, 
+    TK_OP_AND, 
+    TK_OP_OR, 
+    TK_OP_EQ, 
+    TK_OP_NEQ, 
+    TK_OP_ASSIGN, 
+    TK_OP_GT, 
+    TK_OP_LT, 
+    TK_OP_LTE, 
+    TK_OP_GTE, 
+    TK_OP_QST,
+    // Keywords
+    TK_KW_IF, 
+    TK_KW_ELSE, 
+    TK_KW_WHILE, 
+    TK_KW_DO, 
+    TK_KW_FOR, 
+    TK_KW_BREAK, 
+    TK_KW_CONTINUE, 
+    TK_KW_RETURN, 
+    TK_KW_SWITCH, 
+    TK_KW_CASE, 
+    TK_KW_DEFAULT, 
+    TK_KW_GOTO,
+    TK_KW_LABEL, 
+    TK_KW_TYPEDEF, 
+    TK_KW_INCLUDE, 
+    TK_KW_DEFINE, 
+    TK_KW_CONST, 
+    TK_KW_LONG, 
+    TK_KW_SHORT, 
+    TK_KW_SIGNED, 
+    TK_KW_UNSIGNED, 
+    TK_KW_STRUCT, 
+    TK_KW_UNION, 
+    TK_KW_INT, 
+    TK_KW_FLOAT, 
+    TK_KW_DOUBLE, 
+    TK_KW_CHAR, 
+    TK_KW_VOID
 };
 
 typedef struct Token Token;
@@ -109,9 +100,6 @@ struct Token {
         float fvalue;
         double dvalue;
         char cvalue;
-        enum KeywordType keyword;
-        enum OpType op;
-        enum DelimType delim;
     } value;
     int src_pos;
     char* string_repr;
@@ -148,11 +136,11 @@ void tokenize_strings(Tokens *tokens, StrVector *str_split);
 void tokenize_chars(Tokens *tokens, StrVector *str_split);
 
 void tokenize_keywords(Tokens *tokens, StrVector *str_split);
-void tokenize_keyword(Tokens* tokens, StrVector *str_split, char* keyword, enum KeywordType type);
+void tokenize_keyword(Tokens* tokens, StrVector *str_split, char* keyword, enum TokenType type);
 
 void tokenize_ops(Tokens *tokens, StrVector *str_split);
 // Helper for tokenize_ops
-void tokenize_op(Tokens* tokens, StrVector *str_split, char* op, enum OpType type);
+void tokenize_op(Tokens* tokens, StrVector *str_split, char* op, enum TokenType type);
 
 void tokenize_idents(Tokens *tokens, StrVector *str_split);
 

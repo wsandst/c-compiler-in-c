@@ -206,35 +206,35 @@ void tokenize_strings(Tokens *tokens, StrVector *str_split) {
 }
 
 void tokenize_keywords(Tokens* tokens, StrVector *str_split) {
-    tokenize_keyword(tokens, str_split, "while", KW_WHILE);
-    tokenize_keyword(tokens, str_split, "do", KW_DO);
-    tokenize_keyword(tokens, str_split, "if", KW_IF);
-    tokenize_keyword(tokens, str_split, "else", KW_ELSE);
-    tokenize_keyword(tokens, str_split, "for", KW_FOR);
-    tokenize_keyword(tokens, str_split, "break", KW_BREAK);
-    tokenize_keyword(tokens, str_split, "continue", KW_CONTINUE);
-    tokenize_keyword(tokens, str_split, "return", KW_RETURN);
-    tokenize_keyword(tokens, str_split, "switch", KW_SWITCH);
-    tokenize_keyword(tokens, str_split, "case", KW_CASE);
-    tokenize_keyword(tokens, str_split, "default", KW_DEFAULT);
-    tokenize_keyword(tokens, str_split, "goto", KW_GOTO);
-    tokenize_keyword(tokens, str_split, "label", KW_LABEL);
-    tokenize_keyword(tokens, str_split, "typedef", KW_TYPEDEF);
-    tokenize_keyword(tokens, str_split, "const", KW_CONST);
-    tokenize_keyword(tokens, str_split, "long", KW_LONG);
-    tokenize_keyword(tokens, str_split, "short", KW_SHORT);
-    tokenize_keyword(tokens, str_split, "signed", KW_SIGNED);
-    tokenize_keyword(tokens, str_split, "unsigned", KW_UNSIGNED);
-    tokenize_keyword(tokens, str_split, "struct", KW_STRUCT);
-    tokenize_keyword(tokens, str_split, "union", KW_UNION);
-    tokenize_keyword(tokens, str_split, "int", KW_INT);
-    tokenize_keyword(tokens, str_split, "float", KW_FLOAT);
-    tokenize_keyword(tokens, str_split, "double", KW_DOUBLE);
-    tokenize_keyword(tokens, str_split, "char", KW_CHAR);
-    tokenize_keyword(tokens, str_split, "void", KW_VOID);
+    tokenize_keyword(tokens, str_split, "while", TK_KW_WHILE);
+    tokenize_keyword(tokens, str_split, "do", TK_KW_DO);
+    tokenize_keyword(tokens, str_split, "if", TK_KW_IF);
+    tokenize_keyword(tokens, str_split, "else", TK_KW_ELSE);
+    tokenize_keyword(tokens, str_split, "for", TK_KW_FOR);
+    tokenize_keyword(tokens, str_split, "break", TK_KW_BREAK);
+    tokenize_keyword(tokens, str_split, "continue", TK_KW_CONTINUE);
+    tokenize_keyword(tokens, str_split, "return", TK_KW_RETURN);
+    tokenize_keyword(tokens, str_split, "switch", TK_KW_SWITCH);
+    tokenize_keyword(tokens, str_split, "case", TK_KW_CASE);
+    tokenize_keyword(tokens, str_split, "default", TK_KW_DEFAULT);
+    tokenize_keyword(tokens, str_split, "goto", TK_KW_GOTO);
+    tokenize_keyword(tokens, str_split, "label", TK_KW_LABEL);
+    tokenize_keyword(tokens, str_split, "typedef", TK_KW_TYPEDEF);
+    tokenize_keyword(tokens, str_split, "const", TK_KW_CONST);
+    tokenize_keyword(tokens, str_split, "long", TK_KW_LONG);
+    tokenize_keyword(tokens, str_split, "short", TK_KW_SHORT);
+    tokenize_keyword(tokens, str_split, "signed", TK_KW_SIGNED);
+    tokenize_keyword(tokens, str_split, "unsigned", TK_KW_UNSIGNED);
+    tokenize_keyword(tokens, str_split, "struct", TK_KW_STRUCT);
+    tokenize_keyword(tokens, str_split, "union", TK_KW_UNION);
+    tokenize_keyword(tokens, str_split, "int", TK_KW_INT);
+    tokenize_keyword(tokens, str_split, "float", TK_KW_FLOAT);
+    tokenize_keyword(tokens, str_split, "double", TK_KW_DOUBLE);
+    tokenize_keyword(tokens, str_split, "char", TK_KW_CHAR);
+    tokenize_keyword(tokens, str_split, "void", TK_KW_VOID);
 }
 
-void tokenize_keyword(Tokens* tokens, StrVector *str_split, char* keyword, enum KeywordType type) {
+void tokenize_keyword(Tokens* tokens, StrVector *str_split, char* keyword, enum TokenType type) {
     int src_pos = 0;
     int keyword_length = strlen(keyword);
     for (size_t i = 0; i < str_split->size; i++)
@@ -245,8 +245,7 @@ void tokenize_keyword(Tokens* tokens, StrVector *str_split, char* keyword, enum 
             char* start = str + match_i-1;
             int keyword_src_index = src_pos+match_i-1;
             str_fill(start, keyword_length, ' ');
-            tokens->elems[keyword_src_index].type = TK_KEYWORD;
-            tokens->elems[keyword_src_index].value.keyword = type;
+            tokens->elems[keyword_src_index].type = type;
             tokens->elems[keyword_src_index].string_repr = keyword;
         }
         src_pos += strlen(str);
@@ -256,32 +255,32 @@ void tokenize_keyword(Tokens* tokens, StrVector *str_split, char* keyword, enum 
 void tokenize_ops(Tokens* tokens, StrVector *str_split) {
     // Similar to keywords tokenization, except we want to isolate words
     // which only have >=<
-    tokenize_op(tokens, str_split, "||", OP_OR);
-    tokenize_op(tokens, str_split, "&&", OP_AND);
-    tokenize_op(tokens, str_split, ">>", OP_RIGHTSHIFT);
-    tokenize_op(tokens, str_split, "<<", OP_LEFTSHIFT);
-    tokenize_op(tokens, str_split, "==", OP_EQ);
-    tokenize_op(tokens, str_split, "!=", OP_NEQ);
-    tokenize_op(tokens, str_split, "**", OP_EXP);
-    tokenize_op(tokens, str_split, ">=", OP_GTE);
-    tokenize_op(tokens, str_split, "<=", OP_LTE);
-    tokenize_op(tokens, str_split, "+", OP_PLUS);
-    tokenize_op(tokens, str_split, "-", OP_MINUS);
-    tokenize_op(tokens, str_split, "*", OP_MULT);
-    tokenize_op(tokens, str_split, "/", OP_DIV);
-    tokenize_op(tokens, str_split, "%", OP_MOD);
-    tokenize_op(tokens, str_split, "|", OP_BITOR);
-    tokenize_op(tokens, str_split, "&", OP_BITAND);
-    tokenize_op(tokens, str_split, "~", OP_COMPL);
-    tokenize_op(tokens, str_split, "^", OP_XOR);
-    tokenize_op(tokens, str_split, ">", OP_GT);
-    tokenize_op(tokens, str_split, "<", OP_LT);
-    tokenize_op(tokens, str_split, "!", OP_NOT);
-    tokenize_op(tokens, str_split, "=", OP_ASSIGN);
-    tokenize_op(tokens, str_split, "?", OP_QST);
+    tokenize_op(tokens, str_split, "||", TK_OP_OR);
+    tokenize_op(tokens, str_split, "&&", TK_OP_AND);
+    tokenize_op(tokens, str_split, ">>", TK_OP_RIGHTSHIFT);
+    tokenize_op(tokens, str_split, "<<", TK_OP_LEFTSHIFT);
+    tokenize_op(tokens, str_split, "==", TK_OP_EQ);
+    tokenize_op(tokens, str_split, "!=", TK_OP_NEQ);
+    tokenize_op(tokens, str_split, "**", TK_OP_EXP);
+    tokenize_op(tokens, str_split, ">=", TK_OP_GTE);
+    tokenize_op(tokens, str_split, "<=", TK_OP_LTE);
+    tokenize_op(tokens, str_split, "+", TK_OP_PLUS);
+    tokenize_op(tokens, str_split, "-", TK_OP_MINUS);
+    tokenize_op(tokens, str_split, "*", TK_OP_MULT);
+    tokenize_op(tokens, str_split, "/", TK_OP_DIV);
+    tokenize_op(tokens, str_split, "%", TK_OP_MOD);
+    tokenize_op(tokens, str_split, "|", TK_OP_BITOR);
+    tokenize_op(tokens, str_split, "&", TK_OP_BITAND);
+    tokenize_op(tokens, str_split, "~", TK_OP_COMPL);
+    tokenize_op(tokens, str_split, "^", TK_OP_XOR);
+    tokenize_op(tokens, str_split, ">", TK_OP_GT);
+    tokenize_op(tokens, str_split, "<", TK_OP_LT);
+    tokenize_op(tokens, str_split, "!", TK_OP_NOT);
+    tokenize_op(tokens, str_split, "=", TK_OP_ASSIGN);
+    tokenize_op(tokens, str_split, "?", TK_OP_QST);
 }
 
-void tokenize_op(Tokens* tokens, StrVector *str_split, char* op, enum OpType type) {
+void tokenize_op(Tokens* tokens, StrVector *str_split, char* op, enum TokenType type) {
     int src_pos = 0;
     int op_length = strlen(op);
     for (size_t i = 0; i < str_split->size; i++)
@@ -292,8 +291,7 @@ void tokenize_op(Tokens* tokens, StrVector *str_split, char* op, enum OpType typ
             char* start = str + match_i-1;
             int keyword_src_index = src_pos+match_i-1;
             str_fill(start, op_length, ' ');
-            tokens->elems[keyword_src_index].type = TK_OP;
-            tokens->elems[keyword_src_index].value.keyword = type;
+            tokens->elems[keyword_src_index].type = type;
             tokens->elems[keyword_src_index].string_repr = op;
         }
         src_pos += strlen(str);
@@ -486,62 +484,52 @@ void tokenize_delims(Tokens *tokens, StrVector *str_split) {
             switch (*str) {
                 case '{':
                     *str = ' ';
-                    tokens->elems[src_pos].type = TK_DELIMITER;
-                    tokens->elems[src_pos].value.delim = DL_OPENBRACE;
+                    tokens->elems[src_pos].type = TK_DL_OPENBRACE;
                     tokens->elems[src_pos].string_repr = "{";
                     break;
                 case '}':
                     *str = ' ';
-                    tokens->elems[src_pos].type = TK_DELIMITER;
-                    tokens->elems[src_pos].value.delim = DL_CLOSEBRACE;
+                    tokens->elems[src_pos].type = TK_DL_CLOSEBRACE;
                     tokens->elems[src_pos].string_repr = "}";
                     break;
                 case '(':
                     *str = ' ';
-                    tokens->elems[src_pos].type = TK_DELIMITER;
-                    tokens->elems[src_pos].value.delim = DL_OPENPAREN;
+                    tokens->elems[src_pos].type = TK_DL_OPENPAREN;
                     tokens->elems[src_pos].string_repr = "(";
                     break;
                 case ')':
                     *str = ' ';
-                    tokens->elems[src_pos].type = TK_DELIMITER;
-                    tokens->elems[src_pos].value.delim = DL_CLOSEPAREN;
+                    tokens->elems[src_pos].type = TK_DL_CLOSEPAREN;
                     tokens->elems[src_pos].string_repr = ")";
                     break;
                 case '[':
                     *str = ' ';
-                    tokens->elems[src_pos].type = TK_DELIMITER;
-                    tokens->elems[src_pos].value.delim = DL_OPENBRACKET;
+                    tokens->elems[src_pos].type = TK_DL_OPENBRACKET;
                     tokens->elems[src_pos].string_repr = "[";
                     break;
                 case ']':
                     *str = ' ';
-                    tokens->elems[src_pos].type = TK_DELIMITER;
-                    tokens->elems[src_pos].value.delim = DL_CLOSEBRACKET;
+                    tokens->elems[src_pos].type = TK_DL_CLOSEBRACKET;
                     tokens->elems[src_pos].string_repr = "]";
                     break;
                 case '.':
                     *str = ' ';
-                    tokens->elems[src_pos].type = TK_DELIMITER;
-                    tokens->elems[src_pos].value.delim = DL_DOT;
+                    tokens->elems[src_pos].type = TK_DL_DOT;
                     tokens->elems[src_pos].string_repr = ".";
                     break;
                 case ',':
                     *str = ' ';
-                    tokens->elems[src_pos].type = TK_DELIMITER;
-                    tokens->elems[src_pos].value.delim = DL_COMMA;
+                    tokens->elems[src_pos].type = TK_DL_COMMA;
                     tokens->elems[src_pos].string_repr = ",";
                     break;
                 case ';':
                     *str = ' ';
-                    tokens->elems[src_pos].type = TK_DELIMITER;
-                    tokens->elems[src_pos].value.delim = DL_SEMICOLON;
+                    tokens->elems[src_pos].type = TK_DL_SEMICOLON;
                     tokens->elems[src_pos].string_repr = ";";
                     break;
                 case ':':
                     *str = ' ';
-                    tokens->elems[src_pos].type = TK_DELIMITER;
-                    tokens->elems[src_pos].value.delim = DL_COLON;
+                    tokens->elems[src_pos].type = TK_DL_COLON;
                     tokens->elems[src_pos].string_repr = ":";
                     break;
             }

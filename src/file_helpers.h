@@ -24,3 +24,8 @@ char* load_file_to_string(char* filename) {
     fclose(file);
     return buffer;
 }
+
+void error_message(char* error_message) {
+    fprintf(stderr, "Error: %s", error_message);
+    //exit(1);
+}

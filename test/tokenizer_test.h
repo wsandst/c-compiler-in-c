@@ -55,12 +55,12 @@ void test_tokenizer_comments() {
     assert(tokens.elems[0].type == TK_COMMENT);
     assert(strcmp(tokens.elems[1].value.string, "#define") == 0);
     assert(tokens.elems[1].type == TK_PREPROCESSOR);
-    assert(tokens.elems[2].type == TK_KEYWORD);
+    assert(tokens.elems[2].type == TK_KW_WHILE);
     assert(tokens.elems[3].type == TK_COMMENT);
     assert(tokens.elems[4].type == TK_COMMENT);
-    assert(tokens.elems[5].type == TK_KEYWORD);
+    assert(tokens.elems[5].type == TK_KW_WHILE);
     assert(tokens.elems[6].type == TK_COMMENT);
-    assert(tokens.elems[7].type == TK_KEYWORD);
+    assert(tokens.elems[7].type == TK_KW_WHILE);
     tokens_free(&tokens);
 }
 
@@ -88,33 +88,33 @@ void test_tokenizer_keywords() {
           "goto label typedef struct union const long short signed "
           "int float double char void";
     Tokens tokens = tokenize(src);
-    assert(tokens.elems[0].value.keyword == KW_UNSIGNED);
-    assert(tokens.elems[1].type == TK_DELIMITER);
-    assert(tokens.elems[2].value.keyword == KW_IF);
-    assert(tokens.elems[3].value.keyword == KW_ELSE);
-    assert(tokens.elems[4].value.keyword == KW_WHILE);
-    assert(tokens.elems[5].value.keyword == KW_DO);
-    assert(tokens.elems[6].value.keyword == KW_FOR);
-    assert(tokens.elems[7].value.keyword == KW_BREAK);
-    assert(tokens.elems[8].value.keyword == KW_CONTINUE);
-    assert(tokens.elems[9].value.keyword == KW_RETURN);
-    assert(tokens.elems[10].value.keyword == KW_SWITCH);
-    assert(tokens.elems[11].value.keyword == KW_CASE);
-    assert(tokens.elems[12].value.keyword == KW_DEFAULT);
-    assert(tokens.elems[13].value.keyword == KW_GOTO);
-    assert(tokens.elems[14].value.keyword == KW_LABEL);
-    assert(tokens.elems[15].value.keyword == KW_TYPEDEF);
-    assert(tokens.elems[16].value.keyword == KW_STRUCT);
-    assert(tokens.elems[17].value.keyword == KW_UNION);
-    assert(tokens.elems[18].value.keyword == KW_CONST);
-    assert(tokens.elems[19].value.keyword == KW_LONG);
-    assert(tokens.elems[20].value.keyword == KW_SHORT);
-    assert(tokens.elems[21].value.keyword == KW_SIGNED);
-    assert(tokens.elems[22].value.keyword == KW_INT);
-    assert(tokens.elems[23].value.keyword == KW_FLOAT);
-    assert(tokens.elems[24].value.keyword == KW_DOUBLE);
-    assert(tokens.elems[25].value.keyword == KW_CHAR);
-    assert(tokens.elems[26].value.keyword == KW_VOID);
+    assert(tokens.elems[0].type == TK_KW_UNSIGNED);
+    assert(tokens.elems[1].type == TK_DL_DOT);
+    assert(tokens.elems[2].type == TK_KW_IF);
+    assert(tokens.elems[3].type == TK_KW_ELSE);
+    assert(tokens.elems[4].type == TK_KW_WHILE);
+    assert(tokens.elems[5].type == TK_KW_DO);
+    assert(tokens.elems[6].type == TK_KW_FOR);
+    assert(tokens.elems[7].type == TK_KW_BREAK);
+    assert(tokens.elems[8].type == TK_KW_CONTINUE);
+    assert(tokens.elems[9].type == TK_KW_RETURN);
+    assert(tokens.elems[10].type == TK_KW_SWITCH);
+    assert(tokens.elems[11].type == TK_KW_CASE);
+    assert(tokens.elems[12].type == TK_KW_DEFAULT);
+    assert(tokens.elems[13].type == TK_KW_GOTO);
+    assert(tokens.elems[14].type == TK_KW_LABEL);
+    assert(tokens.elems[15].type == TK_KW_TYPEDEF);
+    assert(tokens.elems[16].type == TK_KW_STRUCT);
+    assert(tokens.elems[17].type == TK_KW_UNION);
+    assert(tokens.elems[18].type == TK_KW_CONST);
+    assert(tokens.elems[19].type == TK_KW_LONG);
+    assert(tokens.elems[20].type == TK_KW_SHORT);
+    assert(tokens.elems[21].type == TK_KW_SIGNED);
+    assert(tokens.elems[22].type == TK_KW_INT);
+    assert(tokens.elems[23].type == TK_KW_FLOAT);
+    assert(tokens.elems[24].type == TK_KW_DOUBLE);
+    assert(tokens.elems[25].type == TK_KW_CHAR);
+    assert(tokens.elems[26].type == TK_KW_VOID);
     tokens_free(&tokens);
 }
 
@@ -122,29 +122,29 @@ void test_tokenizer_ops() {
     // Operations
     char* src = "|| && >> << == != ** >= <= + - * / % | & ~ ^ > < ! = ?";
     Tokens tokens = tokenize(src);
-    assert(tokens.elems[0].value.op == OP_OR);
-    assert(tokens.elems[1].value.op == OP_AND);
-    assert(tokens.elems[2].value.op == OP_RIGHTSHIFT);
-    assert(tokens.elems[3].value.op == OP_LEFTSHIFT);
-    assert(tokens.elems[4].value.op == OP_EQ);
-    assert(tokens.elems[5].value.op == OP_NEQ);
-    assert(tokens.elems[6].value.op == OP_EXP);
-    assert(tokens.elems[7].value.op == OP_GTE);
-    assert(tokens.elems[8].value.op == OP_LTE);
-    assert(tokens.elems[9].value.op == OP_PLUS);
-    assert(tokens.elems[10].value.op == OP_MINUS);
-    assert(tokens.elems[11].value.op == OP_MULT);
-    assert(tokens.elems[12].value.op == OP_DIV);
-    assert(tokens.elems[13].value.op == OP_MOD);
-    assert(tokens.elems[14].value.op == OP_BITOR);
-    assert(tokens.elems[15].value.op == OP_BITAND);
-    assert(tokens.elems[16].value.op == OP_COMPL);
-    assert(tokens.elems[17].value.op == OP_XOR);
-    assert(tokens.elems[18].value.op == OP_GT);
-    assert(tokens.elems[19].value.op == OP_LT);
-    assert(tokens.elems[20].value.op == OP_NOT);
-    assert(tokens.elems[21].value.op == OP_ASSIGN);
-    assert(tokens.elems[22].value.op == OP_QST);
+    assert(tokens.elems[0].type  == TK_OP_OR);
+    assert(tokens.elems[1].type  == TK_OP_AND);
+    assert(tokens.elems[2].type  == TK_OP_RIGHTSHIFT);
+    assert(tokens.elems[3].type  == TK_OP_LEFTSHIFT);
+    assert(tokens.elems[4].type  == TK_OP_EQ);
+    assert(tokens.elems[5].type  == TK_OP_NEQ);
+    assert(tokens.elems[6].type  == TK_OP_EXP);
+    assert(tokens.elems[7].type  == TK_OP_GTE);
+    assert(tokens.elems[8].type  == TK_OP_LTE);
+    assert(tokens.elems[9].type  == TK_OP_PLUS);
+    assert(tokens.elems[10].type == TK_OP_MINUS);
+    assert(tokens.elems[11].type == TK_OP_MULT);
+    assert(tokens.elems[12].type == TK_OP_DIV);
+    assert(tokens.elems[13].type == TK_OP_MOD);
+    assert(tokens.elems[14].type == TK_OP_BITOR);
+    assert(tokens.elems[15].type == TK_OP_BITAND);
+    assert(tokens.elems[16].type == TK_OP_COMPL);
+    assert(tokens.elems[17].type == TK_OP_XOR);
+    assert(tokens.elems[18].type == TK_OP_GT);
+    assert(tokens.elems[19].type == TK_OP_LT);
+    assert(tokens.elems[20].type == TK_OP_NOT);
+    assert(tokens.elems[21].type == TK_OP_ASSIGN);
+    assert(tokens.elems[22].type == TK_OP_QST);
     tokens_free(&tokens);
 }
 
@@ -152,11 +152,11 @@ void test_tokenizer_idents() {
     // Identifiers
     char* src = "int x = 5; \n abc \n a \n _a \n 1a \n _ \na";
     Tokens tokens = tokenize(src);
-    assert(tokens.elems[0].type == TK_KEYWORD);
+    assert(tokens.elems[0].type == TK_KW_INT);
     assert(tokens.elems[1].type == TK_IDENT);
-    assert(tokens.elems[2].type == TK_OP);
+    assert(tokens.elems[2].type == TK_OP_ASSIGN);
     assert(tokens.elems[3].type == TK_LINT);
-    assert(tokens.elems[4].type == TK_DELIMITER);
+    assert(tokens.elems[4].type == TK_DL_SEMICOLON);
     assert(tokens.elems[5].type == TK_IDENT);
     assert(tokens.elems[6].type == TK_IDENT);
     assert(tokens.elems[7].type == TK_IDENT);
@@ -170,17 +170,16 @@ void test_tokenizer_idents() {
 void test_tokenizer_delims() {
     char* src = "{}()[],.;:";
     Tokens tokens = tokenize(src);
-    assert(tokens.elems[0].type == TK_DELIMITER);
-    assert(tokens.elems[0].value.delim == DL_OPENBRACE);
-    assert(tokens.elems[1].value.delim == DL_CLOSEBRACE);
-    assert(tokens.elems[2].value.delim == DL_OPENPAREN);
-    assert(tokens.elems[3].value.delim == DL_CLOSEPAREN);
-    assert(tokens.elems[4].value.delim == DL_OPENBRACKET);
-    assert(tokens.elems[5].value.delim == DL_CLOSEBRACKET);
-    assert(tokens.elems[6].value.delim == DL_COMMA);
-    assert(tokens.elems[7].value.delim == DL_DOT);
-    assert(tokens.elems[8].value.delim == DL_SEMICOLON);
-    assert(tokens.elems[9].value.delim == DL_COLON);
+    assert(tokens.elems[0].type == TK_DL_OPENBRACE);
+    assert(tokens.elems[1].type == TK_DL_CLOSEBRACE);
+    assert(tokens.elems[2].type == TK_DL_OPENPAREN);
+    assert(tokens.elems[3].type == TK_DL_CLOSEPAREN);
+    assert(tokens.elems[4].type == TK_DL_OPENBRACKET);
+    assert(tokens.elems[5].type == TK_DL_CLOSEBRACKET);
+    assert(tokens.elems[6].type == TK_DL_COMMA);
+    assert(tokens.elems[7].type == TK_DL_DOT);
+    assert(tokens.elems[8].type == TK_DL_SEMICOLON);
+    assert(tokens.elems[9].type == TK_DL_COLON);
     tokens_free(&tokens);
 }
 
@@ -190,15 +189,16 @@ void test_tokenizer_values() {
     // Ints
     assert(tokens.elems[0].type == TK_LINT);
     assert(strcmp(tokens.elems[0].value.string, "13") == 0);
-    assert(tokens.elems[1].type == TK_DELIMITER);
+    assert(tokens.elems[1].type == TK_DL_SEMICOLON);
     assert(tokens.elems[2].type == TK_LINT);
     assert(strcmp(tokens.elems[2].value.string, "3134") == 0);
-    assert(tokens.elems[3].type == TK_DELIMITER);
+    assert(tokens.elems[3].type == TK_DL_SEMICOLON);
     // Floats
     assert(tokens.elems[4].type == TK_LFLOAT);
     assert(tokens.elems[5].type == TK_LFLOAT);
     assert(tokens.elems[6].type == TK_LFLOAT);
-    assert(tokens.elems[7].type == TK_DELIMITER);
+    assert(tokens.elems[7].type == TK_DL_DOT);
+    assert(tokens.elems[8].type == TK_DL_SEMICOLON);
     tokens_free(&tokens);
 }
 
@@ -244,10 +244,10 @@ void test_tokenizer_large_src() {
     // Check some tokens manually to make sure everything works as intended
     assert(tokens.elems[0].type == TK_PREPROCESSOR);
     assert(tokens.elems[2].type == TK_IDENT);
-    assert(tokens.elems[tokens.size-1].type == TK_DELIMITER);
-    assert(tokens.elems[tokens.size-6].type == TK_DELIMITER);
+    assert(tokens.elems[tokens.size-1].type == TK_DL_CLOSEBRACE);
+    assert(tokens.elems[tokens.size-6].type == TK_DL_SEMICOLON);
     assert(tokens.elems[tokens.size-7].type == TK_IDENT);
-    assert(tokens.elems[tokens.size-8].type == TK_OP);
+    assert(tokens.elems[tokens.size-8].type == TK_OP_PLUS);
 
     tokens_free(&tokens);
     str_vec_free(&lines);
