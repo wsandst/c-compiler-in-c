@@ -1,3 +1,10 @@
+/*
+These functions perform parsing of C source code. 
+This is the second step of a compiler. The tokens from the tokenization step
+are parsed and turned into an Abstract Syntax Tree (AST).
+This is done through a recursive descent parser,
+which is implemented here.
+*/
 #pragma once
 #include <stdbool.h>
 #include "tokens.h"
@@ -80,6 +87,8 @@ enum ASTNodeType {
     AST_NUM,        // Integer
     AST_CAST,       // Type cast
     AST_ASSIGN, // This is actually an operation in C. Start out like this?
+    AST_EXPR,
+    AST_NONE,
 };
 
 struct Variable {
@@ -108,6 +117,9 @@ struct ASTNode {
 
     ASTNode *next;
 
+    // Assign
+    ASTNode *assign;
+
     // OP
     BinaryOpType bop_type;
     UnaryOpType uop_type;
@@ -133,8 +145,9 @@ struct ASTNode {
 
     ASTNode *body;
     // Literal
-    long long int ival;
-    long double fval;
+    char* literal;
+    //long long int ival;
+    //long double fval;
 
     char *debug;
     ASTNode *next_mem; // Linked list used for freeing memory correctly
@@ -146,26 +159,58 @@ struct AST {
     Variable *variables; // Hashmap probably? Or map to integers
 };
 
-// AST functionality
+// =========== AST struct functionality ============
 
-// Free the memory of the AST
+// Destructor, free the memory of the AST
 void ast_free(AST *ast);
 
+// Constructor, create new AST node
 ASTNode *ast_node_new(ASTNodeType type, int count);
 
+// Destructor, free the AST node
 void ast_node_free(ASTNode *ast_node);
 
+// Constructor, create a new function object
 Function *function_new(char* name);
 
+// Destructor, free the function object
 void function_free(Function *func);
+
+// =========== Parsing ============
+// Uses recursive decending to construct the AST
 
 // Take in a list of tokens and return an Abstract Syntax Tree
 AST parse(Tokens *tokens);
 
+// Parse a function definition
+// <function> ::= <type> <id> "(" <args> ")" "{" <statement> "}"
+void parse_func(ASTNode *node);
+
+// Parse a statement
+void parse_statement(ASTNode *node);
+
+// Parse an expression, ex (a + b) + 3
+void parse_expression(ASTNode *node);
+
+// Print a parse error to stderr and exit the program
+void parse_error(char* error_message);
+
+// Various helpers
+
+// Return the previous token parsed
+Token prev_token();
+
+// Make sure the current token matches the sent in token, else
+// send an error message and exit the program
+void expect(enum TokenType type);
+void expect_var_type();
+
+// Return true or false whether the current token matches the sent in token
+bool accept(enum TokenType type);
+bool accept_var_type();
+
+// Find the index of the main function
 int find_main_index(Tokens *tokens);
 
-void parse_decend(Tokens *tokens, int token_index, ASTNode *node);
-
-void parse_decend_func(Tokens *tokens, int token_i, ASTNode *node);
-
+// Convert a TokenType variable type to the corresponding VarTypeEnum
 VarTypeEnum token_type_to_var_type(enum TokenType type);

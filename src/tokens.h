@@ -3,7 +3,7 @@ These functions perform tokenization of C source code.
 This is the first step of a compiler. The semantics of the language are 
 separated into the Token type. To minimize dependencies to allow for self-compilation,
 the tokenization is done manually using various string helpers found in string_helpers.c
-Normally most of this would be done using regex.
+Normally a task like this is more suited to regex.
 */
 #pragma once
 #include <stdlib.h>
@@ -96,7 +96,7 @@ struct Token {
     enum TokenType type;
     union value {
         char* string;
-        int ivalue;
+        long int ivalue;
         float fvalue;
         double dvalue;
         char cvalue;
