@@ -5,7 +5,8 @@ script: make && make test
 addons:
   apt:
     packages:
-    - nasm
+      - nasm
+      - valgrind
 
 notifications:
   email:
