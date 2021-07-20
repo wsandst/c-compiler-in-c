@@ -15,11 +15,13 @@ TEST_OBJ := $(TEST_SRC:$(TEST_DIR)/%.c=$(TEST_OBJ_DIR)/%.o)
 
 CPPFLAGS := -Iinclude -MMD -MP
 CFLAGS   := -Wall -g -O0
+RELEASE_CFLAGS := -Wall -O2
 LDFLAGS  := -Llib
 LDLIBS   := -lm -Isrc
 
-.PHONY: all clean test
+.PHONY: all clean testexe test
 
+# Compile program
 all: $(EXE)
 
 $(EXE): $(OBJ) | $(BIN_DIR)
@@ -31,7 +33,7 @@ $(OBJ_DIR)/%.o: $(SRC_DIR)/%.c | $(OBJ_DIR)
 $(BIN_DIR) $(OBJ_DIR) $(TEST_OBJ_DIR):
 	mkdir -p $@
 
-test: clean $(TEST_EXE)
+testexe: clean $(TEST_EXE)
 
 $(TEST_EXE): $(TEST_OBJ) $(OBJ_NO_MAIN) | $(BIN_DIR)
 	$(CC) $(LDFLAGS) -I./src $^ $(LDLIBS) -o $@
@@ -42,4 +44,12 @@ $(TEST_OBJ_DIR)/%.o: $(TEST_DIR)/%.c | $(TEST_OBJ_DIR)
 clean:
 	@$(RM) -rv $(BIN_DIR) $(OBJ_DIR) $(TEST_OBJ_DIR)
 
+# Run unit tests and valgrind tests
+test: testexe
+	@echo Running tests...
+	./build/ccompiler-test
+	@echo Running memory leak test...
+	valgrind --leak-check=full --error-exitcode=1 --log-fd=2 ./build/ccompiler-test 1>/dev/null
+	@echo "\e[1;32mPassed tests!\e[0m"
+	
 -include $(OBJ:.o=.d)

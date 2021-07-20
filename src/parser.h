@@ -9,32 +9,13 @@ which is implemented here.
 #include <stdbool.h>
 #include "tokens.h"
 #include "string.h"
+#include "symbol_table.h"
 
-typedef enum VarTypeEnum VarTypeEnum;
 typedef enum BinaryOpType BinaryOpType;
 typedef enum UnaryOpType UnaryOpType;
 typedef enum ASTNodeType ASTNodeType;
-typedef struct Variable Variable;
-typedef struct Function Function;
 typedef struct ASTNode ASTNode;
 typedef struct AST AST;
-
-enum VarTypeEnum {
-  TY_VOID,
-  TY_BOOL,
-  TY_CHAR,
-  TY_SHORT,
-  TY_INT,
-  TY_LONG,
-  TY_FLOAT,
-  TY_DOUBLE,
-  TY_ENUM,
-  TY_PTR,
-  TY_STRUCT,
-  //TY_UNION,
-  //TY_ARRAY,
-  //TY_FUNC,
-};
 
 enum BinaryOpType {
     BOP_ADD,        // +
@@ -91,106 +72,91 @@ enum ASTNodeType {
     AST_NONE,
 };
 
-struct Variable {
-    Variable* next;
-    char* name;
-    VarTypeEnum type;
-    int size;
-    // Need to represent scope somehow
-};
-
-// Functions are stored outside of the main AST
-struct Function {
-    char* name;
-    VarTypeEnum return_type;
-    VarTypeEnum* params;
-    ASTNode *body;
-
-    Function *next_mem; // Linked list used for freeing memory correctly
-};
-
 struct ASTNode {
     ASTNodeType type;
     Variable var;
-    Function* func; // Call
-    ASTNode *func_args;
+    Function* func;
 
-    ASTNode *next;
+    SymbolTable* symbol_table; // Represents the current scope
+
+    ASTNode* func_args;
+
+    ASTNode* next;
 
     // Assign
-    ASTNode *assign;
+    ASTNode* assign;
 
     // OP
     BinaryOpType bop_type;
     UnaryOpType uop_type;
-    ASTNode *rhs;
-    ASTNode *lhs;
+    ASTNode* rhs;
+    ASTNode* lhs;
 
     // IF, WHILE, FOR etc
-    ASTNode *cond;
-    ASTNode *then;
-    ASTNode *els;
+    ASTNode* cond;
+    ASTNode* then;
+    ASTNode* els;
     // For
-    ASTNode *incr;
-    ASTNode *init;
+    ASTNode* incr;
+    ASTNode* init;
 
     //ASTNode *brk;
     //ASTNode *cont;
 
     // Function
-    ASTNode *args;
+    ASTNode* args;
     VarTypeEnum ret_type;
-    ASTNode *ret; // necessary?
+    ASTNode* ret; // necessary?
     // return?
 
-    ASTNode *body;
+    ASTNode* body;
     // Literal
     char* literal;
     //long long int ival;
     //long double fval;
 
-    char *debug;
-    ASTNode *next_mem; // Linked list used for freeing memory correctly
+    char* debug;
+    ASTNode* next_mem; // Linked list used for freeing memory correctly
 };
 
 struct AST {
-    ASTNode *program;
-    Function *functions; // Hashmap here as well
-    Variable *variables; // Hashmap probably? Or map to integers
+    ASTNode* program;
+    Function* functions; // Hashmap here as well
+    Variable* variables; // Hashmap probably? Or map to integers
 };
 
 // =========== AST struct functionality ============
 
 // Destructor, free the memory of the AST
-void ast_free(AST *ast);
+void ast_free(AST* ast);
 
 // Constructor, create new AST node
 ASTNode *ast_node_new(ASTNodeType type, int count);
 
 // Destructor, free the AST node
-void ast_node_free(ASTNode *ast_node);
+void ast_node_free(ASTNode* ast_node);
 
 // Constructor, create a new function object
 Function *function_new(char* name);
 
 // Destructor, free the function object
-void function_free(Function *func);
+void function_free(Function* func);
 
 // =========== Parsing ============
 // Uses recursive decending to construct the AST
 
 // Take in a list of tokens and return an Abstract Syntax Tree
-AST parse(Tokens *tokens);
+AST parse(Tokens* tokens);
 
 // Parse a function definition
 // <function> ::= <type> <id> "(" <args> ")" "{" <statement> "}"
-void parse_func(ASTNode *node);
+void parse_func(ASTNode* node);
 
 // Parse a statement
-void parse_statement(ASTNode *node);
+void parse_statement(ASTNode* node);
 
 // Parse an expression, ex (a + b) + 3
-void parse_expression(ASTNode *node);
+void parse_expression(ASTNode* node);
 
 // Print a parse error to stderr and exit the program
 void parse_error(char* error_message);
@@ -210,7 +176,7 @@ bool accept(enum TokenType type);
 bool accept_var_type();
 
 // Find the index of the main function
-int find_main_index(Tokens *tokens);
+int find_main_index(Tokens* tokens);
 
 // Convert a TokenType variable type to the corresponding VarTypeEnum
 VarTypeEnum token_type_to_var_type(enum TokenType type);

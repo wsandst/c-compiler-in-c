@@ -7,13 +7,13 @@
 
 void test_string_helpers();
 void test_str_vec();
-void test_helper_funcs();
+void test_string_helper_funcs();
 
 void test_string_helpers() {
-    printf("[TEST] Running string helper tests...\n");
+    printf("[CTEST] Running string helper tests...\n");
     test_str_vec();
-    test_helper_funcs();
-    printf("[TEST] Passed string helper tests!\n");
+    test_string_helper_funcs();
+    printf("[CTEST] Passed string helper tests!\n");
 }
 
 void test_str_vec() {
@@ -46,7 +46,7 @@ void test_str_vec() {
     str_vec_free(&vec);
 }
 
-void test_helper_funcs() {
+void test_string_helper_funcs() {
     char* test_str = "hello world";
     // str_copy()
     char* copy_str = str_copy(test_str);
@@ -106,7 +106,7 @@ void test_helper_funcs() {
     free(test_str);
 
     // str_fill()
-    test_str = malloc(10*sizeof(char));
+    test_str = calloc(10, sizeof(char));
     str_fill(test_str, strlen(test_str), 't');
     for (size_t i = 0; i < strlen(test_str); i++) {
         assert(test_str[i] == 't');

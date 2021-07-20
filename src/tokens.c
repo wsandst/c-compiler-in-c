@@ -547,10 +547,10 @@ void tokens_print(Tokens* tokens) {
             continue;
         }
         if (t.string_repr != 0) {
-            printf("[T: %i, V: %i, STR: \"%s\"]\n", t.type, t.value.ivalue, t.string_repr);
+            printf("[T: %i, V: %li, STR: \"%s\"]\n", t.type, t.value.ivalue, t.string_repr);
         }
         else {
-            printf("[T: %i, V: %i]\n", t.type, t.value.ivalue);
+            printf("[T: %i, V: %li]\n", t.type, t.value.ivalue);
         }
     }
 }

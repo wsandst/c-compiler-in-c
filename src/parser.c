@@ -53,14 +53,14 @@ Function *function_new(char *name) {
     return func;
 }
 
-void function_free(Function *func) {
+void function_free(Function* func) {
     if (func->next_mem != NULL) {
         function_free(func->next_mem);
     }
     free(func);
 }
 
-void ast_free(AST *ast) {
+void ast_free(AST* ast) {
     ast_node_free(ast_node_mem_start);
     function_free(function_mem_start);
 }
@@ -68,7 +68,7 @@ void ast_free(AST *ast) {
 // Current token being parsed, global simplifies code a lot 
 Token* parse_token;
 
-AST parse(Tokens *tokens) {
+AST parse(Tokens* tokens) {
     // Find entry
     AST ast;
     int main_index = find_main_index(tokens);
@@ -115,7 +115,7 @@ bool accept_var_type() {
     return (accept(TK_KW_INT) || accept(TK_KW_FLOAT) || accept(TK_KW_DOUBLE) || accept(TK_KW_CHAR));
 }
 
-void parse_func(ASTNode *node) {
+void parse_func(ASTNode* node) {
     node->type = AST_FUNC;
     expect_var_type();
     enum VarTypeEnum return_type = token_type_to_var_type(prev_token().type);
@@ -132,7 +132,7 @@ void parse_func(ASTNode *node) {
     parse_statement(stmt);
 }
 
-void parse_statement(ASTNode *node) {
+void parse_statement(ASTNode* node) {
     if (accept_var_type()) { // Variable declaration
         node->type = AST_VAR;
         node->var.type = token_type_to_var_type(prev_token().type);
@@ -164,7 +164,7 @@ void parse_statement(ASTNode *node) {
     parse_statement(node->next);
 }
 
-void parse_expression(ASTNode *node) {
+void parse_expression(ASTNode* node) {
     // Do Shunting-yard algorithm
     // We only handle integer constants currently
     expect(TK_LINT);
@@ -185,7 +185,7 @@ void parse_error(char* error_message) {
 }
 
 
-int find_main_index(Tokens *tokens) {
+int find_main_index(Tokens* tokens) {
     for (size_t i = 0; i < tokens->size; i++) {
         Token token = tokens->elems[i];
         if (token.type == TK_IDENT && strcmp(token.value.string, "main") == 0) {

@@ -35,7 +35,7 @@ int main(int argc, char *argv[]) {
     free(asm_src);
     free(src);
     
-    printf("Compilation complete\n", src_path);
+    printf("Compilation complete\n");
 
     return 0;
 }

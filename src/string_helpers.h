@@ -27,6 +27,8 @@ StrVector str_vec_new(int initial_size);
 // Add an element, a C string, to the end of the vector
 void str_vec_push(StrVector *str_vec, char* str);
 
+void str_vec_push_no_copy(StrVector *str_vec, char* str);
+
 // Reallocate the vector size
 void str_vec_realloc(StrVector *str_vec, int new_size);
 

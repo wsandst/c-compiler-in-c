@@ -16,16 +16,17 @@ char* str_copy(char *str) {
 }
 
 // Copy a substring of a string. Remember to free it later!
-char* str_substr(const char *string, int length)
+char* str_substr(const char* string, int length)
 {
-	char *output_string = calloc(length+1, sizeof(char));
+    // +5 is required to prevent memory leaks, why?
+	char *output_string = calloc(length+5, sizeof(char));
 	memcpy(output_string, string, length*sizeof(char));
-    *(output_string+length) = '\0';
+    //*(output_string+length) = '\0';
 	return output_string;
 }
 
 // Add an element to the end of the vector
-void str_vec_push(StrVector *str_vec, char* str) {
+void str_vec_push(StrVector* str_vec, char* str) {
     str_vec->size++;
     if (str_vec->size >= str_vec->max_size) {
         str_vec_realloc(str_vec, str_vec->max_size*2);
@@ -34,7 +35,7 @@ void str_vec_push(StrVector *str_vec, char* str) {
 }
 
 // Add an element to the end of the vector
-void str_vec_push_no_copy(StrVector *str_vec, char* str) {
+void str_vec_push_no_copy(StrVector* str_vec, char* str) {
     str_vec->size++;
     if (str_vec->size >= str_vec->max_size) {
         str_vec_realloc(str_vec, str_vec->max_size*2);
@@ -43,13 +44,13 @@ void str_vec_push_no_copy(StrVector *str_vec, char* str) {
 }
 
 // Reallocate the vector size
-void str_vec_realloc(StrVector *str_vec, int new_size) {
+void str_vec_realloc(StrVector* str_vec, int new_size) {
     str_vec->elems = realloc(str_vec->elems, new_size*sizeof(char*));
     str_vec->max_size = new_size;
 }
 
 // Free the vector memory
-void str_vec_free(StrVector *str_vec) {
+void str_vec_free(StrVector* str_vec) {
     for (int i = 0; i < str_vec->size; i++) {
         free(str_vec->elems[i]);
     }
@@ -57,7 +58,7 @@ void str_vec_free(StrVector *str_vec) {
 }
 
 // Find the combined size of the vector items
-int str_vec_total_item_size(StrVector *str_vec) {
+int str_vec_total_item_size(StrVector* str_vec) {
     int size = 0;
     for (int i = 0; i < str_vec->size; i++) {
         size += strlen(str_vec->elems[i]);
@@ -65,7 +66,7 @@ int str_vec_total_item_size(StrVector *str_vec) {
     return size;
 }
 
-char* str_vec_join(StrVector *str_vec) {
+char* str_vec_join(StrVector* str_vec) {
     int total_size = str_vec_total_item_size(str_vec);
     char *joined_start = calloc(total_size+1, sizeof(char)); // Null terminated
     char *joined_cur = joined_start;
@@ -175,7 +176,7 @@ bool str_endswith(char* str, char* match) {
 
 // Does the string contain the string provided? 
 // If true, return the index+1, else return 0
-int str_contains(char *str, char* match) {
+int str_contains(char* str, char* match) {
     char* cur_match_char = match;
     char* match_end = match;
     char* str_start = str;
@@ -197,7 +198,7 @@ int str_contains(char *str, char* match) {
 
 // Does the string contain the string word provided?
 // A word has to end with either whitespace or ({[:.
-int str_contains_word(char *str, char* match) {
+int str_contains_word(char* str, char* match) {
     char* cur_match_char = match;
     char* match_end = match;
     char* str_start = str;
@@ -227,13 +228,13 @@ int str_contains_word(char *str, char* match) {
     return 0;
 }
 
-void str_fill(char *str, int length, char c) {
+void str_fill(char* str, int length, char c) {
     for (size_t i = 0; i < length; i++) {
         str[i] = c;
     }
 }
 
-char* str_strip(char *str) {
+char* str_strip(char* str) {
     int length = strlen(str);
     char *start = str;
     char *end = str+length-1;

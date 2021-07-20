@@ -20,20 +20,20 @@ void test_tokenizer_large_src();
 
 // Definitions
 void test_tokenizer() {
-    printf("[TEST] Running tokenizer tests...\n");
+    printf("[CTEST] Running tokenizer tests...\n");
 
-    //test_tokenizer_preprocessor();
-    //test_tokenizer_comments();
-    //test_tokenizer_strings();
-    //test_tokenizer_keywords();
-    //test_tokenizer_ops();
-    //test_tokenizer_idents();
+    test_tokenizer_preprocessor();
+    test_tokenizer_comments();
+    test_tokenizer_strings();
+    test_tokenizer_keywords();
+    test_tokenizer_ops();
+    test_tokenizer_idents();
     test_tokenizer_values();
-    //test_tokenizer_delims();
+    test_tokenizer_delims();
 
-    //test_tokenizer_large_src();
+    test_tokenizer_large_src();
 
-    printf("[TEST] Passed tokenizer tests!\n");
+    printf("[CTEST] Passed tokenizer tests!\n");
 }
 
 void test_tokenizer_preprocessor() {
@@ -156,7 +156,6 @@ void test_tokenizer_idents() {
     assert(tokens.elems[1].type == TK_IDENT);
     assert(tokens.elems[2].type == TK_OP_ASSIGN);
     assert(tokens.elems[3].type == TK_LINT);
-    Token test = tokens.elems[4];
     assert(tokens.elems[4].type == TK_DL_SEMICOLON);
     assert(tokens.elems[5].type == TK_IDENT);
     assert(tokens.elems[6].type == TK_IDENT);
@@ -199,7 +198,6 @@ void test_tokenizer_values() {
     assert(tokens.elems[5].type == TK_LFLOAT);
     assert(tokens.elems[6].type == TK_LFLOAT);
     assert(tokens.elems[7].type == TK_DL_DOT);
-    Token test = tokens.elems[8];
     assert(tokens.elems[8].type == TK_DL_SEMICOLON);
     tokens_free(&tokens);
 }
