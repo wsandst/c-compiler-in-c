@@ -5,7 +5,11 @@ from the Abstract Syntax Tree created in the parsing step.
 */
 #pragma once
 #include "parser.h"
+#include "string_helpers.h"
 
 //void write_instr()
 
-char* generate_assembly(AST ast);
+// Add assembly
+void asm_add(char* str);
+
+char* generate_assembly(AST *ast);

@@ -30,7 +30,7 @@ void str_vec_push(StrVector *str_vec, char* str) {
     if (str_vec->size >= str_vec->max_size) {
         str_vec_realloc(str_vec, str_vec->max_size*2);
     }
-    str_vec->elems[str_vec->size] = str_substr(str, strlen(str));
+    str_vec->elems[str_vec->size-1] = str_copy(str);
 }
 
 // Add an element to the end of the vector
@@ -54,6 +54,30 @@ void str_vec_free(StrVector *str_vec) {
         free(str_vec->elems[i]);
     }
     free(str_vec->elems);
+}
+
+// Find the combined size of the vector items
+int str_vec_total_item_size(StrVector *str_vec) {
+    int size = 0;
+    for (int i = 0; i < str_vec->size; i++) {
+        size += strlen(str_vec->elems[i]);
+    }
+    return size;
+}
+
+char* str_vec_join(StrVector *str_vec) {
+    int total_size = str_vec_total_item_size(str_vec);
+    char *joined_start = calloc(total_size+1, sizeof(char)); // Null terminated
+    char *joined_cur = joined_start;
+    for (int i = 0; i < str_vec->size; i++) {
+        char* str = str_vec->elems[i];
+        while (*str != '\0') {
+            *joined_cur = *str;
+            str++;
+            joined_cur++;
+        }
+    }
+    return joined_start;
 }
 
 // Split a C string based on a delimiter and return a StrVector
@@ -87,6 +111,36 @@ void str_vec_print(StrVector* str_vec) {
 }
 
 // ======================== String Helpers =============================
+
+
+char* str_add(char* str1, char* str2) {
+    int length = strlen(str1) + strlen(str2);
+    char* added_str_start = calloc(length+1, sizeof(char));
+    char* added_str = added_str_start;
+    while(*str1 != '\0') {
+        *added_str = *str1;
+        added_str++;
+        str1++;
+    }
+    while(*str2 != '\0') {
+        *added_str = *str2;
+        added_str++;
+        str2++;
+    }
+    return added_str_start;
+} 
+
+char* str_multiply(char* str, int n) {
+    char* prev_str = calloc(1, sizeof(char));;
+    char* new_str = prev_str;
+    while(n != 0) {
+        new_str = str_add(prev_str, str);
+        free(prev_str);
+        prev_str = new_str;
+        n--;
+    }
+    return new_str;
+}
 
 // Does the string start with the string provided? Return 0 if not,
 // else return the index

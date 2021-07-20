@@ -36,6 +36,8 @@ void str_vec_free(StrVector *str_vec);
 // Print the C strings in the vector
 void str_vec_print(StrVector *str_vec);
 
+char* str_vec_join(StrVector *str_vec);
+
 // Split a C string based on a delimiter and return a StrVector
 StrVector str_split(char* str, char delimiter);
 
@@ -48,6 +50,12 @@ char* str_copy(char *str);
 
 // Copy a C String substring
 char* str_substr(const char *string, int length);
+
+// Add str1 to str2
+char* str_add(char *str1, char* str2);
+
+// Add str to itself, n times
+char* str_multiply(char *str, int n);
 
 // Does the string start with the string provided?
 bool str_startswith(char *str, char *match);

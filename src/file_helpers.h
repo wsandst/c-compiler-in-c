@@ -32,8 +32,8 @@ void write_string_to_file(char* filename, char *src) {
     fclose(file);
 }
 
-// Compile Intel-syntax ASM using NASM and link with ld
+// Compile Intel-syntax ASM using NASM and link with gcc
 void compile_asm(char *asm_src) {
     write_string_to_file("output.asm", asm_src);
-    system("nasm -f elf64 output.asm && ld -o output output.o && rm output.o");
+    system("nasm -f elf64 output.asm && gcc -no-pie -o output output.o && rm output.o");
 }
