@@ -12,6 +12,8 @@
 #pragma once
 #include <stdbool.h>
 #include <stdlib.h>
+#include <stdio.h>
+#include <string.h>
 
 typedef enum VarTypeEnum VarTypeEnum;
 typedef struct Variable Variable;
@@ -36,7 +38,6 @@ enum VarTypeEnum {
 };
 
 struct Variable {
-    Variable* next;
     char* name;
     VarTypeEnum type;
     int size;
@@ -63,14 +64,23 @@ struct Function {
 // This is a tree of tables
 struct SymbolTable {
     bool is_global; // Is this the global scope, at the top?
-    SymbolTable** children_ptrs; // Vector of pointers to the children
-    int children_count;
-    int max_children_count;
-    SymbolTable* parent;
-    // This should later function as a hashmap, do linear search for now
-    // It's O(n) anyway, which is super fast with a small amount of variables
     int block_stack_offset;
+    SymbolTable* parent;
+
+    // Vector of pointers to the children. This might be better as a linked list?
+    int children_count;
+    int children_max_count;
+    SymbolTable** children_ptrs; 
+
+    // Variable vector. This should later be a hashtable
+    int var_count;
+    int var_max_count;
     Variable* vars;
+
+    // Function vector. At first this will only be in the global scope,
+    // but later I should implement local functions
+    int func_count;
+    int func_max_count;
     Function* funcs;
 };
 
@@ -85,7 +95,9 @@ void symbol_table_free(SymbolTable* table);
 Variable* symbol_table_lookup_var(SymbolTable* table, char* var_name);
 
 // Insert a variable in this scope of the symbol table
-void symbol_table_insert_var(SymbolTable* table, char* var_name);
+void symbol_table_insert_var(SymbolTable* table, Variable var);
+
+void symbol_table_vars_realloc(SymbolTable* table, int new_size);
 
 // Child vector related
 SymbolTable* symbol_table_create_child(SymbolTable* table, int stack_offset);
@@ -93,3 +105,5 @@ SymbolTable* symbol_table_create_child(SymbolTable* table, int stack_offset);
 void symbol_table_children_realloc(SymbolTable* table, int new_size);
 
 SymbolTable* symbol_table_get_child(SymbolTable* table, int index);
+
+void symbol_error(char* error_message);

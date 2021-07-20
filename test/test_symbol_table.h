@@ -7,10 +7,12 @@
 
 void test_symbol_table();
 void test_symbol_table_tree();
+void test_symbol_table_vars();
 
 void test_symbol_table() {
     printf("[CTEST] Running symbol table tests...\n");
     test_symbol_table_tree();
+    test_symbol_table_vars();
     printf("[CTEST] Passed symbol table tests!\n");
 }
 
@@ -24,7 +26,9 @@ void test_symbol_table_tree() {
     assert(table == child->parent);
     symbol_table_create_child(table, 0);
     symbol_table_create_child(table, 0);
-    assert(table->max_children_count == 4);
+    assert(table->children_max_count == 4);
+    // This should not have invalidated the original child pointer
+    assert(child == table->children_ptrs[0]);
 
     SymbolTable* childchild = symbol_table_create_child(child, 0);
     assert(childchild->parent == child);
@@ -33,16 +37,36 @@ void test_symbol_table_tree() {
     symbol_table_free(table);
 }
 
-// When we allocate more than 1 child, we don't free correctly for the childchild
-// Child is reallocated and therefore the pointer is invalid
-// Is this an issue in the AST? We can't keep pointers to children in the AST like that,
-// they will become invalid
-// I could keep a vector of pointers to children. Now they are all separate and we 
-// only care about the values of the pointers, not the actual memory location
-// I could use a linked list for this too
+void test_symbol_table_vars() {
+    SymbolTable* table = symbol_table_new();
+    SymbolTable* child = symbol_table_create_child(table, 0);
 
-// I want a tree structure, where the children are accessible from the node
-// This should behave like a vector and allow me to add more children dynamically
-// I also need to keep separate pointers to these children that live outside 
-// So, it should be a vector of pointers to children. This will cause memory fragmentation,
-// but that is unavoidable here anyway.
+    // Inserting
+    Variable var;
+    var.name = "var1";
+    var.size = 1;
+    symbol_table_insert_var(table, var);
+    assert(table->var_count == 1);
+    var.name = "var2";
+    var.size = 2;
+    symbol_table_insert_var(table, var);
+    var.name = "var3";
+    var.size = 3;
+    symbol_table_insert_var(table, var);
+    assert(table->var_count == 3);
+    assert(table->var_max_count == 4);
+
+    // Lookup
+    assert(symbol_table_lookup_var(table, "var1")->size == 1);
+    assert(symbol_table_lookup_var(table, "var2")->size == 2);
+    assert(symbol_table_lookup_var(table, "var3")->size == 3);
+
+    var.name = "var4";
+    var.size = 4;
+    symbol_table_insert_var(child, var);
+    assert(symbol_table_lookup_var(child, "var4")->size == 4);
+    // Check going up a scope
+    assert(symbol_table_lookup_var(child, "var1")->size == 1);
+    // symbol_table_lookup_var(child, "novar"); // This will error!
+    symbol_table_free(table);
+}
