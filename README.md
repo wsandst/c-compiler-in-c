@@ -8,5 +8,7 @@ For this reason no external dependencies are used. The aim of the project is als
 Compile: `make`  
 Run: `./build/ccompiler`  
 ### Tests
-Compile: `make test`  
-Run: `./build/ccompiler-test`
+Run tests: `make test`  
+
+## Dependencies
+`NASM` is required to compile the generated Intel-syntax Assembly, and `GCC` is used as a linker.
