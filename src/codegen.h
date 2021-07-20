@@ -12,4 +12,8 @@ from the Abstract Syntax Tree created in the parsing step.
 // Add assembly
 void asm_add(char* str);
 
+void asm_add_return(char* return_val);
+
 char* generate_assembly(AST *ast);
+
+void gen_asm(ASTNode *node);

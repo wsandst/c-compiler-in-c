@@ -92,7 +92,7 @@ enum ASTNodeType {
 };
 
 struct Variable {
-    Variable *next;
+    Variable* next;
     char* name;
     VarTypeEnum type;
     int size;

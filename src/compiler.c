@@ -4,8 +4,18 @@
 #include "file_helpers.h"
 
 
-int main() {
-    char* src = load_file_to_string("../test/resources/test_source.c");
+int main(int argc, char *argv[]) {
+    char* src_path;
+    if (argc > 1) {
+        src_path = argv[1];
+    }
+    else {
+        src_path = "../test/resources/test_source.c";
+    }
+
+    printf("Compiling source file \"%s\"\n", src_path);
+
+    char* src = load_file_to_string(src_path);
 
     // Step 1: Tokenization
     Tokens tokens = tokenize(src);
@@ -25,5 +35,7 @@ int main() {
     free(asm_src);
     free(src);
     
+    printf("Compilation complete\n", src_path);
+
     return 0;
 }
