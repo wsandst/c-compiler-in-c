@@ -69,6 +69,6 @@ void test_symbol_table_vars() {
     assert(symbol_table_lookup_var(child, "var4").size == 4);
     // Check going up a scope
     assert(symbol_table_lookup_var(child, "var1").size == 1);
-    // symbol_table_lookup_var(child, "novar"); // This will error!
+    // symbol_table_lookup_var(child, "novar"); // This will correctly error!
     symbol_table_free(table);
 }

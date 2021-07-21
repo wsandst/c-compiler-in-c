@@ -203,7 +203,7 @@ void test_tokenizer_values() {
 }
 
 void test_tokenizer_large_src() {
-    char* src = load_file_to_string("test/resources/tokenizer_test.c");
+    char* src = load_file_to_string("test/test_code/tokenizer_test.c");
 
     // Manually tokenize
     // We need access to the overwritten StrVector lines to ensure every token was grabbed

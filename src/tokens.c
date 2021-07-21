@@ -556,7 +556,7 @@ void tokens_print(Tokens* tokens) {
 }
 
 char* token_type_to_string(enum TokenType type) {
-    static const char *type_strings[] = {
+    static char *type_strings[] = {
         "TK_NONE", 
         "TK_IDENT", 
         "TK_TYPE", 

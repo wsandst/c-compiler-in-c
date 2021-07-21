@@ -8,7 +8,6 @@ void asm_add_single(char* str) {
 }
 
 void asm_add(int n, ...) {
-    int i;
     char* str;
     va_list vl;
     va_start(vl, n);

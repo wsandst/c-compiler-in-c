@@ -45,11 +45,13 @@ clean:
 	@$(RM) -rv $(BIN_DIR) $(OBJ_DIR) $(TEST_OBJ_DIR)
 
 # Run unit tests and valgrind tests
-test: testexe
-	@echo Running tests...
+test: testexe $(EXE)
+	@echo [TEST] Running unit tests...
 	./build/ccompiler-test
+	@echo "[TEST] \e[0;32mPassed unit tests!\e[0m"
 	@echo Running memory leak test...
 	valgrind --leak-check=full --error-exitcode=1 --log-fd=2 ./build/ccompiler-test 1>/dev/null
-	@echo "\e[1;32mPassed tests!\e[0m"
+	@echo "[TEST] \e[0;32mPassed memory leak test!\e[0m"
+	./test/test_compilation.sh
 	
 -include $(OBJ:.o=.d)
