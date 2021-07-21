@@ -3,6 +3,12 @@
 #include "codegen.h"
 #include "file_helpers.h"
 
+/*
+TODO:
+Implement functions
+Implement function calls
+Implement scopes
+*/
 
 int main(int argc, char *argv[]) {
     char* src_path;

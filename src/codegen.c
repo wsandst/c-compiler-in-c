@@ -91,10 +91,12 @@ void gen_asm(ASTNode* node) {
                 asm_add_nl();
             }
             else if (node->assign->type == AST_VAR) {
-                char* sp2 = var_to_stack_ptr(&node->ret->var);
-                asm_add(4, "mov ", sp, ", ", sp2);
+                char* sp2 = var_to_stack_ptr(&node->assign->var);
+                asm_add(2, "mov rax, ", sp2);
                 asm_add_nl();
-                free(sp);
+                asm_add(3, "mov ", sp, ", rax");
+                asm_add_nl();
+                free(sp2);
             }
             free(sp);
             }
