@@ -1,5 +1,8 @@
-// Extremely basic return 
+// Declare a variable, assign to it, return it 
 
 int main() {
-    return 0;
+    int x;
+    x = 5;
+    x = 4;
+    return x;
 }

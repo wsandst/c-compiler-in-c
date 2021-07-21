@@ -1,5 +1,6 @@
-
+// Declare a variable and assign in same statement
 
 int main() {
-    return 5;
+    int x = 4;
+    return x;
 }

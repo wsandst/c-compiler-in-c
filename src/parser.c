@@ -150,9 +150,13 @@ void parse_statement(ASTNode* node, SymbolTable* symbols) {
         node->var = symbol_table_insert_var(symbols, var);
 
         if (accept(TK_OP_ASSIGN)) { // Def and assignment
-
+            node->type = AST_ASSIGN;
+            node->assign = ast_node_new(AST_EXPR, 1);
+            parse_expression(node->assign, symbols);
         }
-        expect(TK_DL_SEMICOLON);
+        else {
+            expect(TK_DL_SEMICOLON);
+        }
     }
     else if (accept(TK_IDENT)) {
         char* ident = prev_token().value.string;

@@ -10,7 +10,8 @@ int main(int argc, char *argv[]) {
         src_path = argv[1];
     }
     else {
-        src_path = "../test/test_code/test_source.c";
+        printf("Error: Please specify a source file\n");
+        exit(1);
     }
 
     printf("Compiling source file \"%s\"\n", src_path);
