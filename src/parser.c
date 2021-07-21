@@ -146,7 +146,7 @@ void parse_statement(ASTNode* node, SymbolTable* symbols) {
         expect(TK_IDENT);
         char* ident = prev_token().value.string;
         var.name = ident;
-        var.size = 4;
+        var.size = 8; // 64 bit
         node->var = symbol_table_insert_var(symbols, var);
 
         if (accept(TK_OP_ASSIGN)) { // Def and assignment
