@@ -73,6 +73,12 @@ void gen_asm(ASTNode* node) {
             asm_add_nl();
             gen_asm(node->body);
             break;
+        case AST_BLOCK:
+            gen_asm(node->body);
+            gen_asm(node->next);
+            break;
+        case AST_NONE:
+            return;
         case AST_RETURN:
             if (node->ret->type == AST_NUM) {
                 asm_add_return(node->ret->literal);

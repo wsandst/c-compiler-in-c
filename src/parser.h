@@ -157,6 +157,9 @@ void parse_statement(ASTNode* node,  SymbolTable* symbols);
 // Parse an expression, ex (a + b) + 3
 void parse_expression(ASTNode* node,  SymbolTable* symbols);
 
+// Parse a scope/block
+void parse_scope(ASTNode* node, SymbolTable* symbols);
+
 // Print a parse error to stderr and exit the program
 void parse_error(char* error_message);
 void parse_error_unexpected_symbol(enum TokenType expected, enum TokenType recieved);

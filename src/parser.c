@@ -173,11 +173,27 @@ void parse_statement(ASTNode* node, SymbolTable* symbols) {
         parse_expression(node->ret, symbols);
     }
     else if (accept(TK_DL_CLOSEBRACE)) {
-        // Block end
+        // Scope or function end
+        node->type = AST_NONE;
+        return;
+    }
+    else if (accept(TK_DL_OPENBRACE)) {
+        // Scope start
+        parse_scope(node, symbols); 
+    }
+    else if (accept(TK_DL_CLOSEBRACE)) { // End of scope
         return;
     }
     node->next = ast_node_new(AST_STMT, 1);
     parse_statement(node->next, symbols);
+}
+
+void parse_scope(ASTNode* node, SymbolTable* symbols) {
+    // Make a new child symbol table for this scope
+    node->type = AST_BLOCK;
+    node->body = ast_node_new(AST_STMT, 1);
+    SymbolTable* scope_symbols = symbol_table_create_child(symbols, symbols->cur_stack_offset);
+    parse_statement(node->body, scope_symbols);
 }
 
 void parse_expression(ASTNode* node, SymbolTable* symbols) {
