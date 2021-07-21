@@ -76,8 +76,14 @@ AST parse(Tokens* tokens) {
     ASTNode *main_node = ast_node_new(AST_NONE, 1);
     ast.program = main_node;
 
+    SymbolTable* global_symbols = symbol_table_new();
+
     parse_token = &tokens->elems[main_index];
-    parse_func(main_node);
+
+    SymbolTable* main_symbols = symbol_table_create_child(global_symbols, 0);
+    parse_func(main_node, main_symbols);
+
+    symbol_table_free(global_symbols);
 
     return ast;
 }
@@ -87,7 +93,7 @@ Token prev_token() {
 
 void expect(enum TokenType type) {
     if (parse_token->type != type) {
-        parse_error("Unexpected symbol");
+        parse_error_unexpected_symbol(type, parse_token->type);
     }
     parse_token++;
 }
@@ -115,7 +121,7 @@ bool accept_var_type() {
     return (accept(TK_KW_INT) || accept(TK_KW_FLOAT) || accept(TK_KW_DOUBLE) || accept(TK_KW_CHAR));
 }
 
-void parse_func(ASTNode* node) {
+void parse_func(ASTNode* node, SymbolTable* symbols) {
     node->type = AST_FUNC;
     expect_var_type();
     enum VarTypeEnum return_type = token_type_to_var_type(prev_token().type);
@@ -129,46 +135,62 @@ void parse_func(ASTNode* node) {
     expect(TK_DL_OPENBRACE);
     ASTNode* stmt = ast_node_new(AST_NONE, 1);
     node->body = stmt;
-    parse_statement(stmt);
+    parse_statement(stmt, symbols);
 }
 
-void parse_statement(ASTNode* node) {
+void parse_statement(ASTNode* node, SymbolTable* symbols) {
     if (accept_var_type()) { // Variable declaration
-        node->type = AST_VAR;
-        node->var.type = token_type_to_var_type(prev_token().type);
+        Variable var;
+        node->type = AST_VAR_DEC;
+        var.type = token_type_to_var_type(prev_token().type);
         expect(TK_IDENT);
         char* ident = prev_token().value.string;
-        node->var.name = ident;
+        var.name = ident;
+        var.size = 4;
+        node->var = symbol_table_insert_var(symbols, var);
+
         if (accept(TK_OP_ASSIGN)) { // Def and assignment
 
         }
+        expect(TK_DL_SEMICOLON);
     }
     else if (accept(TK_IDENT)) {
         char* ident = prev_token().value.string;
-        node->var.name = ident;
+        Variable var = symbol_table_lookup_var(symbols, ident);
+        node->var = var;
         expect(TK_OP_ASSIGN);
         node->type = AST_ASSIGN;
         node->assign = ast_node_new(AST_EXPR, 1);
-        parse_expression(node->assign);
+        parse_expression(node->assign, symbols);
     }
     else if (accept(TK_KW_RETURN)) {
         node->type = AST_RETURN;
         node->ret = ast_node_new(AST_EXPR, 1);
-        parse_expression(node->ret);
+        parse_expression(node->ret, symbols);
     }
     else if (accept(TK_DL_CLOSEBRACE)) {
         // Block end
         return;
     }
     node->next = ast_node_new(AST_STMT, 1);
-    parse_statement(node->next);
+    parse_statement(node->next, symbols);
 }
 
-void parse_expression(ASTNode* node) {
+void parse_expression(ASTNode* node, SymbolTable* symbols) {
     // Do Shunting-yard algorithm
     // We only handle integer constants currently
-    expect(TK_LINT);
-    node->literal = prev_token().string_repr;
+    if (accept(TK_LINT)) {
+        node->type = AST_NUM;
+        node->literal = prev_token().string_repr;
+    }
+    // Variable
+    else if (accept(TK_IDENT)) {
+        node->type = AST_VAR;
+        node->var = symbol_table_lookup_var(symbols, prev_token().string_repr);
+    }
+    else {
+        parse_error("Invalid expression");
+    }
     if (accept(TK_DL_SEMICOLON) || accept(TK_DL_COMMA)) {
         return; // Expression end
     }
@@ -182,6 +204,14 @@ void parse_error(char* error_message) {
     // We are not manually freeing the memory here, 
     // but as the program is exiting it is fine
     exit(1); 
+}
+
+void parse_error_unexpected_symbol(enum TokenType expected, enum TokenType recieved) {
+    char buff[256];
+    char* expected_str = token_type_to_string(expected);
+    char* recieved_str = token_type_to_string(recieved);
+    snprintf(buff, 255, "Expected symbol '%s', found symbol '%s'", expected_str, recieved_str);
+    parse_error(buff);
 }
 
 

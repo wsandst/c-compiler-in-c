@@ -59,15 +59,16 @@ enum ASTNodeType {
     AST_SWITCH,     // "switch"
     AST_CASE,       // "case"
     AST_BLOCK,      // { ... }
-    //AST_GOTO,       // "goto"
-    //AST_LABEL,      // Labeled statement
+    //AST_GOTO,     // "goto"
+    //AST_LABEL,    // Labeled statement
     AST_FUNC_CALL,  // Function call
     AST_FUNC,
     AST_STMT,
     AST_VAR,        // Variable
+    AST_VAR_DEC,    // Variable declaration
     AST_NUM,        // Integer
     AST_CAST,       // Type cast
-    AST_ASSIGN, // This is actually an operation in C. Start out like this?
+    AST_ASSIGN,     // This is actually an operation in C. Start out like this?
     AST_EXPR,
     AST_NONE,
 };
@@ -76,8 +77,6 @@ struct ASTNode {
     ASTNodeType type;
     Variable var;
     Function* func;
-
-    SymbolTable* symbol_table; // Represents the current scope
 
     ASTNode* func_args;
 
@@ -150,16 +149,17 @@ AST parse(Tokens* tokens);
 
 // Parse a function definition
 // <function> ::= <type> <id> "(" <args> ")" "{" <statement> "}"
-void parse_func(ASTNode* node);
+void parse_func(ASTNode* node,  SymbolTable* symbols);
 
 // Parse a statement
-void parse_statement(ASTNode* node);
+void parse_statement(ASTNode* node,  SymbolTable* symbols);
 
 // Parse an expression, ex (a + b) + 3
-void parse_expression(ASTNode* node);
+void parse_expression(ASTNode* node,  SymbolTable* symbols);
 
 // Print a parse error to stderr and exit the program
 void parse_error(char* error_message);
+void parse_error_unexpected_symbol(enum TokenType expected, enum TokenType recieved);
 
 // Various helpers
 

@@ -150,3 +150,6 @@ void tokenize_ints(Tokens *tokens, StrVector *str_split);
 void tokenize_floats(Tokens *tokens, StrVector *str_split);
 
 void tokenize_delims(Tokens *tokens, StrVector *str_split);
+
+// Debug helper
+char* token_type_to_string(enum TokenType type);

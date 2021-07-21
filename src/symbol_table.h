@@ -1,10 +1,7 @@
-// Mapping variable names to the symbol map.
-// IDENT -> Variable (which contains the offsets and such)
-// So, register_variable(IDENT, something to identify the unique scope)
-// then, get_variable(IDENT, something to identify the unique scope)
-// This needs to be a hashtable
-
-// Each scope has its own symbol table. Then every scope has an inherent stack offset 
+// The symbol table represents the various variables and functions in a program
+// Each scope has its own symbol table and is linked to the parent scope. 
+// Then every scope has an inherent stack offset, which determines local variables location
+// on the stack
 // To find a variable, first search the current scope and traverse all the way to the top
 // The symbol table is a tree of scopes. Every time a new scope is made, I make a new child
 // Global scope -> function scope -> block scope etc
@@ -64,7 +61,7 @@ struct Function {
 // This is a tree of tables
 struct SymbolTable {
     bool is_global; // Is this the global scope, at the top?
-    int block_stack_offset;
+    int cur_stack_offset;
     SymbolTable* parent;
 
     // Vector of pointers to the children. This might be better as a linked list?
@@ -92,10 +89,10 @@ void symbol_table_free(SymbolTable* table);
 // Lookup a variable in the symbol table
 // If not found in this scope, traverse up the scopes until found
 // If the variable does not exist anywhere, throw an error
-Variable* symbol_table_lookup_var(SymbolTable* table, char* var_name);
+Variable symbol_table_lookup_var(SymbolTable* table, char* var_name);
 
 // Insert a variable in this scope of the symbol table
-void symbol_table_insert_var(SymbolTable* table, Variable var);
+Variable symbol_table_insert_var(SymbolTable* table, Variable var);
 
 void symbol_table_vars_realloc(SymbolTable* table, int new_size);
 

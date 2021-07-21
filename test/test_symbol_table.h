@@ -16,6 +16,7 @@ void test_symbol_table() {
     printf("[CTEST] Passed symbol table tests!\n");
 }
 
+// Test child and parent handling of the symbol table tree
 void test_symbol_table_tree() {
     SymbolTable* table = symbol_table_new();
 
@@ -37,6 +38,7 @@ void test_symbol_table_tree() {
     symbol_table_free(table);
 }
 
+// Test variable insertion and lookup in the symbol table tree
 void test_symbol_table_vars() {
     SymbolTable* table = symbol_table_new();
     SymbolTable* child = symbol_table_create_child(table, 0);
@@ -57,16 +59,16 @@ void test_symbol_table_vars() {
     assert(table->var_max_count == 4);
 
     // Lookup
-    assert(symbol_table_lookup_var(table, "var1")->size == 1);
-    assert(symbol_table_lookup_var(table, "var2")->size == 2);
-    assert(symbol_table_lookup_var(table, "var3")->size == 3);
+    assert(symbol_table_lookup_var(table, "var1").size == 1);
+    assert(symbol_table_lookup_var(table, "var2").size == 2);
+    assert(symbol_table_lookup_var(table, "var3").size == 3);
 
     var.name = "var4";
     var.size = 4;
     symbol_table_insert_var(child, var);
-    assert(symbol_table_lookup_var(child, "var4")->size == 4);
+    assert(symbol_table_lookup_var(child, "var4").size == 4);
     // Check going up a scope
-    assert(symbol_table_lookup_var(child, "var1")->size == 1);
+    assert(symbol_table_lookup_var(child, "var1").size == 1);
     // symbol_table_lookup_var(child, "novar"); // This will error!
     symbol_table_free(table);
 }

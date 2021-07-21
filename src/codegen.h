@@ -4,13 +4,18 @@ last step of the compiler. It generates x86_64 assembly
 from the Abstract Syntax Tree created in the parsing step.
 */
 #pragma once
+#include <stdarg.h>
+
 #include "parser.h"
 #include "string_helpers.h"
 
 //void write_instr()
 
 // Add assembly
-void asm_add(char* str);
+void asm_add_single(char* str);
+
+// Variable arguments
+void asm_add(int n, ...);
 
 void asm_add_return(char* return_val);
 
