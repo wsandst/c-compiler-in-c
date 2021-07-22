@@ -63,8 +63,12 @@ char* generate_assembly(AST* ast) {
 
 void gen_asm(ASTNode* node) {
     switch (node->type) {
+        case AST_PROGRAM:
+            gen_asm(node->body);
+            return;
         case AST_FUNC:
             asm_set_indent(0);
+            asm_add_nl();
             asm_add(2, node->func.name, ":");
             asm_set_indent(1);
             asm_add_nl();
@@ -73,11 +77,13 @@ void gen_asm(ASTNode* node) {
             asm_add(1, "mov rbp, rsp");
             asm_add_nl();
             gen_asm(node->body);
+            gen_asm(node->next);
             break;
         case AST_BLOCK:
             gen_asm(node->body);
             gen_asm(node->next);
             break;
+        case AST_NONE:
         case AST_END:
             return;
         case AST_RETURN:

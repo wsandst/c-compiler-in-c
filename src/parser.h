@@ -142,6 +142,9 @@ void ast_node_free(ASTNode* ast_node);
 // Take in a list of tokens and return an Abstract Syntax Tree
 AST parse(Tokens* tokens);
 
+// Parse the program (file)
+void parse_program(ASTNode* node, SymbolTable* symbols);
+
 // Parse a function definition
 // <function> ::= <type> <id> "(" <args> ")" "{" <statement> "}"
 void parse_func(ASTNode* node,  SymbolTable* symbols);

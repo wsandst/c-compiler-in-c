@@ -94,7 +94,7 @@ Function symbol_table_insert_func(SymbolTable* table, Function func) {
     }
     table->func_count++;
     if (table->func_count > table->func_max_count) {
-        symbol_table_vars_realloc(table, table->func_max_count*2);
+        symbol_table_funcs_realloc(table, table->func_max_count*2);
     }
     // I need to take account for the param variables on the stack here
     // For now, just add param count * 4 to the stack offset

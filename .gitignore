@@ -2,3 +2,6 @@ build/
 *.o
 *.d
 .vscode
+output.asm
+output.o
+output

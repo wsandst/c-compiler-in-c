@@ -45,16 +45,15 @@ AST parse(Tokens* tokens) {
     parse_token = &tokens->elems[0];
     // Setup initial AST
     AST ast;
-    ASTNode *program_node = ast_node_new(AST_END, 1);
-    program_node->type = AST_PROGRAM;
+    ASTNode *program_node = ast_node_new(AST_PROGRAM, 1);
     ast.program = program_node;
+    program_node->body = ast_node_new(AST_NONE, 1);
 
     // Create global symbol table
     SymbolTable* global_symbols = symbol_table_new();
 
-
     // Start parsing
-    parse_program(program_node, global_symbols);
+    parse_program(program_node->body, global_symbols);
 
     // Free memory
     symbol_table_free(global_symbols);
@@ -127,7 +126,7 @@ void parse_program(ASTNode* node, SymbolTable* symbols) {
     }
     else if (accept(TK_DL_SEMICOLON) || accept(TK_OP_ASSIGN)) { // Global declaration or assignment
         token_go_back(2);
-        parse_statement(symbols, node);
+        parse_statement(node, symbols);
     }
     node->next = ast_node_new(AST_NONE, 1);
     parse_program(node->next, symbols);
