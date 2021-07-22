@@ -5,12 +5,11 @@
 
 /*
 TODO:
-    Function support in the symbol table. Remember, function symbol tables have to take the parameters in 
-    consideration for the stack offset!!! Read up on calling convention
-
-    Functions
-    Function calls 
+    Expression overhaul:
+        I need to start thinking about expression scratch space,
+        and cleanup expression handling in general
     Simple unary ops, then binary ops
+    Function parameters, proper calling convention
     If conditionals
     While loops
     For loops

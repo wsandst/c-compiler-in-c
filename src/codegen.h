@@ -14,6 +14,8 @@ from the Abstract Syntax Tree created in the parsing step.
 // Add assembly
 void asm_add_single(char* str);
 
+void asm_add_newline();
+
 // Variable arguments
 void asm_add(int n, ...);
 
