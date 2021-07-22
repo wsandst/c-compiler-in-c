@@ -8,6 +8,8 @@ SymbolTable* symbol_table_new() {
     table->children_max_count = 1;
     table->vars = calloc(1, sizeof(Variable));
     table->var_max_count = 1;
+    table->funcs = calloc(1, sizeof(Function));
+    table->func_max_count = 1;
     return table;
 }
 
@@ -20,8 +22,8 @@ void symbol_table_free(SymbolTable* table) {
     if (table->children_max_count != 0) {
         free(table->children_ptrs);
     }
-    // Free variables and functions too
     free(table->vars);
+    free(table->funcs); // We need to free the func params as well
     free(table);
 }
 
@@ -55,9 +57,6 @@ Variable symbol_table_insert_var(SymbolTable* table, Variable var) {
     if (table->var_count > table->var_max_count) {
         symbol_table_vars_realloc(table, table->var_max_count*2);
     }
-    // I need to do more work here, calculate the actual stack offset
-    // which is determined by the cumulative sum of the 
-    // byte lengths of the variable types
     table->cur_stack_offset += var.size;
     var.stack_offset = table->cur_stack_offset;
     table->vars[table->var_count-1] = var;
@@ -65,9 +64,50 @@ Variable symbol_table_insert_var(SymbolTable* table, Variable var) {
 }
 
 void symbol_table_vars_realloc(SymbolTable* table, int new_size) {
-    table->vars = realloc(table->vars, sizeof(SymbolTable)*new_size);
+    table->vars = realloc(table->vars, sizeof(Variable)*new_size);
     table->var_max_count = new_size;
 }
+
+// Function related
+Function symbol_table_lookup_func(SymbolTable* table, char* func_name) {
+    for (size_t i = 0; i < table->var_count; i++)
+    {
+        Function* func = &table->funcs[i];
+        if (strcmp(func->name, func_name) == 0) {
+            // Found it!
+            return *func;
+        }
+    }
+    if (table->is_global) {
+        // The referenced function is not declared anywhere up
+        // to the global scope, error!
+        symbol_error("Function referenced but never declared!");
+    }
+    // We did not find the variable in this scope, go up a scope
+    return symbol_table_lookup_func(table->parent, func_name);
+}
+
+// Insert a variable in this scope of the symbol table
+Function symbol_table_insert_func(SymbolTable* table, Function func) {
+    if (!table->is_global) {
+        symbol_error("Only global functions are allowed, encountered local definition");
+    }
+    table->func_count++;
+    if (table->func_count > table->func_max_count) {
+        symbol_table_vars_realloc(table, table->func_max_count*2);
+    }
+    // I need to take account for the param variables on the stack here
+    // For now, just add param count * 4 to the stack offset
+    // How do local functions work? No clue
+    table->funcs[table->func_count-1] = func;
+    return func;
+}
+
+void symbol_table_funcs_realloc(SymbolTable* table, int new_size) {
+    table->funcs = realloc(table->funcs, sizeof(Function)*new_size);
+    table->func_max_count = new_size;
+}
+
 
 // Child vector
 SymbolTable* symbol_table_create_child(SymbolTable* table, int stack_offset) {
@@ -83,6 +123,8 @@ SymbolTable* symbol_table_create_child(SymbolTable* table, int stack_offset) {
     child->children_max_count = 1;
     child->vars = calloc(1, sizeof(Variable));
     child->var_max_count = 1;
+    child->funcs = calloc(1, sizeof(Function));
+    child->func_max_count = 1;
     table->children_ptrs[table->children_count-1] = child;
     return child;
 }

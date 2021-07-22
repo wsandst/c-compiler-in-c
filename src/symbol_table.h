@@ -48,14 +48,13 @@ struct Variable {
 struct Function {
     char* name;
     VarTypeEnum return_type;
+    int param_count;
     VarTypeEnum* params;
 
-    // A function needs to know its body, doesn't it?
     // How do I generate the entire program?
     // I want to go over every function and add them as cod
     // The uppermost AST Node is the AST_PROGRAM, which contains children functions
     // We loop over these and add them as code.
-    Function* next_mem; // Temporary
 };
 
 // This is a tree of tables
@@ -81,11 +80,14 @@ struct SymbolTable {
     Function* funcs;
 };
 
+void symbol_error(char* error_message);
+
 SymbolTable* symbol_table_new();
 
 // Free the symbol table and its children
 void symbol_table_free(SymbolTable* table);
 
+// ================ Variables ==================
 // Lookup a variable in the symbol table
 // If not found in this scope, traverse up the scopes until found
 // If the variable does not exist anywhere, throw an error
@@ -96,11 +98,18 @@ Variable symbol_table_insert_var(SymbolTable* table, Variable var);
 
 void symbol_table_vars_realloc(SymbolTable* table, int new_size);
 
-// Child vector related
+// ================ Functions ==================
+Function symbol_table_lookup_func(SymbolTable* table, char* func_name);
+
+// Insert a variable in this scope of the symbol table
+Function symbol_table_insert_func(SymbolTable* table, Function func);
+
+void symbol_table_funcs_realloc(SymbolTable* table, int new_size);
+
+
+// =============== Tree related ================
 SymbolTable* symbol_table_create_child(SymbolTable* table, int stack_offset);
 
 void symbol_table_children_realloc(SymbolTable* table, int new_size);
 
 SymbolTable* symbol_table_get_child(SymbolTable* table, int index);
-
-void symbol_error(char* error_message);

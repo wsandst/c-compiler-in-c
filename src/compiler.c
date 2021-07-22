@@ -5,9 +5,15 @@
 
 /*
 TODO:
-Implement functions
-Implement function calls
-Implement scopes
+    Function support in the symbol table. Remember, function symbol tables have to take the parameters in 
+    consideration for the stack offset!!! Read up on calling convention
+
+    Functions
+    Function calls 
+    Simple unary ops, then binary ops
+    If conditionals
+    While loops
+    For loops
 */
 
 int main(int argc, char *argv[]) {

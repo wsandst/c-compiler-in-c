@@ -19,6 +19,7 @@ enum TokenType {
     TK_TYPE, 
     TK_COMMENT, 
     TK_PREPROCESSOR,
+    TK_EOF,
     TK_LINT, 
     TK_LFLOAT, 
     TK_LSTRING, 

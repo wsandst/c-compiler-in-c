@@ -33,62 +33,40 @@ void ast_node_free(ASTNode *ast_node) {
     free(ast_node);
 }
 
-// Linked list used for freeing memory correctly
-Function *function_mem_end = NULL;
-Function *function_mem_start;
-
-Function *function_new(char *name) {
-    Function* func = calloc(1, sizeof(Function));
-    func->name = name;
-
-    // Memory managment, linked list used for freeing later
-    if (function_mem_end != NULL) {
-        function_mem_end->next_mem = func;
-    }
-    else {
-        function_mem_start = func;
-    }
-    function_mem_end = func;
-
-    return func;
-}
-
-void function_free(Function* func) {
-    if (func->next_mem != NULL) {
-        function_free(func->next_mem);
-    }
-    free(func);
-}
 
 void ast_free(AST* ast) {
     ast_node_free(ast_node_mem_start);
-    function_free(function_mem_start);
 }
 
 // Current token being parsed, global simplifies code a lot 
 Token* parse_token;
 
 AST parse(Tokens* tokens) {
-    // Find entry
+    parse_token = &tokens->elems[0];
+    // Setup initial AST
     AST ast;
-    int main_index = find_main_index(tokens);
-    //Function *main_func = function_new(main_token.value.string);
-    ASTNode *main_node = ast_node_new(AST_NONE, 1);
-    ast.program = main_node;
+    ASTNode *program_node = ast_node_new(AST_END, 1);
+    program_node->type = AST_PROGRAM;
+    ast.program = program_node;
 
+    // Create global symbol table
     SymbolTable* global_symbols = symbol_table_new();
 
-    parse_token = &tokens->elems[main_index];
 
-    SymbolTable* main_symbols = symbol_table_create_child(global_symbols, 0);
-    parse_func(main_node, main_symbols);
+    // Start parsing
+    parse_program(program_node, global_symbols);
 
+    // Free memory
     symbol_table_free(global_symbols);
 
     return ast;
 }
 Token prev_token() {
     return *(parse_token - 1);
+}
+
+void token_go_back(int steps) {
+    parse_token = parse_token - steps;
 }
 
 void expect(enum TokenType type) {
@@ -121,16 +99,44 @@ bool accept_var_type() {
     return (accept(TK_KW_INT) || accept(TK_KW_FLOAT) || accept(TK_KW_DOUBLE) || accept(TK_KW_CHAR));
 }
 
-void parse_func(ASTNode* node, SymbolTable* symbols) {
-    node->type = AST_FUNC;
+void parse_program(ASTNode* node, SymbolTable* symbols) {
+    // Either a function or a global, add preprocessor stuff later
+    // These should probably be handled as normal statements, not
+    // hardcoded up in the program. Will simplify variable handling
+    if (accept(TK_EOF)) { // Reached end of program
+        node->type = AST_END;
+        return;
+    }
+    if (accept(TK_COMMENT) || accept(TK_PREPROCESSOR)) { // Skip
+        parse_program(node, symbols);
+        return;
+    }
+    // Must either be a function or a global variable
     expect_var_type();
-    enum VarTypeEnum return_type = token_type_to_var_type(prev_token().type);
+    enum VarTypeEnum type = token_type_to_var_type(prev_token().type);
     expect(TK_IDENT);
-    char* func_name = prev_token().value.string;
-    Function *func = function_new(func_name);
-    func->return_type = return_type;
-    node->func = func;
-    expect(TK_DL_OPENPAREN);
+    char* ident = prev_token().value.string;
+    if (accept(TK_DL_OPENPAREN)) { // Function
+        node->type = AST_FUNC;
+        Function func;
+        func.name = ident;
+        func.return_type = type;
+        func = symbol_table_insert_func(symbols, func);
+        node->func = func;
+        parse_func(node, symbols);
+    }
+    else if (accept(TK_DL_SEMICOLON) || accept(TK_OP_ASSIGN)) { // Global declaration or assignment
+        token_go_back(2);
+        parse_statement(symbols, node);
+    }
+    node->next = ast_node_new(AST_NONE, 1);
+    parse_program(node->next, symbols);
+}
+
+void parse_func(ASTNode* node, SymbolTable* symbols) {
+    //Function *func = function_new(func_name);
+    //func->return_type = return_type;
+    //node->func = func;
     expect(TK_DL_CLOSEPAREN);
     expect(TK_DL_OPENBRACE);
     ASTNode* stmt = ast_node_new(AST_NONE, 1);

@@ -42,8 +42,9 @@ void test_tokenizer_preprocessor() {
     Tokens tokens = tokenize(src);
     assert(tokens.elems[0].type == TK_PREPROCESSOR);
     assert(tokens.elems[1].type == TK_PREPROCESSOR);
+    assert(tokens.elems[2].type == TK_EOF); // Last token should always be EOF
     assert(strcmp(tokens.elems[1].value.string, "#include test") == 0);
-    assert(tokens.size == 2);
+    assert(tokens.size == 3);
     tokens_free(&tokens);
 
 }

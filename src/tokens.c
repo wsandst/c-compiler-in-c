@@ -7,10 +7,10 @@ I don't handle -> correctly. Treat as operator? Or delimiter?
 */
 
 Tokens tokenize(char* src) {
-    int src_length = strlen(src);
+    int src_length = strlen(src)+1;
     Tokens tokens = tokens_new(src_length);
 
-    // Start identifying tokens
+    // Split up src in lines
     StrVector lines = str_split(src, '\n');
     for (size_t i = 0; i < lines.size; i++)
     {
@@ -18,6 +18,9 @@ Tokens tokenize(char* src) {
         free(lines.elems[i]);
         lines.elems[i] = new_str;
     }
+
+    // Set last token to EOF
+    tokens.elems[tokens.size-1].type = TK_EOF;
 
     //str_vec_print(&lines);
     

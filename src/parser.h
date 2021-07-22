@@ -70,13 +70,14 @@ enum ASTNodeType {
     AST_CAST,       // Type cast
     AST_ASSIGN,     // This is actually an operation in C. Start out like this?
     AST_EXPR,
+    AST_END,
     AST_NONE,
 };
 
 struct ASTNode {
     ASTNodeType type;
     Variable var;
-    Function* func;
+    Function func;
 
     ASTNode* func_args;
 
@@ -134,12 +135,6 @@ ASTNode *ast_node_new(ASTNodeType type, int count);
 
 // Destructor, free the AST node
 void ast_node_free(ASTNode* ast_node);
-
-// Constructor, create a new function object
-Function *function_new(char* name);
-
-// Destructor, free the function object
-void function_free(Function* func);
 
 // =========== Parsing ============
 // Uses recursive decending to construct the AST

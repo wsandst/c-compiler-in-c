@@ -64,7 +64,8 @@ char* generate_assembly(AST* ast) {
 void gen_asm(ASTNode* node) {
     switch (node->type) {
         case AST_FUNC:
-            asm_add(2, node->func->name, ":");
+            asm_set_indent(0);
+            asm_add(2, node->func.name, ":");
             asm_set_indent(1);
             asm_add_nl();
             asm_add(1, "push    rbp");
@@ -77,7 +78,7 @@ void gen_asm(ASTNode* node) {
             gen_asm(node->body);
             gen_asm(node->next);
             break;
-        case AST_NONE:
+        case AST_END:
             return;
         case AST_RETURN:
             if (node->ret->type == AST_NUM) {
