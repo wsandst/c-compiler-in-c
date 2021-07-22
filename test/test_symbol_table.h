@@ -14,6 +14,7 @@ void test_symbol_table() {
     printf("[CTEST] Running symbol table tests...\n");
     test_symbol_table_tree();
     test_symbol_table_vars();
+    test_symbol_table_funcs();
     printf("[CTEST] Passed symbol table tests!\n");
 }
 
@@ -83,7 +84,7 @@ void test_symbol_table_funcs() {
     func.name = "func1";
     func.param_count = 1;
     symbol_table_insert_func(table, func);
-    assert(table->var_count == 1);
+    assert(table->func_count == 1);
     func.name = "func2";
     func.param_count = 2;
     symbol_table_insert_func(table, func);
@@ -98,10 +99,6 @@ void test_symbol_table_funcs() {
     assert(symbol_table_lookup_func(table, "func2").param_count == 2);
     assert(symbol_table_lookup_func(table, "func3").param_count == 3);
 
-    func.name = "func4";
-    func.param_count = 4;
-    symbol_table_insert_func(child, func);
-    assert(symbol_table_lookup_func(child, "func4").param_count == 4);
     // Check going up a scope
     assert(symbol_table_lookup_func(child, "func1").param_count == 1);
     // symbol_table_lookup_var(child, "novar"); // This will correctly error!

@@ -22,3 +22,5 @@ void asm_add_return(char* return_val);
 char* generate_assembly(AST* ast);
 
 void gen_asm(ASTNode* node);
+
+void codegen_error(char* message);

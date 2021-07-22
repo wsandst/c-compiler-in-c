@@ -81,6 +81,7 @@ struct SymbolTable {
 };
 
 void symbol_error(char* error_message);
+void symbol_error2(char* symbol_name, char* error_message);
 
 SymbolTable* symbol_table_new();
 

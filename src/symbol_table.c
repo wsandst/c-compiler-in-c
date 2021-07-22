@@ -43,7 +43,7 @@ Variable symbol_table_lookup_var(SymbolTable* table, char* var_name) {
     if (table->is_global) {
         // The referenced variable is not declared anywhere up
         // to the global scope, error!
-        symbol_error("Variable referenced but never declared!");
+        symbol_error2(var_name, "variable referenced but never declared!");
     }
     // We did not find the variable in this scope, go up a scope
     return symbol_table_lookup_var(table->parent, var_name);
@@ -70,7 +70,7 @@ void symbol_table_vars_realloc(SymbolTable* table, int new_size) {
 
 // Function related
 Function symbol_table_lookup_func(SymbolTable* table, char* func_name) {
-    for (size_t i = 0; i < table->var_count; i++)
+    for (size_t i = 0; i < table->func_count; i++)
     {
         Function* func = &table->funcs[i];
         if (strcmp(func->name, func_name) == 0) {
@@ -81,7 +81,7 @@ Function symbol_table_lookup_func(SymbolTable* table, char* func_name) {
     if (table->is_global) {
         // The referenced function is not declared anywhere up
         // to the global scope, error!
-        symbol_error("Function referenced but never declared!");
+        symbol_error2(func_name, "function referenced but never declared!");
     }
     // We did not find the variable in this scope, go up a scope
     return symbol_table_lookup_func(table->parent, func_name);
@@ -140,6 +140,13 @@ SymbolTable* symbol_table_get_child(SymbolTable* table, int index) {
 
 void symbol_error(char* error_message) {
     fprintf(stderr, "Symbol error: %s\n", error_message);
+    // We are not manually freeing the memory here, 
+    // but as the program is exiting it is fine
+    exit(1); 
+}
+
+void symbol_error2(char* symbol_name, char* error_message) {
+    fprintf(stderr, "Symbol error: \"%s\" %s\n", symbol_name, error_message);
     // We are not manually freeing the memory here, 
     // but as the program is exiting it is fine
     exit(1); 

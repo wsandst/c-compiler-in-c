@@ -1,6 +1,6 @@
 // Just tests that the assembly generates correctly for two function definition
 
-int test_func() {
+int test() {
     return 1;
 }
 

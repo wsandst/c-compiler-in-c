@@ -39,6 +39,14 @@ void asm_set_indent(int indent) {
     asm_indent_str = str_multiply("\t", indent);
 }
 
+void codegen_error(char* error_message) {
+    fprintf(stderr, "Codegen error: %s\n", error_message);
+    // We are not manually freeing the memory here, 
+    // but as the program is exiting it is fine
+    exit(1); 
+}
+
+
 char* var_to_stack_ptr(Variable* var) {
     char buf[64];
     snprintf(buf, 63, "qword[rbp-%i]", var->stack_offset);
@@ -87,17 +95,25 @@ void gen_asm(ASTNode* node) {
         case AST_END:
             return;
         case AST_RETURN:
-            if (node->ret->type == AST_NUM) {
+            // Manual handling of expressions, this should be done another way
+            if (node->ret->type == AST_NUM) { // Literal
                 asm_add_return(node->ret->literal);
             }
-            else if (node->ret->type == AST_VAR) {
+            else if (node->ret->type == AST_VAR) { // Single var
                 char* sp = var_to_stack_ptr(&node->ret->var);
                 asm_add_return(sp);
                 free(sp);
             }
+            else if (node->ret->type == AST_FUNC_CALL) { // Function call
+                asm_add(2, "call ", node->ret->func.name);
+                asm_add_nl();
+                asm_add(1, "pop rbp");
+                asm_add_nl();
+                asm_add(1, "ret");
+            }
             return;
-        case AST_ASSIGN: 
-            {
+        case AST_ASSIGN: {
+            // Manual handling of expressions, this should be done another way
             char* sp = var_to_stack_ptr(&node->var);
             if (node->assign->type == AST_NUM) {
                 asm_add(4, "mov ", sp, ", ", node->assign->literal);
@@ -111,6 +127,12 @@ void gen_asm(ASTNode* node) {
                 asm_add_nl();
                 free(sp2);
             }
+            else if (node->ret->type == AST_FUNC_CALL) { // Function call
+                asm_add(2, "call ", node->ret->func.name);
+                asm_add_nl();
+                asm_add(3, "mov ", sp, ", rax");
+                asm_add_nl();
+            }
             free(sp);
             }
             gen_asm(node->next);
@@ -120,6 +142,7 @@ void gen_asm(ASTNode* node) {
             gen_asm(node->next);
             break;
         default:
+            codegen_error("Encountered AST Node which has no codegen capability yet!");
             return;
     }
 }

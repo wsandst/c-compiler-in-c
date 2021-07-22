@@ -122,7 +122,9 @@ void parse_program(ASTNode* node, SymbolTable* symbols) {
         func.return_type = type;
         func = symbol_table_insert_func(symbols, func);
         node->func = func;
-        parse_func(node, symbols);
+        // Create new scope for function
+        SymbolTable* func_symbols = symbol_table_create_child(symbols, 0);
+        parse_func(node, func_symbols);
     }
     else if (accept(TK_DL_SEMICOLON) || accept(TK_OP_ASSIGN)) { // Global declaration or assignment
         token_go_back(2);
@@ -208,10 +210,18 @@ void parse_expression(ASTNode* node, SymbolTable* symbols) {
         node->type = AST_NUM;
         node->literal = prev_token().string_repr;
     }
-    // Variable
+    // Variable or function call
     else if (accept(TK_IDENT)) {
-        node->type = AST_VAR;
-        node->var = symbol_table_lookup_var(symbols, prev_token().string_repr);
+        char* ident = prev_token().string_repr;
+        if (accept(TK_DL_OPENPAREN)) { // Function call
+            node->type = AST_FUNC_CALL;
+            node->func = symbol_table_lookup_func(symbols, ident);
+            expect(TK_DL_CLOSEPAREN);
+        }  
+        else { // Variable or post unary op. Need some check here later
+            node->type = AST_VAR;
+            node->var = symbol_table_lookup_var(symbols, ident);
+        }
     }
     else {
         parse_error("Invalid expression");
