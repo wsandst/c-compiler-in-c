@@ -166,7 +166,7 @@ void gen_asm(ASTNode* node) {
 
 void gen_asm_unary_op(ASTNode* node) {
     gen_asm(node->rhs); // The value we are acting on is now in RAX
-    switch (node->uop_type) {
+    switch (node->op_type) {
         case UOP_NEG: // Negation
             asm_add(1, "neg rax");
             break;
@@ -186,18 +186,22 @@ void gen_asm_unary_op(ASTNode* node) {
 
 void gen_asm_binary_op(ASTNode* node) {
     // The op needs to know which register/address to save the results in so we don't conflict
-    gen_asm(node->rhs); // Our value is now in RAX 
+    gen_asm(node->lhs); // LHS now in RAX
     char* sp = offset_to_stack_ptr(node->scratch_stack_offset);
     asm_add(3, "mov ", sp, ", rax");
-    gen_asm(node->lhs); // Our value is now in RAX again, overwriting the old value
-    asm_add(2, "mov rbx, ", sp);
-    switch (node->bop_type) {
+    gen_asm(node->rhs); // RHS now in RAX
+    asm_add(1, "mov rbx, rax"); // Move RHS to RBX
+    asm_add(2, "mov rax, ", sp); // Move saved LHS to RAX
+    // We are now ready for the binary operation
+    switch (node->op_type) {
         case BOP_ADD: // Addition
             asm_add(1, "add rax, rbx");
             break;
         case BOP_SUB: // Subtraction
+            asm_add(1, "sub rax, rbx");
             break;
         case BOP_MUL: // Multiplication
+            asm_add(1, "imul rax, rbx");
             break;
         default:
             codegen_error("Unsupported binary operation found!");

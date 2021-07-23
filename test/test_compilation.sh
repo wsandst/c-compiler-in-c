@@ -19,7 +19,7 @@ do
     echo -n "[TEST] $i:    "
     if [ "$expected" -ne "$actual" ]
     then
-        echo "${RED}FAIL${CLEAR}"
+        echo "${RED}FAIL: expected ${expected}, got ${actual}${CLEAR}"
         failed_test=true
     else
         echo "${GREEN}OK${CLEAR}"

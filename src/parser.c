@@ -103,7 +103,9 @@ bool accept_unop() {
 }
 
 bool accept_binop() {
-    return (accept(TK_OP_PLUS) || accept(TK_OP_MINUS) || accept(TK_OP_MULT) || accept(TK_OP_DIV));
+    return (accept(TK_OP_PLUS) || accept(TK_OP_MINUS) || accept(TK_OP_MULT) || accept(TK_OP_DIV)
+        || accept(TK_OP_EQ) || accept(TK_OP_NEQ) || accept(TK_OP_LT) || accept(TK_OP_LTE)
+        || accept(TK_OP_GT) || accept(TK_OP_GTE) || accept(TK_OP_MOD));
 }
 
 void parse_program(ASTNode* node, SymbolTable* symbols) {
@@ -234,7 +236,7 @@ void parse_expression(ASTNode* node, SymbolTable* symbols) {
     }
     else if (accept_unop()) { // Unary operation
         node->expr_type = EXPR_UNOP;
-        node->uop_type = token_type_to_uop_type(prev_token().type);
+        node->op_type = token_type_to_uop_type(prev_token().type);
         node->rhs = ast_node_new(AST_EXPR, 1);
         parse_expression(node->rhs, symbols);
         return;
@@ -248,7 +250,7 @@ void parse_expression(ASTNode* node, SymbolTable* symbols) {
 
         // Every operation gets a result space, which is just
         // cur_stack_offset + 4. When we've finished using it, revert cur_stack_offset.
-        symbols->cur_stack_offset += 4;
+        symbols->cur_stack_offset += 8;
         node->scratch_stack_offset = symbols->cur_stack_offset;
         node->lhs = ast_node_new(AST_EXPR, 1);
         node->rhs = ast_node_new(AST_EXPR, 1);
@@ -257,9 +259,9 @@ void parse_expression(ASTNode* node, SymbolTable* symbols) {
         node->lhs->var = node->var;
         node->lhs->literal = node->literal;
         node->expr_type = EXPR_BINOP;
-        node->bop_type = token_type_to_bop_type(prev_token().type);
+        node->op_type = token_type_to_bop_type(prev_token().type);
         parse_expression(node->rhs, symbols);
-        symbols->cur_stack_offset -= 4;
+        symbols->cur_stack_offset -= 8;
     }
     else if (accept(TK_DL_SEMICOLON) || accept(TK_DL_COMMA)) {
         return; // Expression end
@@ -310,7 +312,7 @@ VarTypeEnum token_type_to_var_type(enum TokenType type) {
     }
 }
 
-UnaryOpType token_type_to_uop_type(enum TokenType type) {
+OpType token_type_to_uop_type(enum TokenType type) {
     switch (type) {
         case TK_OP_MINUS:
             return UOP_NEG;
@@ -319,11 +321,12 @@ UnaryOpType token_type_to_uop_type(enum TokenType type) {
         case TK_OP_COMPL:
             return UOP_COMPL;
         default:
+            parse_error("Unsupported unary operation encountered while parsing");
             return 0;
     }
 }
 
-BinaryOpType token_type_to_bop_type(enum TokenType type) {
+OpType token_type_to_bop_type(enum TokenType type) {
     switch (type) {
         case TK_OP_PLUS:
             return BOP_ADD;
@@ -333,7 +336,18 @@ BinaryOpType token_type_to_bop_type(enum TokenType type) {
             return BOP_MUL;
         case TK_OP_DIV:
             return BOP_DIV;
+        case TK_OP_EQ:
+            return BOP_EQ;
+        case TK_OP_LT:
+            return BOP_LT;
+        case TK_OP_LTE:
+            return BOP_LTE;
+        case TK_OP_GT:
+            return BOP_GT;
+        case TK_OP_GTE:
+            return BOP_GTE;
         default:
+            parse_error("Unsupported binary operation encountered while parsing");
             return 0;
     }
 }

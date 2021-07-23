@@ -11,14 +11,14 @@ which is implemented here.
 #include "string.h"
 #include "symbol_table.h"
 
-typedef enum BinaryOpType BinaryOpType;
+typedef enum OpType OpType;
 typedef enum UnaryOpType UnaryOpType;
 typedef enum ASTNodeType ASTNodeType;
 typedef enum ExprType ExprType;
 typedef struct ASTNode ASTNode;
 typedef struct AST AST;
 
-enum BinaryOpType {
+enum OpType {
     BOP_ADD,        // +
     BOP_SUB,        // -
     BOP_MUL,        // *
@@ -32,13 +32,12 @@ enum BinaryOpType {
     BOP_EQ,         // ==
     BOP_NE,         // !=
     BOP_LT,         // <
-    BOP_LE,         // <=
+    BOP_LTE,        // <=
+    BOP_GT,         // <
+    BOP_GTE,        // <=
     BOP_ASSIGN,     // =
     BOP_AND,        // &&
     BOP_OR,         // ||
-};
-
-enum UnaryOpType {
     UOP_NEG,        // unary -
     UOP_ADDR,       // unary &
     UOP_DEREF,      // unary *
@@ -92,8 +91,7 @@ struct ASTNode {
 
     // Expr
     ExprType expr_type;
-    BinaryOpType bop_type;
-    UnaryOpType uop_type;
+    OpType op_type;
     ASTNode* rhs;
     ASTNode* lhs;
     // Literal
@@ -188,6 +186,6 @@ int find_main_index(Tokens* tokens);
 // Convert a TokenType variable type to the corresponding VarTypeEnum
 VarTypeEnum token_type_to_var_type(enum TokenType type);
 // Convert a TokenType unary operator type to the corresponding UnaryOpType
-UnaryOpType token_type_to_uop_type(enum TokenType type);
+OpType token_type_to_uop_type(enum TokenType type);
 // Convert a TokenType binary operator type to the corresponding BinaryOpType
-BinaryOpType token_type_to_bop_type(enum TokenType type);
+OpType token_type_to_bop_type(enum TokenType type);
