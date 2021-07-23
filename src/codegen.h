@@ -14,12 +14,18 @@ from the Abstract Syntax Tree created in the parsing step.
 // Add assembly
 void asm_add_single(char* str);
 
+// Add assembly comment
+void asm_add_com(char* str);
+
+// Add a newline with proper indentation
 void asm_add_newline();
 
-// Variable arguments
+// Add assembly, variable amount of strings which are combined
+// A newline and proper indentation is added beforehand
 void asm_add(int n, ...);
 
-void asm_add_return(char* return_val);
+// Set the indendentation level
+void asm_set_indent(int indent);
 
 char* generate_assembly(AST* ast);
 

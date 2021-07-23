@@ -1,5 +1,8 @@
 #include "codegen.h"
 
+// Toggle for including comments in the asm output code
+const bool INCLUDE_COMMENTS = true;
+
 StrVector asm_src;
 char* asm_indent_str;
 
@@ -20,16 +23,17 @@ void asm_add(int n, ...) {
     va_end(vl);
 }
 
+void asm_add_com(char* comment) {
+    if (INCLUDE_COMMENTS) {
+        asm_add_newline();
+        asm_add_single(comment);
+    }
+}
+
 void asm_add_newline() {
     char buf[64];
     snprintf(buf, 63, "\n%s", asm_indent_str);
     asm_add_single(buf);
-}
-
-void asm_add_return(char* return_val) {
-    asm_add(2, "mov rax, ", return_val);
-    asm_add(1, "pop rbp");
-    asm_add(1, "ret");
 }
 
 void asm_set_indent(int indent) {
@@ -79,8 +83,11 @@ void gen_asm(ASTNode* node) {
             asm_add_newline();
             asm_add(2, node->func.name, ":");
             asm_set_indent(1);
+            asm_add_com("; Setting up function stack pointer");
             asm_add(1, "push rbp");
             asm_add(1, "mov rbp, rsp");
+            asm_add_com("; Function code start");
+            // Do I need to allocate more stack space here?
             gen_asm(node->body);
             gen_asm(node->next);
             break;
@@ -94,18 +101,11 @@ void gen_asm(ASTNode* node) {
         case AST_RETURN:
             // Manual handling of expressions, this should be done another way
             if (node->ret->type == AST_EXPR) {
-                if (node->ret->expr_type == EXPR_LITERAL) { // Literal
-                    asm_add_return(node->ret->literal);
-                }
-                else if (node->ret->expr_type == EXPR_VAR) { // Single var
-                    char* sp = var_to_stack_ptr(&node->ret->var);
-                    asm_add_return(sp);
-                    free(sp);
-                }
-                else if (node->ret->expr_type == EXPR_FUNC_CALL) { // Function call
-                    asm_add(2, "call ", node->ret->func.name);
-                    asm_add_return("rax");
-                }
+                asm_add_com("; Evaluating return expr");
+                gen_asm(node->ret); // Expr is now in RAX
+                asm_add_com("; Function return");
+                asm_add(1, "pop rbp");
+                asm_add(1, "ret");
             }
             return;
         case AST_ASSIGN: 
@@ -133,6 +133,8 @@ void gen_asm(ASTNode* node) {
                 free(sp2);
             }
             else if (node->expr_type == EXPR_FUNC_CALL) { // Function call
+                asm_add_com("; Expression function call");
+                asm_add(1, "sub rsp, 16"); // Allocate space for parameters on stack
                 asm_add(2, "call ", node->func.name);
             }
             break;
