@@ -86,6 +86,11 @@ void gen_asm(ASTNode* node) {
             asm_add_com("; Setting up function stack pointer");
             asm_add(1, "push rbp");
             asm_add(1, "mov rbp, rsp");
+            asm_add_com("; Allocate a hardcoded 128 byte stack allocation per function");
+            asm_add(1, "sub rsp, 128"); // Hardcoded 128 bytes on the stack for the function 
+            // I need to start allocating stack space here,
+            // currently only using the red zone
+            //asm_add(1, "sub rsp, 16"); // Allocate space for variables on stack
             asm_add_com("; Function code start");
             // Do I need to allocate more stack space here?
             gen_asm(node->body);
@@ -104,6 +109,8 @@ void gen_asm(ASTNode* node) {
                 asm_add_com("; Evaluating return expr");
                 gen_asm(node->ret); // Expr is now in RAX
                 asm_add_com("; Function return");
+                asm_add_com("; Restore hardcoded 128 byte stack allocation per function");
+                asm_add(1, "add rsp, 128");
                 asm_add(1, "pop rbp");
                 asm_add(1, "ret");
             }
@@ -136,6 +143,15 @@ void gen_asm(ASTNode* node) {
                 asm_add_com("; Expression function call");
                 //asm_add(1, "sub rsp, 16"); // Allocate space for parameters on stack
                 asm_add(2, "call ", node->func.name);
+            }
+            else if (node->expr_type == EXPR_UNOP) {
+                gen_asm(node->rhs); // The value we are acting on is now in RAX
+                if (node->uop_type == UOP_NEG) {
+                    asm_add(1, "neg rax");
+                }
+            }
+            else {
+                codegen_error("Non-supported expression type encountered!");
             }
             break;
         default:

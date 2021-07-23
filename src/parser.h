@@ -186,3 +186,5 @@ int find_main_index(Tokens* tokens);
 
 // Convert a TokenType variable type to the corresponding VarTypeEnum
 VarTypeEnum token_type_to_var_type(enum TokenType type);
+// Convert a TokenType unary operator type to the corresponding UnaryOpType
+UnaryOpType token_type_to_unop_type(enum TokenType type);

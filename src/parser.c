@@ -98,6 +98,10 @@ bool accept_var_type() {
     return (accept(TK_KW_INT) || accept(TK_KW_FLOAT) || accept(TK_KW_DOUBLE) || accept(TK_KW_CHAR));
 }
 
+bool accept_unop() {
+    return (accept(TK_OP_MINUS) || accept(TK_OP_NOT) || accept(TK_OP_COMPL));
+}
+
 void parse_program(ASTNode* node, SymbolTable* symbols) {
     // Either a function or a global, add preprocessor stuff later
     // These should probably be handled as normal statements, not
@@ -224,6 +228,13 @@ void parse_expression(ASTNode* node, SymbolTable* symbols) {
             node->var = symbol_table_lookup_var(symbols, ident);
         }
     }
+    else if (accept_unop()) { // Unary operation
+        node->expr_type = EXPR_UNOP;
+        node->uop_type = token_type_to_unop_type(prev_token().type);
+        node->rhs = ast_node_new(AST_EXPR, 1);
+        parse_expression(node->rhs, symbols);
+        return;
+    }
     else {
         parse_error("Invalid expression");
     }
@@ -271,6 +282,19 @@ VarTypeEnum token_type_to_var_type(enum TokenType type) {
             return TY_DOUBLE;
         case TK_KW_CHAR:
             return TY_CHAR;
+        default:
+            return 0;
+    }
+}
+
+UnaryOpType token_type_to_unop_type(enum TokenType type) {
+    switch (type) {
+        case TK_OP_MINUS:
+            return UOP_NEG;
+        case TK_OP_NOT:
+            return UOP_NOT;
+        case TK_OP_COMPL:
+            return UOP_COMPL;
         default:
             return 0;
     }
