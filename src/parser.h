@@ -30,7 +30,7 @@ enum OpType {
     BOP_LEFTSHIFT,  // <<
     BOP_RIGHTSHIFT, // >>
     BOP_EQ,         // ==
-    BOP_NE,         // !=
+    BOP_NEQ,         // !=
     BOP_LT,         // <
     BOP_LTE,        // <=
     BOP_GT,         // <

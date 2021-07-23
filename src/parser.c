@@ -103,9 +103,12 @@ bool accept_unop() {
 }
 
 bool accept_binop() {
-    return (accept(TK_OP_PLUS) || accept(TK_OP_MINUS) || accept(TK_OP_MULT) || accept(TK_OP_DIV)
-        || accept(TK_OP_EQ) || accept(TK_OP_NEQ) || accept(TK_OP_LT) || accept(TK_OP_LTE)
-        || accept(TK_OP_GT) || accept(TK_OP_GTE) || accept(TK_OP_MOD));
+    return (
+        accept(TK_OP_PLUS) || accept(TK_OP_MINUS) || accept(TK_OP_MULT) || accept(TK_OP_DIV) || 
+        accept(TK_OP_EQ) || accept(TK_OP_NEQ) || accept(TK_OP_LT) || accept(TK_OP_LTE) || 
+        accept(TK_OP_GT) || accept(TK_OP_GTE) || accept(TK_OP_MOD) || accept(TK_OP_AND) || 
+        accept(TK_OP_OR)
+        );
 }
 
 void parse_program(ASTNode* node, SymbolTable* symbols) {
@@ -156,6 +159,10 @@ void parse_func(ASTNode* node, SymbolTable* symbols) {
 }
 
 void parse_statement(ASTNode* node, SymbolTable* symbols) {
+    if (accept(TK_COMMENT)) { // Do nothing, move on to next statement
+        parse_statement(node, symbols);
+        return;
+    }
     if (accept_var_type()) { // Variable declaration
         Variable var;
         node->type = AST_VAR_DEC;
@@ -336,8 +343,12 @@ OpType token_type_to_bop_type(enum TokenType type) {
             return BOP_MUL;
         case TK_OP_DIV:
             return BOP_DIV;
+        case TK_OP_MOD:
+            return BOP_MOD;
         case TK_OP_EQ:
             return BOP_EQ;
+        case TK_OP_NEQ:
+            return BOP_NEQ;
         case TK_OP_LT:
             return BOP_LT;
         case TK_OP_LTE:
@@ -346,6 +357,10 @@ OpType token_type_to_bop_type(enum TokenType type) {
             return BOP_GT;
         case TK_OP_GTE:
             return BOP_GTE;
+        case TK_OP_AND:
+            return BOP_AND;
+        case TK_OP_OR:
+            return BOP_OR;
         default:
             parse_error("Unsupported binary operation encountered while parsing");
             return 0;

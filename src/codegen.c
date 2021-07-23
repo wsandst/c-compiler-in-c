@@ -184,24 +184,90 @@ void gen_asm_unary_op(ASTNode* node) {
     }
 }
 
+// How do I respect left to right precedence?
+// Maybe that is for later when I implement proper expression handling
 void gen_asm_binary_op(ASTNode* node) {
     // The op needs to know which register/address to save the results in so we don't conflict
-    gen_asm(node->lhs); // LHS now in RAX
+    gen_asm(node->rhs); // RHS now in RAX
     char* sp = offset_to_stack_ptr(node->scratch_stack_offset);
     asm_add(3, "mov ", sp, ", rax");
-    gen_asm(node->rhs); // RHS now in RAX
-    asm_add(1, "mov rbx, rax"); // Move RHS to RBX
-    asm_add(2, "mov rax, ", sp); // Move saved LHS to RAX
+    gen_asm(node->lhs); // LHS now in RAX
+    asm_add(2, "mov rbx, ", sp); // Move saved RHS to RBX
     // We are now ready for the binary operation
     switch (node->op_type) {
         case BOP_ADD: // Addition
+            asm_add_com("; Op, Addition");
             asm_add(1, "add rax, rbx");
             break;
         case BOP_SUB: // Subtraction
+            asm_add_com("; Op, Subtraction");
             asm_add(1, "sub rax, rbx");
             break;
         case BOP_MUL: // Multiplication
+            asm_add_com("; Op, Multiplication");
             asm_add(1, "imul rax, rbx");
+            break;
+        case BOP_DIV: // Integer division
+            asm_add_com("; Op, Integer division");
+            asm_add(1, "mov rdx, 0"); // Need to reset rdx, won't work otherwise
+            asm_add(1, "idiv rbx");
+            break;
+        case BOP_MOD: // Modulo
+            asm_add_com("; Op, Modulo division");
+            asm_add(1, "mov rdx, 0");
+            asm_add(1, "idiv rbx");
+            asm_add(1, "mov rax, rdx"); // Remainder from div is put in rdx
+            break;
+        // Logical
+        case BOP_EQ: // Equals
+            asm_add_com("; Op, Equals");
+            asm_add(1, "cmp rax, rbx");
+            asm_add(1, "mov rax, 0");
+            asm_add(1, "sete al");
+            break;
+        case BOP_NEQ: // Not equals
+            asm_add_com("; Op, Not equals");
+            asm_add(1, "cmp rax, rbx");
+            asm_add(1, "mov rax, 0");
+            asm_add(1, "setne al");
+            break;
+        case BOP_LT: // Less than
+            asm_add_com("; Op, Less than");
+            asm_add(1, "cmp rax, rbx");
+            asm_add(1, "mov rax, 0");
+            asm_add(1, "setl al");
+            break;
+        case BOP_LTE: // Less than equals
+            asm_add_com("; Op, Less than equals");
+            asm_add(1, "cmp rax, rbx");
+            asm_add(1, "mov rax, 0");
+            asm_add(1, "setle al");
+            break;
+        case BOP_GT: // Greater than
+            asm_add_com("; Op, Greater than");
+            asm_add(1, "cmp rax, rbx");
+            asm_add(1, "mov rax, 0");
+            asm_add(1, "setg al");
+            break;
+        case BOP_GTE: // Less than equals
+            asm_add_com("; Op, Greater than");
+            asm_add(1, "cmp rax, rbx");
+            asm_add(1, "mov rax, 0");
+            asm_add(1, "setge al");
+            break;
+        case BOP_AND: // Logical and
+            asm_add_com("; Op, Logical and");
+            asm_add(1, "and rax, rbx");
+            asm_add(1, "cmp rax, 0");
+            asm_add(1, "mov rax, 0");
+            asm_add(1, "setne al");
+            break;
+        case BOP_OR: // Logical or
+            asm_add_com("; Op, Logical and");
+            asm_add(1, "or rax, rbx");
+            asm_add(1, "cmp rax, 0");
+            asm_add(1, "mov rax, 0");
+            asm_add(1, "setne al");
             break;
         default:
             codegen_error("Unsupported binary operation found!");
