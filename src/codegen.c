@@ -145,10 +145,7 @@ void gen_asm(ASTNode* node) {
                 asm_add(2, "call ", node->func.name);
             }
             else if (node->expr_type == EXPR_UNOP) {
-                gen_asm(node->rhs); // The value we are acting on is now in RAX
-                if (node->uop_type == UOP_NEG) {
-                    asm_add(1, "neg rax");
-                }
+                gen_asm_unary_op(node);
             }
             else {
                 codegen_error("Non-supported expression type encountered!");
@@ -157,5 +154,22 @@ void gen_asm(ASTNode* node) {
         default:
             codegen_error("Encountered AST Node which has no codegen capability yet!");
             return;
+    }
+}
+
+void gen_asm_unary_op(ASTNode* node) {
+    gen_asm(node->rhs); // The value we are acting on is now in RAX
+    switch (node->uop_type) {
+        case UOP_NEG: // Negation
+            asm_add(1, "neg rax");
+            break;
+        case UOP_COMPL: // Complement
+            asm_add(1, "not rax");
+            break;
+        case UOP_NOT: // Logical not
+            asm_add(1, "cmp rax, 0");
+            asm_add(1, "mov rax, 0");
+            asm_add(1, "sete al");
+            break;
     }
 }
