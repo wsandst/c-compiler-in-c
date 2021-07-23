@@ -134,7 +134,7 @@ void gen_asm(ASTNode* node) {
             }
             else if (node->expr_type == EXPR_FUNC_CALL) { // Function call
                 asm_add_com("; Expression function call");
-                asm_add(1, "sub rsp, 16"); // Allocate space for parameters on stack
+                //asm_add(1, "sub rsp, 16"); // Allocate space for parameters on stack
                 asm_add(2, "call ", node->func.name);
             }
             break;
