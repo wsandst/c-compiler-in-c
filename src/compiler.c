@@ -8,6 +8,15 @@ TODO:
     Expression overhaul:
         I need to start thinking about expression scratch space,
         and cleanup expression handling in general
+        There are four types of expressions:
+        Literals, variables, unary ops and binary ops
+        Every leaf node has to be either a literal or a variable
+        Step 1: Implement unary ops
+        Step 2: Implement binary ops
+        Step 3: Implement assignment as binary op
+        
+
+
     Simple unary ops, then binary ops
     Function parameters, proper calling convention
     If conditionals

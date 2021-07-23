@@ -14,6 +14,7 @@ which is implemented here.
 typedef enum BinaryOpType BinaryOpType;
 typedef enum UnaryOpType UnaryOpType;
 typedef enum ASTNodeType ASTNodeType;
+typedef enum ExprType ExprType;
 typedef struct ASTNode ASTNode;
 typedef struct AST AST;
 
@@ -48,8 +49,7 @@ enum UnaryOpType {
 
 enum ASTNodeType {
     AST_PROGRAM,
-    AST_BIN_OP,
-    AST_UNARY_OP,
+    AST_EXPR,
     //AST_COMMA,    // ,
     //AST_MEMBER,   // . (struct member access)
     AST_RETURN,     // "return"
@@ -61,17 +61,21 @@ enum ASTNodeType {
     AST_BLOCK,      // { ... }
     //AST_GOTO,     // "goto"
     //AST_LABEL,    // Labeled statement
-    AST_FUNC_CALL,  // Function call
     AST_FUNC,
     AST_STMT,
-    AST_VAR,        // Variable
     AST_VAR_DEC,    // Variable declaration
-    AST_NUM,        // Integer
     AST_CAST,       // Type cast
     AST_ASSIGN,     // This is actually an operation in C. Start out like this?
-    AST_EXPR,
     AST_END,
     AST_NONE,
+};
+
+enum ExprType {
+    EXPR_BINOP,
+    EXPR_UNOP,
+    EXPR_LITERAL,
+    EXPR_VAR,
+    EXPR_FUNC_CALL,
 };
 
 struct ASTNode {
@@ -86,11 +90,14 @@ struct ASTNode {
     // Assign
     ASTNode* assign;
 
-    // OP
+    // Expr
+    ExprType expr_type;
     BinaryOpType bop_type;
     UnaryOpType uop_type;
     ASTNode* rhs;
     ASTNode* lhs;
+    // Literal
+    char* literal;
 
     // IF, WHILE, FOR etc
     ASTNode* cond;
@@ -110,8 +117,6 @@ struct ASTNode {
     // return?
 
     ASTNode* body;
-    // Literal
-    char* literal;
     //long long int ival;
     //long double fval;
 

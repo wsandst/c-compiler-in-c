@@ -206,20 +206,21 @@ void parse_scope(ASTNode* node, SymbolTable* symbols) {
 void parse_expression(ASTNode* node, SymbolTable* symbols) {
     // Do Shunting-yard algorithm
     // We only handle integer constants currently
+    node->type = AST_EXPR;
     if (accept(TK_LINT)) {
-        node->type = AST_NUM;
+        node->expr_type = EXPR_LITERAL;
         node->literal = prev_token().string_repr;
     }
     // Variable or function call
     else if (accept(TK_IDENT)) {
         char* ident = prev_token().string_repr;
         if (accept(TK_DL_OPENPAREN)) { // Function call
-            node->type = AST_FUNC_CALL;
+            node->expr_type = EXPR_FUNC_CALL;
             node->func = symbol_table_lookup_func(symbols, ident);
             expect(TK_DL_CLOSEPAREN);
         }  
         else { // Variable or post unary op. Need some check here later
-            node->type = AST_VAR;
+            node->expr_type = EXPR_VAR;
             node->var = symbol_table_lookup_var(symbols, ident);
         }
     }

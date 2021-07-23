@@ -93,42 +93,48 @@ void gen_asm(ASTNode* node) {
             return;
         case AST_RETURN:
             // Manual handling of expressions, this should be done another way
-            if (node->ret->type == AST_NUM) { // Literal
-                asm_add_return(node->ret->literal);
-            }
-            else if (node->ret->type == AST_VAR) { // Single var
-                char* sp = var_to_stack_ptr(&node->ret->var);
-                asm_add_return(sp);
-                free(sp);
-            }
-            else if (node->ret->type == AST_FUNC_CALL) { // Function call
-                asm_add(2, "call ", node->ret->func.name);
-                asm_add_return("rax");
+            if (node->ret->type == AST_EXPR) {
+                if (node->ret->expr_type == EXPR_LITERAL) { // Literal
+                    asm_add_return(node->ret->literal);
+                }
+                else if (node->ret->expr_type == EXPR_VAR) { // Single var
+                    char* sp = var_to_stack_ptr(&node->ret->var);
+                    asm_add_return(sp);
+                    free(sp);
+                }
+                else if (node->ret->expr_type == EXPR_FUNC_CALL) { // Function call
+                    asm_add(2, "call ", node->ret->func.name);
+                    asm_add_return("rax");
+                }
             }
             return;
-        case AST_ASSIGN: {
+        case AST_ASSIGN: 
             // Manual handling of expressions, this should be done another way
-            char* sp = var_to_stack_ptr(&node->var);
-            if (node->assign->type == AST_NUM) {
-                asm_add(4, "mov ", sp, ", ", node->assign->literal);
-            }
-            else if (node->assign->type == AST_VAR) {
-                char* sp2 = var_to_stack_ptr(&node->assign->var);
-                asm_add(2, "mov rax, ", sp2);
+            // This should be a separate expr gen_asm()
+            if (node->assign->type == AST_EXPR) {
+                char* sp = var_to_stack_ptr(&node->var);
+                gen_asm(node->assign);
                 asm_add(3, "mov ", sp, ", rax");
-                free(sp2);
-            }
-            else if (node->assign->type == AST_FUNC_CALL) { // Function call
-                asm_add(2, "call ", node->assign->func.name);
-                asm_add(3, "mov ", sp, ", rax");
-            }
-            free(sp);
+                free(sp);
             }
             gen_asm(node->next);
             break;
         case AST_VAR_DEC:
             // Do nothing
             gen_asm(node->next);
+            break;
+        case AST_EXPR:
+            if (node->expr_type == EXPR_LITERAL) {
+                asm_add(2, "mov rax, ", node->literal);
+            }
+            else if (node->expr_type == EXPR_VAR) {
+                char* sp2 = var_to_stack_ptr(&node->var);
+                asm_add(2, "mov rax, ", sp2);
+                free(sp2);
+            }
+            else if (node->expr_type == EXPR_FUNC_CALL) { // Function call
+                asm_add(2, "call ", node->func.name);
+            }
             break;
         default:
             codegen_error("Encountered AST Node which has no codegen capability yet!");
