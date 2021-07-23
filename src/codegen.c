@@ -48,11 +48,15 @@ void codegen_error(char* error_message) {
     exit(1); 
 }
 
+char* offset_to_stack_ptr(int offset) {
+    char buf[64];
+    snprintf(buf, 63, "qword[rbp-%i]", offset);
+    return str_copy(buf);
+}
+
 
 char* var_to_stack_ptr(Variable* var) {
-    char buf[64];
-    snprintf(buf, 63, "qword[rbp-%i]", var->stack_offset);
-    return str_copy(buf);
+    return offset_to_stack_ptr(var->stack_offset);
 }
 
 char* generate_assembly(AST* ast) {
@@ -147,6 +151,9 @@ void gen_asm(ASTNode* node) {
             else if (node->expr_type == EXPR_UNOP) {
                 gen_asm_unary_op(node);
             }
+            else if (node->expr_type == EXPR_BINOP) {
+                gen_asm_binary_op(node);
+            }
             else {
                 codegen_error("Non-supported expression type encountered!");
             }
@@ -170,6 +177,30 @@ void gen_asm_unary_op(ASTNode* node) {
             asm_add(1, "cmp rax, 0");
             asm_add(1, "mov rax, 0");
             asm_add(1, "sete al");
+            break;
+        default:
+            codegen_error("Unsupported unary operation found!");
+            break;
+    }
+}
+
+void gen_asm_binary_op(ASTNode* node) {
+    // The op needs to know which register/address to save the results in so we don't conflict
+    gen_asm(node->rhs); // Our value is now in RAX 
+    char* sp = offset_to_stack_ptr(node->scratch_stack_offset);
+    asm_add(3, "mov ", sp, ", rax");
+    gen_asm(node->lhs); // Our value is now in RAX again, overwriting the old value
+    asm_add(2, "mov rbx, ", sp);
+    switch (node->bop_type) {
+        case BOP_ADD: // Addition
+            asm_add(1, "add rax, rbx");
+            break;
+        case BOP_SUB: // Subtraction
+            break;
+        case BOP_MUL: // Multiplication
+            break;
+        default:
+            codegen_error("Unsupported binary operation found!");
             break;
     }
 }

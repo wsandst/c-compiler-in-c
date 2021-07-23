@@ -31,4 +31,8 @@ char* generate_assembly(AST* ast);
 
 void gen_asm(ASTNode* node);
 
+void gen_asm_unary_op(ASTNode* node);
+
+void gen_asm_binary_op(ASTNode* node);
+
 void codegen_error(char* message);

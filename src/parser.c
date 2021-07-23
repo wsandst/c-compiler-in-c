@@ -102,6 +102,10 @@ bool accept_unop() {
     return (accept(TK_OP_MINUS) || accept(TK_OP_NOT) || accept(TK_OP_COMPL));
 }
 
+bool accept_binop() {
+    return (accept(TK_OP_PLUS) || accept(TK_OP_MINUS) || accept(TK_OP_MULT) || accept(TK_OP_DIV));
+}
+
 void parse_program(ASTNode* node, SymbolTable* symbols) {
     // Either a function or a global, add preprocessor stuff later
     // These should probably be handled as normal statements, not
@@ -230,7 +234,7 @@ void parse_expression(ASTNode* node, SymbolTable* symbols) {
     }
     else if (accept_unop()) { // Unary operation
         node->expr_type = EXPR_UNOP;
-        node->uop_type = token_type_to_unop_type(prev_token().type);
+        node->uop_type = token_type_to_uop_type(prev_token().type);
         node->rhs = ast_node_new(AST_EXPR, 1);
         parse_expression(node->rhs, symbols);
         return;
@@ -238,7 +242,26 @@ void parse_expression(ASTNode* node, SymbolTable* symbols) {
     else {
         parse_error("Invalid expression");
     }
-    if (accept(TK_DL_SEMICOLON) || accept(TK_DL_COMMA)) {
+    if (accept_binop()) { 
+        // Binary op next up, we need to change this node to binop
+        // and set the previous values to the lhs node
+
+        // Every operation gets a result space, which is just
+        // cur_stack_offset + 4. When we've finished using it, revert cur_stack_offset.
+        symbols->cur_stack_offset += 4;
+        node->scratch_stack_offset = symbols->cur_stack_offset;
+        node->lhs = ast_node_new(AST_EXPR, 1);
+        node->rhs = ast_node_new(AST_EXPR, 1);
+        node->lhs->expr_type = node->expr_type;
+        node->lhs->func = node->func;
+        node->lhs->var = node->var;
+        node->lhs->literal = node->literal;
+        node->expr_type = EXPR_BINOP;
+        node->bop_type = token_type_to_bop_type(prev_token().type);
+        parse_expression(node->rhs, symbols);
+        symbols->cur_stack_offset -= 4;
+    }
+    else if (accept(TK_DL_SEMICOLON) || accept(TK_DL_COMMA)) {
         return; // Expression end
     }
     else {
@@ -287,7 +310,7 @@ VarTypeEnum token_type_to_var_type(enum TokenType type) {
     }
 }
 
-UnaryOpType token_type_to_unop_type(enum TokenType type) {
+UnaryOpType token_type_to_uop_type(enum TokenType type) {
     switch (type) {
         case TK_OP_MINUS:
             return UOP_NEG;
@@ -295,6 +318,21 @@ UnaryOpType token_type_to_unop_type(enum TokenType type) {
             return UOP_NOT;
         case TK_OP_COMPL:
             return UOP_COMPL;
+        default:
+            return 0;
+    }
+}
+
+BinaryOpType token_type_to_bop_type(enum TokenType type) {
+    switch (type) {
+        case TK_OP_PLUS:
+            return BOP_ADD;
+        case TK_OP_MINUS:
+            return BOP_SUB;
+        case TK_OP_MULT:
+            return BOP_MUL;
+        case TK_OP_DIV:
+            return BOP_DIV;
         default:
             return 0;
     }

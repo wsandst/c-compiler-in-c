@@ -98,6 +98,7 @@ struct ASTNode {
     ASTNode* lhs;
     // Literal
     char* literal;
+    int scratch_stack_offset;
 
     // IF, WHILE, FOR etc
     ASTNode* cond;
@@ -187,4 +188,6 @@ int find_main_index(Tokens* tokens);
 // Convert a TokenType variable type to the corresponding VarTypeEnum
 VarTypeEnum token_type_to_var_type(enum TokenType type);
 // Convert a TokenType unary operator type to the corresponding UnaryOpType
-UnaryOpType token_type_to_unop_type(enum TokenType type);
+UnaryOpType token_type_to_uop_type(enum TokenType type);
+// Convert a TokenType binary operator type to the corresponding BinaryOpType
+BinaryOpType token_type_to_bop_type(enum TokenType type);
