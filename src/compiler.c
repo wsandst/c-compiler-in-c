@@ -5,23 +5,17 @@
 
 /*
 TODO:
-    Expression overhaul:
-        I need to start thinking about expression scratch space,
-        and cleanup expression handling in general
-        There are four types of expressions:
-        Literals, variables, unary ops and binary ops
-        Every leaf node has to be either a literal or a variable
-        Step 1: Implement unary ops
-        Step 2: Implement binary ops
-        Step 3: Implement assignment as binary op
-        
+    Expressions:
+        Implement assignment as a binary op
+        Implement parentheses
+        Proper left-to-right evaluation, it doesn't work like that currently
+        Operator precedence (using Shunting Yard)
 
-
-    Simple unary ops, then binary ops
-    Function parameters, proper calling convention
+    Gotos
     If conditionals
     While loops
     For loops
+    Function parameters, proper calling convention
 */
 
 int main(int argc, char *argv[]) {

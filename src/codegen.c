@@ -5,6 +5,7 @@ const bool INCLUDE_COMMENTS = true;
 
 StrVector asm_src;
 char* asm_indent_str;
+int label_count = 1;
 
 void asm_add_single(char* str) {
     str_vec_push(&asm_src, str);
@@ -54,9 +55,19 @@ char* offset_to_stack_ptr(int offset) {
     return str_copy(buf);
 }
 
-
 char* var_to_stack_ptr(Variable* var) {
     return offset_to_stack_ptr(var->stack_offset);
+}
+
+char* get_label_str(int label) {
+    char result[64];
+    sprintf(result, ".L%d", label);
+    return str_copy(result);
+}
+
+char* get_next_label_str() {
+    label_count++;
+    return get_label_str(label_count);
 }
 
 char* generate_assembly(AST* ast) {
@@ -108,7 +119,6 @@ void gen_asm(ASTNode* node) {
         case AST_END:
             return;
         case AST_RETURN:
-            // Manual handling of expressions, this should be done another way
             if (node->ret->type == AST_EXPR) {
                 asm_add_com("; Evaluating return expr");
                 gen_asm(node->ret); // Expr is now in RAX
@@ -117,8 +127,24 @@ void gen_asm(ASTNode* node) {
                 asm_add(1, "add rsp, 128");
                 asm_add(1, "pop rbp");
                 asm_add(1, "ret");
+                gen_asm(node->next);
             }
             return;
+        case AST_IF:
+            // Calculate conditional
+            asm_add_com("; Calculating if statement conditional");
+            gen_asm(node->cond); // Value now in RAX
+            asm_add(1, "cmp rax, 0");
+            char* after_label = get_next_label_str();
+            asm_add_com("; If statement jump");
+            asm_add(2, "je ", after_label); // Jump after if block if conditional is 0
+            gen_asm(node->then); // If statement body
+            asm_set_indent(0);
+            asm_add_com("; If statement end");
+            asm_add(2, after_label, ":"); // Jump point afterwards
+            asm_set_indent(1);
+            gen_asm(node->next);
+            break;
         case AST_ASSIGN: 
             // Manual handling of expressions, this should be done another way
             // This should be a separate expr gen_asm()
@@ -194,7 +220,7 @@ void gen_asm_binary_op(ASTNode* node) {
     gen_asm(node->lhs); // LHS now in RAX
     asm_add(2, "mov rbx, ", sp); // Move saved RHS to RBX
     // We are now ready for the binary operation
-    switch (node->op_type) {
+    switch (node->op_type) { // These are all integer operations
         case BOP_ADD: // Addition
             asm_add_com("; Op, Addition");
             asm_add(1, "add rax, rbx");

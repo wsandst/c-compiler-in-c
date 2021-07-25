@@ -191,6 +191,18 @@ void parse_statement(ASTNode* node, SymbolTable* symbols) {
         node->assign = ast_node_new(AST_EXPR, 1);
         parse_expression(node->assign, symbols);
     }
+    else if (accept(TK_KW_IF)) {
+        node->type = AST_IF;
+        // This should not be necessary later, I can treat both as expression parenthesis
+        // and use the { to end the expression
+        expect(TK_DL_OPENPAREN); 
+        node->cond = ast_node_new(AST_EXPR, 1);
+        parse_expression(node->cond, symbols);
+        expect(TK_DL_OPENBRACE);
+        node->then = ast_node_new(AST_BLOCK, 1);
+        node->then->next = ast_node_new(AST_END, 1);
+        parse_scope(node->then, symbols);
+    }
     else if (accept(TK_KW_RETURN)) {
         node->type = AST_RETURN;
         node->ret = ast_node_new(AST_EXPR, 1);
@@ -207,6 +219,9 @@ void parse_statement(ASTNode* node, SymbolTable* symbols) {
     }
     else if (accept(TK_DL_CLOSEBRACE)) { // End of scope
         return;
+    }
+    else {
+        parse_error("Invalid statement");
     }
     node->next = ast_node_new(AST_STMT, 1);
     parse_statement(node->next, symbols);
@@ -270,7 +285,7 @@ void parse_expression(ASTNode* node, SymbolTable* symbols) {
         parse_expression(node->rhs, symbols);
         symbols->cur_stack_offset -= 8;
     }
-    else if (accept(TK_DL_SEMICOLON) || accept(TK_DL_COMMA)) {
+    else if (accept(TK_DL_SEMICOLON) || accept(TK_DL_COMMA) || accept(TK_DL_CLOSEPAREN)) {
         return; // Expression end
     }
     else {
