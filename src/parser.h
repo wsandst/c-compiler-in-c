@@ -97,6 +97,7 @@ struct ASTNode {
     // Literal
     char* literal;
     int scratch_stack_offset;
+    bool top_level_expr;
 
     // IF, WHILE, FOR etc
     ASTNode* cond;

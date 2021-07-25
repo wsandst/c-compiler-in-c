@@ -12,7 +12,8 @@ TODO:
         Operator precedence (using Shunting Yard)
 
     Gotos
-    If conditionals
+    If:
+        Else statements, handle else ifs too
     While loops
     For loops
     Function parameters, proper calling convention

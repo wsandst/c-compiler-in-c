@@ -145,17 +145,6 @@ void gen_asm(ASTNode* node) {
             asm_set_indent(1);
             gen_asm(node->next);
             break;
-        case AST_ASSIGN: 
-            // Manual handling of expressions, this should be done another way
-            // This should be a separate expr gen_asm()
-            if (node->assign->type == AST_EXPR) {
-                char* sp = var_to_stack_ptr(&node->var);
-                gen_asm(node->assign);
-                asm_add(3, "mov ", sp, ", rax");
-                free(sp);
-            }
-            gen_asm(node->next);
-            break;
         case AST_VAR_DEC:
             // Do nothing
             gen_asm(node->next);
@@ -179,6 +168,9 @@ void gen_asm(ASTNode* node) {
             }
             else if (node->expr_type == EXPR_BINOP) {
                 gen_asm_binary_op(node);
+                if (node->top_level_expr) {
+                    gen_asm(node->next);
+                }
             }
             else {
                 codegen_error("Non-supported expression type encountered!");
@@ -220,7 +212,16 @@ void gen_asm_binary_op(ASTNode* node) {
     gen_asm(node->lhs); // LHS now in RAX
     asm_add(2, "mov rbx, ", sp); // Move saved RHS to RBX
     // We are now ready for the binary operation
-    switch (node->op_type) { // These are all integer operations
+    switch (node->op_type) { // These are all integer operations'
+        case BOP_ASSIGN: {
+                if (node->lhs->expr_type != EXPR_VAR) {
+                    codegen_error("Only variables can be assigned to");
+                }
+                char* var_sp = var_to_stack_ptr(&node->lhs->var);
+                asm_add(1, "mov rax, rbx"); // We need to return the value
+                asm_add(3, "mov ", var_sp, ", rax");
+            }
+            break;
         case BOP_ADD: // Addition
             asm_add_com("; Op, Addition");
             asm_add(1, "add rax, rbx");

@@ -107,7 +107,7 @@ bool accept_binop() {
         accept(TK_OP_PLUS) || accept(TK_OP_MINUS) || accept(TK_OP_MULT) || accept(TK_OP_DIV) || 
         accept(TK_OP_EQ) || accept(TK_OP_NEQ) || accept(TK_OP_LT) || accept(TK_OP_LTE) || 
         accept(TK_OP_GT) || accept(TK_OP_GTE) || accept(TK_OP_MOD) || accept(TK_OP_AND) || 
-        accept(TK_OP_OR)
+        accept(TK_OP_OR) || accept(TK_OP_ASSIGN)
         );
 }
 
@@ -164,32 +164,36 @@ void parse_statement(ASTNode* node, SymbolTable* symbols) {
         return;
     }
     if (accept_var_type()) { // Variable declaration
+        // Declaration is just connected to the symbol table,
+        // no actual node needed
         Variable var;
-        node->type = AST_VAR_DEC;
         var.type = token_type_to_var_type(prev_token().type);
         expect(TK_IDENT);
         char* ident = prev_token().value.string;
         var.name = ident;
         var.size = 8; // 64 bit
-        node->var = symbol_table_insert_var(symbols, var);
+        symbol_table_insert_var(symbols, var);
 
         if (accept(TK_OP_ASSIGN)) { // Def and assignment
-            node->type = AST_ASSIGN;
+            // Treat this as an expresison
+            token_go_back(2); // Go back to ident
+            node->type = AST_EXPR;
             node->assign = ast_node_new(AST_EXPR, 1);
-            parse_expression(node->assign, symbols);
+            node->top_level_expr = true;
+            parse_expression(node, symbols);
         }
         else {
             expect(TK_DL_SEMICOLON);
+            // We can reuse this node
+            parse_statement(node, symbols);
+            return;
         }
     }
     else if (accept(TK_IDENT)) {
-        char* ident = prev_token().value.string;
-        Variable var = symbol_table_lookup_var(symbols, ident);
-        node->var = var;
-        expect(TK_OP_ASSIGN);
-        node->type = AST_ASSIGN;
-        node->assign = ast_node_new(AST_EXPR, 1);
-        parse_expression(node->assign, symbols);
+        // Treat as expression (probably assignment of some sort)
+        token_go_back(1);
+        node->top_level_expr = true;
+        parse_expression(node, symbols);
     }
     else if (accept(TK_KW_IF)) {
         node->type = AST_IF;
@@ -376,6 +380,8 @@ OpType token_type_to_bop_type(enum TokenType type) {
             return BOP_AND;
         case TK_OP_OR:
             return BOP_OR;
+        case TK_OP_ASSIGN:
+            return BOP_ASSIGN;
         default:
             parse_error("Unsupported binary operation encountered while parsing");
             return 0;
