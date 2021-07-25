@@ -179,10 +179,12 @@ void expect_var_type();
 
 // Return true or false whether the current token matches the sent in token
 bool accept(enum TokenType type);
+// Accept a variable Token type (Int, Float etc...)
 bool accept_var_type();
-
-// Find the index of the main function
-int find_main_index(Tokens* tokens);
+// Accept a unary operator Token type
+bool accept_unop_type();
+// Accept a binary operator Token type
+bool accept_binop_type();
 
 // Convert a TokenType variable type to the corresponding VarTypeEnum
 VarTypeEnum token_type_to_var_type(enum TokenType type);

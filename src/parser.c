@@ -243,23 +243,31 @@ void parse_expression(ASTNode* node, SymbolTable* symbols) {
     // Do Shunting-yard algorithm
     // We only handle integer constants currently
     node->type = AST_EXPR;
-    if (accept(TK_LINT)) {
+
+    // Is this an atom? (non-operation)
+    if (accept(TK_LINT)) { // Literal
         node->expr_type = EXPR_LITERAL;
         node->literal = prev_token().string_repr;
     }
-    // Variable or function call
-    else if (accept(TK_IDENT)) {
+    else if (accept(TK_IDENT)) { // Variable or function call
         char* ident = prev_token().string_repr;
         if (accept(TK_DL_OPENPAREN)) { // Function call
             node->expr_type = EXPR_FUNC_CALL;
             node->func = symbol_table_lookup_func(symbols, ident);
             expect(TK_DL_CLOSEPAREN);
         }  
-        else { // Variable or post unary op. Need some check here later
+        else { // Variable
             node->expr_type = EXPR_VAR;
             node->var = symbol_table_lookup_var(symbols, ident);
         }
     }
+    else if (accept(TK_DL_OPENPAREN)) {
+        symbols->cur_stack_offset += 8;
+        parse_expression(node, symbols);
+    }
+    // Non-atom
+    // I need to search for the ), then I find the operation,
+    // then
     else if (accept_unop()) { // Unary operation
         node->expr_type = EXPR_UNOP;
         node->op_type = token_type_to_uop_type(prev_token().type);
@@ -270,22 +278,35 @@ void parse_expression(ASTNode* node, SymbolTable* symbols) {
     else {
         parse_error("Invalid expression");
     }
+    if (accept(TK_DL_CLOSEPAREN)) {
+        symbols->cur_stack_offset -= 8;
+        return; // Atom end 
+    }
     if (accept_binop()) { 
         // Binary op next up, we need to change this node to binop
         // and set the previous values to the lhs node
 
-        // Every operation gets a result space, which is just
-        // cur_stack_offset + 4. When we've finished using it, revert cur_stack_offset.
-        symbols->cur_stack_offset += 8;
-        node->scratch_stack_offset = symbols->cur_stack_offset;
-        node->lhs = ast_node_new(AST_EXPR, 1);
+        // Copy this node to node->lhs
+        ASTNode* new_lhs = ast_node_new(AST_EXPR, 1);
+        new_lhs->lhs = node->lhs;
+        node->lhs = new_lhs;
+        node->lhs->rhs = node->rhs;
         node->rhs = ast_node_new(AST_EXPR, 1);
         node->lhs->expr_type = node->expr_type;
+        node->lhs->op_type = node->op_type;
         node->lhs->func = node->func;
         node->lhs->var = node->var;
         node->lhs->literal = node->literal;
+        node->lhs->scratch_stack_offset = node->scratch_stack_offset;
         node->expr_type = EXPR_BINOP;
         node->op_type = token_type_to_bop_type(prev_token().type);
+
+        // Every operation gets a result space, which is just
+        // cur_stack_offset + 4. When we've finished using it, revert cur_stack_offset.
+        symbols->cur_stack_offset += 8; // Problem. We seem to be reusing stack offsets
+        node->scratch_stack_offset = symbols->cur_stack_offset;
+
+
         parse_expression(node->rhs, symbols);
         symbols->cur_stack_offset -= 8;
     }

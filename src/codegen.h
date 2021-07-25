@@ -27,12 +27,23 @@ void asm_add(int n, ...);
 // Set the indendentation level
 void asm_set_indent(int indent);
 
+// Get a C string representing a jump label
+char* get_label_str(int label);
+
+// Get the next jump label and increment the global label counter
+char* get_next_label_str();
+
+// Generate NASM assembly from the AST
 char* generate_assembly(AST* ast);
 
+// Generate assembly from the node. Used recursively
 void gen_asm(ASTNode* node);
 
+// Generate assembly for a unary op expression node
 void gen_asm_unary_op(ASTNode* node);
 
+// Generate assemly for a binary op expression node
 void gen_asm_binary_op(ASTNode* node);
 
+// Throw a codegen error
 void codegen_error(char* message);

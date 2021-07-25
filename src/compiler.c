@@ -6,14 +6,14 @@
 /*
 TODO:
     Expressions:
-        Implement assignment as a binary op
         Implement parentheses
         Proper left-to-right evaluation, it doesn't work like that currently
         Operator precedence (using Shunting Yard)
 
-    Gotos
     If:
         Else statements, handle else ifs too
+    Gotos:
+
     While loops
     For loops
     Function parameters, proper calling convention
@@ -41,7 +41,6 @@ int main(int argc, char *argv[]) {
     AST ast = parse(&tokens); 
 
     // Step 3: ASM Code Generation
-    //char* asm_src = load_file_to_string("../test/resources/hello_world.asm");
     char* asm_src = generate_assembly(&ast);
 
     compile_asm(asm_src);
