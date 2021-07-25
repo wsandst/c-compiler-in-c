@@ -51,8 +51,10 @@ void test_tokenizer_preprocessor() {
 
 void test_tokenizer_comments() {
     // Comments
-    char* src = "//#define\n #define \n while // hello \n /* test */ \n while /* \n if \n */while";
+    char* src = "//#define\n #define \n while // hello \n/*test */ \n while /* \n if \n */while\n"
+    "/*\n*/";
     Tokens tokens = tokenize(src);
+    tokens_print(&tokens);
     assert(tokens.elems[0].type == TK_COMMENT);
     assert(strcmp(tokens.elems[1].value.string, "#define") == 0);
     assert(tokens.elems[1].type == TK_PREPROCESSOR);
@@ -62,6 +64,7 @@ void test_tokenizer_comments() {
     assert(tokens.elems[5].type == TK_KW_WHILE);
     assert(tokens.elems[6].type == TK_COMMENT);
     assert(tokens.elems[7].type == TK_KW_WHILE);
+    assert(tokens.elems[8].type == TK_COMMENT);
     tokens_free(&tokens);
 }
 

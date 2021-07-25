@@ -310,7 +310,7 @@ void parse_expression(ASTNode* node, SymbolTable* symbols) {
         parse_expression(node->rhs, symbols);
         symbols->cur_stack_offset -= 8;
     }
-    else if (accept(TK_DL_SEMICOLON) || accept(TK_DL_COMMA) || accept(TK_DL_CLOSEPAREN)) {
+    else if (accept(TK_DL_SEMICOLON) || accept(TK_DL_COMMA) || accept(TK_DL_CLOSEBRACE)) {
         return; // Expression end
     }
     else {

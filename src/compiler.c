@@ -6,17 +6,20 @@
 /*
 TODO:
     Expressions:
-        Implement parentheses
         Proper left-to-right evaluation, it doesn't work like that currently
         Operator precedence (using Shunting Yard)
+        I might be using too much scratch memory, not sure if what I'm doing
+        currently is optimal
 
     If:
         Else statements, handle else ifs too
-    Gotos:
+    Gotos
+
+    Function parameters, proper calling convention
 
     While loops
     For loops
-    Function parameters, proper calling convention
+
 */
 
 int main(int argc, char *argv[]) {

@@ -113,7 +113,6 @@ void tokenize_comments(Tokens *tokens, StrVector *str_split) {
     bool zero_from_start = false;
     for (size_t i = 0; i < str_split->size; i++) {
         char* str = str_split->elems[i];
-
         // Block comments
         int block_comment_index = str_contains(str, "/*");
         if (block_comment_index) {
@@ -134,18 +133,21 @@ void tokenize_comments(Tokens *tokens, StrVector *str_split) {
                     str_fill(zero_from, zero_from - str + block_comment_end + 1, ' ');
                 }
                 tokens->elems[comment_src_pos].type = TK_COMMENT;
-                tokens->elems[comment_src_pos].value.string = "BLOCK COMMENT N/A";
+                tokens->elems[comment_src_pos].string_repr = "BLOCK COMMENT N/A";
                 seeking_block_comment_end = false;
                 zero_from_start = false;
             }
             else if (!zero_from_start) {
-                // This is all a block comment, zero out the contents
-                str_fill(zero_from, zero_from - str, ' ');
+                // Zero from zero_from to the end of the str
+                str_fill(zero_from, str - zero_from + strlen(str), ' ');
                 zero_from_start = true;
+                src_pos += strlen(str);
                 continue;
             }
             else {
+                // This is all a block comment, zero out the contents
                 str_fill(str, strlen(str), ' ');
+                src_pos += strlen(str);
                 continue;
             }
         }
@@ -549,11 +551,12 @@ void tokens_print(Tokens* tokens) {
         if (t.type == TK_NONE) {
             continue;
         }
+        char* type_str = token_type_to_string(t.type);
         if (t.string_repr != 0) {
-            printf("[T: %i, V: %li, STR: \"%s\"]\n", t.type, t.value.ivalue, t.string_repr);
+            printf("[T: %s, V: %li, STR: \"%s\"]\n", type_str, t.value.ivalue, t.string_repr);
         }
         else {
-            printf("[T: %i, V: %li]\n", t.type, t.value.ivalue);
+            printf("[T: %s, V: %li]\n", type_str, t.value.ivalue);
         }
     }
 }
@@ -565,6 +568,7 @@ char* token_type_to_string(enum TokenType type) {
         "TK_TYPE", 
         "TK_COMMENT", 
         "TK_PREPROCESSOR",
+        "TK_EOF",
         "TK_LINT", 
         "TK_LFLOAT", 
         "TK_LSTRING", 
