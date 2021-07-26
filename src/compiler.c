@@ -11,11 +11,10 @@ TODO:
         I might be using too much scratch memory, not sure if what I'm doing
         currently is optimal
 
-    If:
-        Else statements, handle else ifs too
     Gotos
 
-    Function parameters, proper calling convention
+    Function parameters, proper calling convention:
+        Return 0 from functions if there is no return statement, won't follow spec otherwise
 
     While loops
     For loops

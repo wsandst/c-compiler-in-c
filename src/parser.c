@@ -223,6 +223,10 @@ void parse_single_statement(ASTNode* node, SymbolTable* symbols) {
         token_go_back(1); // Return to parse_statement
         return;
     }
+    else if (accept(TK_DL_SEMICOLON)) {
+        // Null statement
+        node->type = AST_NULL_STMT;
+    }
     else {
         parse_error("Invalid statement");
     }

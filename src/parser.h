@@ -67,6 +67,7 @@ enum ASTNodeType {
     AST_ASSIGN,     // This is actually an operation in C. Start out like this?
     AST_END,
     AST_NONE,
+    AST_NULL_STMT, // Empty statement, used in certain for loops, need to represent it
 };
 
 enum ExprType {
@@ -151,10 +152,11 @@ AST parse(Tokens* tokens);
 void parse_program(ASTNode* node, SymbolTable* symbols);
 
 // Parse a function definition
-// <function> ::= <type> <id> "(" <args> ")" "{" <statement> "}"
+// <function> ::= <type> <id> "(" <args ...> ")" <scope>
 void parse_func(ASTNode* node,  SymbolTable* symbols);
 
 // Parse a statement, continue with next statement
+// <statement> ::= <keyword> | <expression>
 void parse_statement(ASTNode* node,  SymbolTable* symbols);
 
 // Parse a single statement, do not continue with next.
@@ -164,6 +166,7 @@ void parse_single_statement(ASTNode* node, SymbolTable* symbols);
 void parse_expression(ASTNode* node,  SymbolTable* symbols);
 
 // Parse a scope/block
+// <scope> ::= "{" <statement ...> "}"
 void parse_scope(ASTNode* node, SymbolTable* symbols);
 
 // Print a parse error to stderr and exit the program

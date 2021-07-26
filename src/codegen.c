@@ -128,8 +128,11 @@ void gen_asm(ASTNode* node) {
             break;
         case AST_NONE:
         case AST_END:
-        case AST_STMT:
             return;
+        case AST_STMT:
+        case AST_NULL_STMT:
+            gen_asm(node->next);
+            break;
         case AST_RETURN:
             if (node->ret->type == AST_EXPR) {
                 asm_add_com("; Evaluating return expr");
