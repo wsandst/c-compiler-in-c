@@ -198,10 +198,12 @@ void parse_single_statement(ASTNode* node, SymbolTable* symbols) {
     else if (accept(TK_KW_IF)) { // If statements
         node->type = AST_IF;
         node->cond = ast_node_new(AST_EXPR, 1);
-        parse_expression(node->cond, symbols); // Consumes {
+        expect(TK_DL_OPENPAREN);
+        parse_expression(node->cond, symbols);
+        symbols->cur_stack_offset += 8;
         node->then = ast_node_new(AST_BLOCK, 1);
+        parse_single_statement(node->then, symbols);
         node->then->next = ast_node_new(AST_END, 1);
-        parse_scope(node->then, symbols);
         // Check if the if has an attached else
         if (accept(TK_KW_ELSE)) {
             node->els = ast_node_new(AST_STMT, 1);
@@ -314,7 +316,7 @@ void parse_expression(ASTNode* node, SymbolTable* symbols) {
         symbols->cur_stack_offset -= 8;
     }
     else if (accept(TK_DL_SEMICOLON) || accept(TK_DL_COMMA) || accept(TK_DL_OPENBRACE)) {
-        return; // Expression end
+        return; 
     }
     else if (accept(TK_DL_CLOSEBRACE)) {
         token_go_back(1);
