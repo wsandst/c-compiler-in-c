@@ -6,6 +6,7 @@ const bool INCLUDE_COMMENTS = true;
 StrVector asm_src;
 char* asm_indent_str;
 int label_count = 1;
+int indent_level = 0;
 
 void asm_add_single(char* str) {
     str_vec_push(&asm_src, str);
@@ -37,9 +38,19 @@ void asm_add_newline() {
     asm_add_single(buf);
 }
 
-void asm_set_indent(int indent) {
+void asm_update_indent() {
     free(asm_indent_str);
-    asm_indent_str = str_multiply("    ", indent);
+    asm_indent_str = str_multiply("    ", indent_level);
+}
+
+void asm_set_indent(int indent) {
+    indent_level = indent;
+    asm_update_indent();
+}
+
+void asm_add_indent(int amount) {
+    indent_level += amount;
+    asm_update_indent();
 }
 
 void codegen_error(char* error_message) {
@@ -124,28 +135,43 @@ void gen_asm(ASTNode* node) {
                 asm_add_com("; Evaluating return expr");
                 gen_asm(node->ret); // Expr is now in RAX
                 asm_add_com("; Function return");
-                asm_add_com("; Restore hardcoded 128 byte stack allocation per function");
-                asm_add(1, "add rsp, 128");
+                asm_add(1, "add rsp, 128 ; Restore hardcoded 128 byte stack allocation");
                 asm_add(1, "pop rbp");
                 asm_add(1, "ret");
                 gen_asm(node->next);
+                asm_add_newline();
             }
             return;
-        case AST_IF:
+        case AST_IF: {
             // Calculate conditional
+            char* after_label;
+            char* else_label;
+            asm_add_newline();
             asm_add_com("; Calculating if statement conditional");
             gen_asm(node->cond); // Value now in RAX
             asm_add(1, "cmp rax, 0");
-            char* after_label = get_next_label_str();
-            asm_add_com("; If statement jump");
-            asm_add(2, "je ", after_label); // Jump after if block if conditional is 0
-            gen_asm(node->then); // If statement body
-            asm_set_indent(0);
-            asm_add_com("; If statement end");
-            asm_add(2, after_label, ":"); // Jump point afterwards
-            asm_set_indent(1);
+            if (node->els != NULL) { // There is an else statement
+                else_label = get_next_label_str();
+                asm_add(3, "je ", else_label, " ; Conditional false => Jump to Else");
+                gen_asm(node->then); // If body
+                after_label = get_next_label_str();
+                asm_add(3, "jmp ", after_label, " ; Jump to end of if/else after if"); 
+                asm_add_com("; Label: Else statement");
+                asm_add(3, else_label, ":", " ; Else statement");
+                gen_asm(node->els); // Else body
+                asm_add_newline();
+            }
+            else { // No else statement
+                after_label = get_next_label_str();
+                asm_add(2, "je ", after_label, "; Conditional false => Jump to end of if block");
+                gen_asm(node->then); // If body
+                asm_add_newline();
+            }
+            // Jump label after if
+            asm_add(2, after_label, ":", " ;  End of if/else");
             gen_asm(node->next);
             break;
+        }
         case AST_VAR_DEC:
             // Do nothing
             gen_asm(node->next);
@@ -224,74 +250,74 @@ void gen_asm_binary_op(ASTNode* node) {
             }
             break;
         case BOP_ADD: // Addition
-            asm_add_com("; Op, Addition");
+            asm_add_com("; Op: +");
             asm_add(1, "add rax, rbx");
             break;
         case BOP_SUB: // Subtraction
-            asm_add_com("; Op, Subtraction");
+            asm_add_com("; Op: -");
             asm_add(1, "sub rax, rbx");
             break;
         case BOP_MUL: // Multiplication
-            asm_add_com("; Op, Multiplication");
+            asm_add_com("; Op: *");
             asm_add(1, "imul rax, rbx");
             break;
         case BOP_DIV: // Integer division
-            asm_add_com("; Op, Integer division");
+            asm_add_com("; Op: / (Integer)");
             asm_add(1, "mov rdx, 0"); // Need to reset rdx, won't work otherwise
             asm_add(1, "idiv rbx");
             break;
         case BOP_MOD: // Modulo
-            asm_add_com("; Op, Modulo division");
+            asm_add_com("; Op: %");
             asm_add(1, "mov rdx, 0");
             asm_add(1, "idiv rbx");
             asm_add(1, "mov rax, rdx"); // Remainder from div is put in rdx
             break;
         // Logical
         case BOP_EQ: // Equals
-            asm_add_com("; Op, Equals");
+            asm_add_com("; Op: ==");
             asm_add(1, "cmp rax, rbx");
             asm_add(1, "mov rax, 0");
             asm_add(1, "sete al");
             break;
         case BOP_NEQ: // Not equals
-            asm_add_com("; Op, Not equals");
+            asm_add_com("; Op: !=");
             asm_add(1, "cmp rax, rbx");
             asm_add(1, "mov rax, 0");
             asm_add(1, "setne al");
             break;
         case BOP_LT: // Less than
-            asm_add_com("; Op, Less than");
+            asm_add_com("; Op: <");
             asm_add(1, "cmp rax, rbx");
             asm_add(1, "mov rax, 0");
             asm_add(1, "setl al");
             break;
         case BOP_LTE: // Less than equals
-            asm_add_com("; Op, Less than equals");
+            asm_add_com("; Op: <=");
             asm_add(1, "cmp rax, rbx");
             asm_add(1, "mov rax, 0");
             asm_add(1, "setle al");
             break;
         case BOP_GT: // Greater than
-            asm_add_com("; Op, Greater than");
+            asm_add_com("; Op: >");
             asm_add(1, "cmp rax, rbx");
             asm_add(1, "mov rax, 0");
             asm_add(1, "setg al");
             break;
-        case BOP_GTE: // Less than equals
-            asm_add_com("; Op, Greater than");
+        case BOP_GTE: // Greater than equals
+            asm_add_com("; Op, >=");
             asm_add(1, "cmp rax, rbx");
             asm_add(1, "mov rax, 0");
             asm_add(1, "setge al");
             break;
         case BOP_AND: // Logical and
-            asm_add_com("; Op, Logical and");
+            asm_add_com("; Op: && (AND)");
             asm_add(1, "and rax, rbx");
             asm_add(1, "cmp rax, 0");
             asm_add(1, "mov rax, 0");
             asm_add(1, "setne al");
             break;
         case BOP_OR: // Logical or
-            asm_add_com("; Op, Logical and");
+            asm_add_com("; Op: || (OR)");
             asm_add(1, "or rax, rbx");
             asm_add(1, "cmp rax, 0");
             asm_add(1, "mov rax, 0");

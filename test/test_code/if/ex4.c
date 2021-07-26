@@ -7,10 +7,6 @@
 // This is useful to support if else, or one line ifs and such.
 
 int main() {
-    return 1;
-}
-
-/*int main() {
     int x = 4;
     if (x == 4) {
         if (x != 4) {
@@ -24,4 +20,4 @@ int main() {
         return 3;
     }
     return 4;
-}*/
+}

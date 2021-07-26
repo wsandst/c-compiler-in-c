@@ -159,7 +159,7 @@ void parse_func(ASTNode* node, SymbolTable* symbols) {
 }
 
 void parse_single_statement(ASTNode* node, SymbolTable* symbols) {
-    if (accept(TK_COMMENT)) { // Do nothing, move on to next statement
+    if (accept(TK_COMMENT)) { // Comment, do nothing, move on to next statement
         parse_single_statement(node, symbols);
         return;
     }
@@ -195,7 +195,7 @@ void parse_single_statement(ASTNode* node, SymbolTable* symbols) {
         node->top_level_expr = true;
         parse_expression(node, symbols);
     }
-    else if (accept(TK_KW_IF)) {
+    else if (accept(TK_KW_IF)) { // If statements
         node->type = AST_IF;
         node->cond = ast_node_new(AST_EXPR, 1);
         parse_expression(node->cond, symbols); // Consumes {
@@ -205,18 +205,19 @@ void parse_single_statement(ASTNode* node, SymbolTable* symbols) {
         // Check if the if has an attached else
         if (accept(TK_KW_ELSE)) {
             node->els = ast_node_new(AST_STMT, 1);
-            parse_statement(node->els, symbols); // This will carry on
+            parse_single_statement(node->els, symbols);
+            node->els->next = ast_node_new(AST_END, 1);
         }
     }
-    else if (accept(TK_KW_RETURN)) {
+    else if (accept(TK_KW_RETURN)) { // Return statements
         node->type = AST_RETURN;
         node->ret = ast_node_new(AST_EXPR, 1);
         parse_expression(node->ret, symbols);
     }
-    else if (accept(TK_DL_OPENBRACE)) {
+    else if (accept(TK_DL_OPENBRACE)) { // Scope begin
         parse_scope(node, symbols);
     }
-    else if (accept(TK_DL_CLOSEBRACE)) {
+    else if (accept(TK_DL_CLOSEBRACE)) { // Scope end
         token_go_back(1); // Return to parse_statement
         return;
     }

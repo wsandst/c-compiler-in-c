@@ -24,8 +24,14 @@ void asm_add_newline();
 // A newline and proper indentation is added beforehand
 void asm_add(int n, ...);
 
-// Set the indendentation level
+// Set the indendentation level and update
 void asm_set_indent(int indent);
+
+// Update indentation level based on global indent_level
+void asm_update_indent();
+
+// Add to the indent level and update
+void asm_add_indent(int amount);
 
 // Get a C string representing a jump label
 char* get_label_str(int label);
