@@ -154,8 +154,11 @@ void parse_program(ASTNode* node, SymbolTable* symbols);
 // <function> ::= <type> <id> "(" <args> ")" "{" <statement> "}"
 void parse_func(ASTNode* node,  SymbolTable* symbols);
 
-// Parse a statement
+// Parse a statement, continue with next statement
 void parse_statement(ASTNode* node,  SymbolTable* symbols);
+
+// Parse a single statement, do not continue with next.
+void parse_single_statement(ASTNode* node, SymbolTable* symbols);
 
 // Parse an expression, ex (a + b) + 3
 void parse_expression(ASTNode* node,  SymbolTable* symbols);

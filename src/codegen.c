@@ -117,6 +117,7 @@ void gen_asm(ASTNode* node) {
             break;
         case AST_NONE:
         case AST_END:
+        case AST_STMT:
             return;
         case AST_RETURN:
             if (node->ret->type == AST_EXPR) {

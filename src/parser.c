@@ -112,7 +112,7 @@ bool accept_binop() {
 }
 
 void parse_program(ASTNode* node, SymbolTable* symbols) {
-    // Either a function or a global, add preprocessor stuff later
+    // Either a function or a global
     // These should probably be handled as normal statements, not
     // hardcoded up in the program. Will simplify variable handling
     if (accept(TK_EOF)) { // Reached end of program
@@ -158,12 +158,12 @@ void parse_func(ASTNode* node, SymbolTable* symbols) {
     parse_statement(stmt, symbols);
 }
 
-void parse_statement(ASTNode* node, SymbolTable* symbols) {
+void parse_single_statement(ASTNode* node, SymbolTable* symbols) {
     if (accept(TK_COMMENT)) { // Do nothing, move on to next statement
-        parse_statement(node, symbols);
+        parse_single_statement(node, symbols);
         return;
     }
-    if (accept_var_type()) { // Variable declaration
+    else if (accept_var_type()) { // Variable declaration
         // Declaration is just connected to the symbol table,
         // no actual node needed
         Variable var;
@@ -185,7 +185,7 @@ void parse_statement(ASTNode* node, SymbolTable* symbols) {
         else {
             expect(TK_DL_SEMICOLON);
             // We can reuse this node
-            parse_statement(node, symbols);
+            parse_single_statement(node, symbols);
             return;
         }
     }
@@ -197,36 +197,41 @@ void parse_statement(ASTNode* node, SymbolTable* symbols) {
     }
     else if (accept(TK_KW_IF)) {
         node->type = AST_IF;
-        // This should not be necessary later, I can treat both as expression parenthesis
-        // and use the { to end the expression
-        expect(TK_DL_OPENPAREN); 
         node->cond = ast_node_new(AST_EXPR, 1);
-        parse_expression(node->cond, symbols);
-        expect(TK_DL_OPENBRACE);
+        parse_expression(node->cond, symbols); // Consumes {
         node->then = ast_node_new(AST_BLOCK, 1);
         node->then->next = ast_node_new(AST_END, 1);
         parse_scope(node->then, symbols);
+        // Check if the if has an attached else
+        if (accept(TK_KW_ELSE)) {
+            node->els = ast_node_new(AST_STMT, 1);
+            parse_statement(node->els, symbols); // This will carry on
+        }
     }
     else if (accept(TK_KW_RETURN)) {
         node->type = AST_RETURN;
         node->ret = ast_node_new(AST_EXPR, 1);
         parse_expression(node->ret, symbols);
     }
-    else if (accept(TK_DL_CLOSEBRACE)) {
-        // Scope or function end
-        node->type = AST_NONE;
-        return;
-    }
     else if (accept(TK_DL_OPENBRACE)) {
-        // Scope start
-        parse_scope(node, symbols); 
+        parse_scope(node, symbols);
     }
-    else if (accept(TK_DL_CLOSEBRACE)) { // End of scope
+    else if (accept(TK_DL_CLOSEBRACE)) {
+        token_go_back(1); // Return to parse_statement
         return;
     }
     else {
         parse_error("Invalid statement");
     }
+}
+
+void parse_statement(ASTNode* node, SymbolTable* symbols) {
+    if (accept(TK_DL_CLOSEBRACE)) {
+        // Scope or function end
+        node->type = AST_NONE;
+        return;
+    }
+    parse_single_statement(node, symbols);
     node->next = ast_node_new(AST_STMT, 1);
     parse_statement(node->next, symbols);
 }
@@ -266,8 +271,6 @@ void parse_expression(ASTNode* node, SymbolTable* symbols) {
         parse_expression(node, symbols);
     }
     // Non-atom
-    // I need to search for the ), then I find the operation,
-    // then
     else if (accept_unop()) { // Unary operation
         node->expr_type = EXPR_UNOP;
         node->op_type = token_type_to_uop_type(prev_token().type);
@@ -302,16 +305,19 @@ void parse_expression(ASTNode* node, SymbolTable* symbols) {
         node->op_type = token_type_to_bop_type(prev_token().type);
 
         // Every operation gets a result space, which is just
-        // cur_stack_offset + 4. When we've finished using it, revert cur_stack_offset.
-        symbols->cur_stack_offset += 8; // Problem. We seem to be reusing stack offsets
+        // cur_stack_offset + 8. When we've finished using it, revert cur_stack_offset.
+        symbols->cur_stack_offset += 8; 
         node->scratch_stack_offset = symbols->cur_stack_offset;
-
 
         parse_expression(node->rhs, symbols);
         symbols->cur_stack_offset -= 8;
     }
-    else if (accept(TK_DL_SEMICOLON) || accept(TK_DL_COMMA) || accept(TK_DL_CLOSEBRACE)) {
+    else if (accept(TK_DL_SEMICOLON) || accept(TK_DL_COMMA) || accept(TK_DL_OPENBRACE)) {
         return; // Expression end
+    }
+    else if (accept(TK_DL_CLOSEBRACE)) {
+        token_go_back(1);
+        return;
     }
     else {
         parse_error("Invalid expression");
