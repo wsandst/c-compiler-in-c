@@ -195,7 +195,7 @@ void parse_single_statement(ASTNode* node, SymbolTable* symbols) {
         node->top_level_expr = true;
         parse_expression(node, symbols);
     }
-    else if (accept(TK_KW_IF)) { // If statements
+    else if (accept(TK_KW_IF)) { // If conditional
         node->type = AST_IF;
         node->cond = ast_node_new(AST_EXPR, 1);
         expect(TK_DL_OPENPAREN);
@@ -211,7 +211,7 @@ void parse_single_statement(ASTNode* node, SymbolTable* symbols) {
             node->els->next = ast_node_new(AST_END, 1);
         }
     }
-    else if (accept(TK_KW_WHILE)) { // While statement
+    else if (accept(TK_KW_WHILE)) { // While loop
         node->type = AST_WHILE;
         node->cond = ast_node_new(AST_EXPR, 1);
         expect(TK_DL_OPENPAREN);
@@ -221,7 +221,7 @@ void parse_single_statement(ASTNode* node, SymbolTable* symbols) {
         parse_single_statement(node->then, symbols);
         node->then->next = ast_node_new(AST_END, 1);
     }
-    else if (accept(TK_KW_DO)) { // Do while statement
+    else if (accept(TK_KW_DO)) { // Do while loop
         node->type = AST_DO_WHILE;
         // Parse do while body
         node->then = ast_node_new(AST_BLOCK, 1);
@@ -233,6 +233,27 @@ void parse_single_statement(ASTNode* node, SymbolTable* symbols) {
         symbols->cur_stack_offset += 8;
         node->cond = ast_node_new(AST_EXPR, 1);
         parse_expression(node->cond, symbols);
+    }
+    else if (accept(TK_KW_FOR)) { // For loop. Maybe this can be a while loop node?
+        node->type = AST_FOR;
+        expect(TK_DL_OPENPAREN);
+        // Start out by getting the init statement
+        node->init = ast_node_new(AST_STMT, 1);
+        // It will be in the scope above the loop now, which is technically wrong
+        // Could solve that by creating an artifical scope above the for-loop
+        parse_single_statement(node->init, symbols);
+        node->init->next = ast_node_new(AST_END, 1);
+        // Getting the condition
+        node->cond = ast_node_new(AST_EXPR, 1);
+        parse_expression(node->cond, symbols);
+        // Getting the increment
+        node->incr = ast_node_new(AST_EXPR, 1);
+        symbols->cur_stack_offset += 8;
+        parse_expression(node->incr, symbols);
+        // Parsing the for-loop body
+        node->then = ast_node_new(AST_STMT, 1);
+        parse_single_statement(node->then, symbols);
+        node->then->next = ast_node_new(AST_END, 1);
     }
     else if (accept(TK_KW_RETURN)) { // Return statements
         node->type = AST_RETURN;
@@ -308,6 +329,10 @@ void parse_expression(ASTNode* node, SymbolTable* symbols) {
         parse_expression(node->rhs, symbols);
         return;
     }
+    else if (accept(TK_DL_CLOSEPAREN)) {
+        node->type = AST_NONE;
+        return; // Atom end 
+    }
     else {
         parse_error("Invalid expression");
     }
@@ -355,7 +380,7 @@ void parse_expression(ASTNode* node, SymbolTable* symbols) {
 }
 
 void parse_error(char* error_message) {
-    fprintf(stderr, "Parse error: %s\n", error_message);
+    fprintf(stderr, "Parse error: %s (token: \"%s\")\n", error_message, token_type_to_string(parse_token->type));
     // We are not manually freeing the memory here, 
     // but as the program is exiting it is fine
     exit(1); 

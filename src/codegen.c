@@ -128,6 +128,9 @@ void gen_asm(ASTNode* node) {
         case AST_DO_WHILE: // Do while loop, similar to while but condition at end
             gen_asm_do_while(node);
             break;
+        case AST_FOR:
+            gen_asm_for(node);
+            break;
         case AST_RETURN:
             gen_asm_return(node);
             break;
@@ -376,7 +379,25 @@ void gen_asm_do_while(ASTNode* node) {
 
 // Generate assembly for a for loop node
 void gen_asm_for(ASTNode* node) {
-
+    char* for_start_label = get_next_label_str();
+    char* for_end_label = get_next_label_str();
+    asm_add_newline();
+    // Initial for loop statement
+    asm_add_com("; Initial for loop statement");
+    gen_asm(node->init);
+    asm_add(2, for_start_label, ":");
+    asm_add_com("; Calculating for statement conditional");
+    gen_asm(node->cond); // Value now in RAX
+    asm_add(1, "cmp rax, 0");
+    asm_add(2, "je ", for_end_label, " ; Jump to after for loop if conditional is false");
+    asm_add_com("; Else, evaluate for body");
+    gen_asm(node->then);
+    // Do the increment expression
+    asm_add_com("; For loop increment");
+    gen_asm(node->incr);
+    asm_add(3, "jmp ",  for_start_label, " ; Jump to beginning of for");
+    asm_add(3, for_end_label, ":", " ; End of for jump label");
+    gen_asm(node->next);
 }
 
 // Generate assembly for a return statement node

@@ -1,11 +1,10 @@
 // Basic for loop
 
 int main() {
-    return 0;
-    /*int y = 0;
-    for (int i = 0; i < 10; i++)
+    int y = 0;
+    for (int i = 0; i < 10; i = i + 1)
     {
         y = y + 3;
     }
-    return y;*/
+    return y;
 }
