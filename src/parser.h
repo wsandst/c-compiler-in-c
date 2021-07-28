@@ -53,6 +53,7 @@ enum ASTNodeType {
     //AST_MEMBER,   // . (struct member access)
     AST_RETURN,     // "return"
     AST_IF,         // "if"
+    AST_WHILE,
     AST_FOR,        // "for" or "while"
     AST_DO,         // "do"
     AST_SWITCH,     // "switch"

@@ -175,6 +175,22 @@ void gen_asm(ASTNode* node) {
             gen_asm(node->next);
             break;
         }
+        case AST_WHILE: { // While loop
+            char* while_start_label = get_next_label_str();
+            char* while_end_label = get_next_label_str();
+            asm_add_newline();
+            asm_add(2, while_start_label, ":");
+            asm_add_com("; Calculating while statement conditional");
+            gen_asm(node->cond); // Value now in RAX
+            asm_add(1, "cmp rax, 0");
+            asm_add(2, "je ", while_end_label, " ; Jump to after while loop if conditional is false");
+            asm_add_com("; Else, evaluate while body");
+            gen_asm(node->then);
+            asm_add(3, "jmp ",  while_start_label, " ; Jump to beginning of while");
+            asm_add(3, while_end_label, ":", " ; End of while jump label");
+            gen_asm(node->next);
+            break;
+        }
         case AST_VAR_DEC:
             // Do nothing
             gen_asm(node->next);
