@@ -212,7 +212,7 @@ void parse_single_statement(ASTNode* node, SymbolTable* symbols) {
     else if (accept(TK_KW_BREAK)) { // Break loop/switch
         node->type = AST_BREAK;
     }
-    else if (accept(TK_KW_BREAK)) { // Continue loop
+    else if (accept(TK_KW_CONTINUE)) { // Continue loop
         node->type = AST_CONTINUE;
     }
     else if (accept(TK_KW_RETURN)) { // Return statements
