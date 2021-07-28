@@ -53,9 +53,8 @@ enum ASTNodeType {
     //AST_MEMBER,   // . (struct member access)
     AST_RETURN,     // "return"
     AST_IF,         // "if"
-    AST_WHILE,
-    AST_DO_WHILE,   // "do ... while"
-    AST_FOR,        // "for"
+    AST_LOOP,       // "while and for"
+    AST_DO_LOOP,    // "do while"
     AST_SWITCH,     // "switch"
     AST_CASE,       // "case"
     AST_BLOCK,      // { ... }
@@ -169,6 +168,18 @@ void parse_expression(ASTNode* node,  SymbolTable* symbols);
 // Parse a scope/block
 // <scope> ::= "{" <statement ...> "}"
 void parse_scope(ASTNode* node, SymbolTable* symbols);
+
+// Parse an if conditional
+void parse_if(ASTNode* node, SymbolTable* symbols);
+
+// Parse a while loop
+void parse_while_loop(ASTNode* node, SymbolTable* symbols);
+
+// Parse a do while loop
+void parse_do_while_loop(ASTNode* node, SymbolTable* symbols);
+
+// Parse a for loop
+void parse_for_loop(ASTNode* node, SymbolTable* symbols);
 
 // Print a parse error to stderr and exit the program
 void parse_error(char* error_message);

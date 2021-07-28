@@ -60,14 +60,11 @@ void gen_asm_func(ASTNode* node);
 // Generate assembly for an if conditional node
 void gen_asm_if(ASTNode* node);
 
-// Generate assembly for a while loop node
-void gen_asm_while(ASTNode* node);
+// Generate assembly for a loop node, condition at start, ex while and for loops
+void gen_asm_loop(ASTNode* node);
 
-// Generate assembly for a do while loop node
-void gen_asm_do_while(ASTNode* node);
-
-// Generate assembly for a for loop node
-void gen_asm_for(ASTNode* node);
+// Generate assembly for a do loop node, condition at end, ex do while loops
+void gen_asm_do_loop(ASTNode* node);
 
 // Generate assembly for a return statement node
 void gen_asm_return(ASTNode* node);

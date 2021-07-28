@@ -166,6 +166,8 @@ void parse_single_statement(ASTNode* node, SymbolTable* symbols) {
     else if (accept_var_type()) { // Variable declaration
         // Declaration is just connected to the symbol table,
         // no actual node needed
+
+        // Add to symbol table
         Variable var;
         var.type = token_type_to_var_type(prev_token().type);
         expect(TK_IDENT);
@@ -176,7 +178,7 @@ void parse_single_statement(ASTNode* node, SymbolTable* symbols) {
 
         if (accept(TK_OP_ASSIGN)) { // Def and assignment
             // Treat this as an expresison
-            token_go_back(2); // Go back to ident
+            token_go_back(2); // Go back to ident token
             node->type = AST_EXPR;
             node->assign = ast_node_new(AST_EXPR, 1);
             node->top_level_expr = true;
@@ -184,7 +186,7 @@ void parse_single_statement(ASTNode* node, SymbolTable* symbols) {
         }
         else {
             expect(TK_DL_SEMICOLON);
-            // We can reuse this node
+            // We can reuse this node, assignment is just virtual
             parse_single_statement(node, symbols);
             return;
         }
@@ -196,64 +198,16 @@ void parse_single_statement(ASTNode* node, SymbolTable* symbols) {
         parse_expression(node, symbols);
     }
     else if (accept(TK_KW_IF)) { // If conditional
-        node->type = AST_IF;
-        node->cond = ast_node_new(AST_EXPR, 1);
-        expect(TK_DL_OPENPAREN);
-        parse_expression(node->cond, symbols);
-        symbols->cur_stack_offset += 8;
-        node->then = ast_node_new(AST_BLOCK, 1);
-        parse_single_statement(node->then, symbols);
-        node->then->next = ast_node_new(AST_END, 1);
-        // Check if the if has an attached else
-        if (accept(TK_KW_ELSE)) {
-            node->els = ast_node_new(AST_STMT, 1);
-            parse_single_statement(node->els, symbols);
-            node->els->next = ast_node_new(AST_END, 1);
-        }
+        parse_if(node, symbols);
     }
     else if (accept(TK_KW_WHILE)) { // While loop
-        node->type = AST_WHILE;
-        node->cond = ast_node_new(AST_EXPR, 1);
-        expect(TK_DL_OPENPAREN);
-        parse_expression(node->cond, symbols);
-        symbols->cur_stack_offset += 8;
-        node->then = ast_node_new(AST_BLOCK, 1);
-        parse_single_statement(node->then, symbols);
-        node->then->next = ast_node_new(AST_END, 1);
+        parse_while_loop(node, symbols);
     }
     else if (accept(TK_KW_DO)) { // Do while loop
-        node->type = AST_DO_WHILE;
-        // Parse do while body
-        node->then = ast_node_new(AST_BLOCK, 1);
-        parse_single_statement(node->then, symbols);
-        node->then->next = ast_node_new(AST_END, 1);
-        // Parse while condition at end
-        expect(TK_KW_WHILE);
-        expect(TK_DL_OPENPAREN);
-        symbols->cur_stack_offset += 8;
-        node->cond = ast_node_new(AST_EXPR, 1);
-        parse_expression(node->cond, symbols);
+        parse_do_while_loop(node, symbols);
     }
-    else if (accept(TK_KW_FOR)) { // For loop. Maybe this can be a while loop node?
-        node->type = AST_FOR;
-        expect(TK_DL_OPENPAREN);
-        // Start out by getting the init statement
-        node->init = ast_node_new(AST_STMT, 1);
-        // It will be in the scope above the loop now, which is technically wrong
-        // Could solve that by creating an artifical scope above the for-loop
-        parse_single_statement(node->init, symbols);
-        node->init->next = ast_node_new(AST_END, 1);
-        // Getting the condition
-        node->cond = ast_node_new(AST_EXPR, 1);
-        parse_expression(node->cond, symbols);
-        // Getting the increment
-        node->incr = ast_node_new(AST_EXPR, 1);
-        symbols->cur_stack_offset += 8;
-        parse_expression(node->incr, symbols);
-        // Parsing the for-loop body
-        node->then = ast_node_new(AST_STMT, 1);
-        parse_single_statement(node->then, symbols);
-        node->then->next = ast_node_new(AST_END, 1);
+    else if (accept(TK_KW_FOR)) { // For loop
+        parse_for_loop(node, symbols);
     }
     else if (accept(TK_KW_RETURN)) { // Return statements
         node->type = AST_RETURN;
@@ -377,6 +331,90 @@ void parse_expression(ASTNode* node, SymbolTable* symbols) {
     else {
         parse_error("Invalid expression");
     }
+}
+
+void parse_if(ASTNode* node, SymbolTable* symbols) {
+    node->type = AST_IF;
+    node->cond = ast_node_new(AST_EXPR, 1);
+    expect(TK_DL_OPENPAREN);
+    parse_expression(node->cond, symbols);
+    symbols->cur_stack_offset += 8;
+    node->then = ast_node_new(AST_BLOCK, 1);
+    parse_single_statement(node->then, symbols);
+    node->then->next = ast_node_new(AST_END, 1);
+    // Check if the if has an attached else
+    if (accept(TK_KW_ELSE)) {
+        node->els = ast_node_new(AST_STMT, 1);
+        parse_single_statement(node->els, symbols);
+        node->els->next = ast_node_new(AST_END, 1);
+    }
+}
+
+// Parse a while loop
+void parse_while_loop(ASTNode* node, SymbolTable* symbols) {
+    node->type = AST_LOOP;
+    node->cond = ast_node_new(AST_EXPR, 1);
+    expect(TK_DL_OPENPAREN);
+    parse_expression(node->cond, symbols);
+    symbols->cur_stack_offset += 8;
+    node->then = ast_node_new(AST_BLOCK, 1);
+    parse_single_statement(node->then, symbols);
+    node->then->next = ast_node_new(AST_END, 1);
+}
+
+// Parse a do while loop
+void parse_do_while_loop(ASTNode* node, SymbolTable* symbols) {
+    node->type = AST_DO_LOOP;
+    // Parse do while body
+    node->then = ast_node_new(AST_BLOCK, 1);
+    parse_single_statement(node->then, symbols);
+    node->then->next = ast_node_new(AST_END, 1);
+    // Parse while condition at end
+    expect(TK_KW_WHILE);
+    expect(TK_DL_OPENPAREN);
+    symbols->cur_stack_offset += 8;
+    node->cond = ast_node_new(AST_EXPR, 1);
+    parse_expression(node->cond, symbols);
+}
+
+// Parse a for loop
+void parse_for_loop(ASTNode* node, SymbolTable* symbols) {
+    // Same construction as while loop, but we need to insert a few additional statements
+    // for(int i = 0; i < 10, i++) becomes
+    // int i = 0; while(i < 10) { i++; ... }
+
+    // We need a new scope for the for variable declaration
+    node->type = AST_BLOCK;
+    node->body = ast_node_new(AST_STMT, 1);
+    SymbolTable* scope_symbols = symbol_table_create_child(symbols, symbols->cur_stack_offset);
+    node->next = ast_node_new(AST_STMT, 1);
+
+    // Set the first statement to the for init statement
+    expect(TK_DL_OPENPAREN);
+    parse_single_statement(node->body, scope_symbols);
+
+    // Now we can treat this like a while loop almost
+    node->body->next = ast_node_new(AST_LOOP, 1);
+    ASTNode* loop_node = node->body->next;
+    loop_node->next = ast_node_new(AST_NONE, 1);
+
+    // Getting the condition
+    loop_node->cond = ast_node_new(AST_EXPR, 1);
+    scope_symbols->cur_stack_offset += 8;
+    parse_expression(loop_node->cond, scope_symbols);
+
+    // Getting the increment expression
+    ASTNode* loop_increment = ast_node_new(AST_EXPR, 1);
+    scope_symbols->cur_stack_offset += 8;
+    parse_expression(loop_increment, scope_symbols);
+    loop_increment->next = ast_node_new(AST_END, 1);
+
+    // Parsing the for-loop body
+    loop_node->then = ast_node_new(AST_STMT, 1);
+    parse_single_statement(loop_node->then, scope_symbols);
+
+    // We need to insert the increment operation last
+    loop_node->then->next = loop_increment;
 }
 
 void parse_error(char* error_message) {

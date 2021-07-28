@@ -16,8 +16,13 @@ TODO:
     Function parameters, proper calling convention:
         Return 0 from functions if there is no return statement, won't follow spec otherwise
 
-    While loops
-    For loops
+    Loops:
+        Break, conntinue
+        Refactor into a single loop construct instead?
+        At least while and for should technically be able to be the same construct
+        just have to insert the for stuff at the start and the end. How to insert at the end though?
+        do while needs to be separate. I could iterate over the statements until I find the end, then insert it
+        
 
 */
 
