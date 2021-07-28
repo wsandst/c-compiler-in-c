@@ -22,6 +22,7 @@ do
         echo "${RED}FAIL: expected ${expected}, got ${actual}${CLEAR}"
         failed_test=true
     else
+        #echo "Returned: ${actual}"
         echo "${GREEN}OK${CLEAR}"
     fi
     rm output

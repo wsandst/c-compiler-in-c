@@ -11,18 +11,25 @@ TODO:
         I might be using too much scratch memory, not sure if what I'm doing
         currently is optimal
 
-    Gotos
-
     Function parameters, proper calling convention:
+        Start with adding one parameter
         Return 0 from functions if there is no return statement, won't follow spec otherwise
 
     Loops:
-        Break, conntinue
-        Refactor into a single loop construct instead?
-        At least while and for should technically be able to be the same construct
-        just have to insert the for stuff at the start and the end. How to insert at the end though?
-        do while needs to be separate. I could iterate over the statements until I find the end, then insert it
-        
+        Break, continue:
+            Break, continues tells the closest loop to end/start over
+            The do-while loop needs a label at the bottom so I can jump there on break
+            One option - I could somehow link the break with the next node after the loop
+            Problem is, in codegen if I encounter a break, I know I have to jump to the end of the current loop.
+            The AST for the loop doesn't have access to the label, though, which is a big issue. How do I know the label
+            names? I could store labels in the symbol table at AST-time, but that seems convoluted
+            One way to do it is to not link anything and instead keep track of the last label.
+            This would need to be a stack though, which is annoying. I could store the label
+            inside the AST node. If I could manage to link the break to it,
+
+    Switch statements
+    Gotos
+
 
 */
 

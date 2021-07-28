@@ -89,8 +89,12 @@ char* generate_assembly(AST* ast) {
     asm_set_indent(0);
     asm_add(1, "global main");
     asm_add(1, "section .text");
+    // Setup context object
+    AsmContext ctx;
+    ctx.last_start_label = NULL;
+    ctx.last_end_label = NULL;
 
-    gen_asm(ast->program);
+    gen_asm(ast->program, ctx);
     asm_add_newline();
 
     char* asm_src_str = str_vec_join(&asm_src);
@@ -99,44 +103,53 @@ char* generate_assembly(AST* ast) {
     return asm_src_str;
 }
 
-void gen_asm(ASTNode* node) {
+void gen_asm(ASTNode* node, AsmContext ctx) {
     switch (node->type) {
         case AST_PROGRAM:
-            gen_asm(node->body);
+            gen_asm(node->body, ctx);
             break;
         case AST_FUNC:
-            gen_asm_func(node);
+            gen_asm_func(node, ctx);
             break;
         case AST_EXPR:
-            gen_asm_expr(node);
+            gen_asm_expr(node, ctx);
             break;
         case AST_BLOCK:
             // Blocks/scopes are a virtual construct, does not exist in the assembly
-            gen_asm(node->body);
-            gen_asm(node->next);
+            gen_asm(node->body, ctx);
+            gen_asm(node->next, ctx);
             break;
         case AST_VAR_DEC:
             // Do nothing
-            gen_asm(node->next);
+            gen_asm(node->next, ctx);
             break;
         case AST_IF: // If conditional
-            gen_asm_if(node);
+            gen_asm_if(node, ctx);
             break;
         case AST_LOOP: // For and while loops
-            gen_asm_loop(node);
+            gen_asm_loop(node, ctx);
             break;
         case AST_DO_LOOP: // Do while loops, condition at end
-            gen_asm_do_loop(node);
+            gen_asm_do_loop(node, ctx);
+            break;
+        case AST_BREAK:
+            asm_add(2, "jmp ", ctx.last_end_label);
+            gen_asm(node->next, ctx);
+            break;
+        case AST_CONTINUE:
+            // This doesn't work for for loops, we need to execute the increment too
+            asm_add(2, "jmp ", ctx.last_start_label);
+            gen_asm(node->next, ctx);
             break;
         case AST_RETURN:
-            gen_asm_return(node);
+            gen_asm_return(node, ctx);
             break;
         case AST_NONE:
         case AST_END:
             break;
         case AST_STMT:
         case AST_NULL_STMT:
-            gen_asm(node->next);
+            gen_asm(node->next, ctx);
             break;
         default:
             codegen_error("Encountered AST Node which has no codegen capability yet!");
@@ -144,8 +157,8 @@ void gen_asm(ASTNode* node) {
     }
 }
 
-void gen_asm_unary_op(ASTNode* node) {
-    gen_asm(node->rhs); // The value we are acting on is now in RAX
+void gen_asm_unary_op(ASTNode* node, AsmContext ctx) {
+    gen_asm(node->rhs, ctx); // The value we are acting on is now in RAX
     switch (node->op_type) {
         case UOP_NEG: // Negation
             asm_add(1, "neg rax");
@@ -166,12 +179,12 @@ void gen_asm_unary_op(ASTNode* node) {
 
 // How do I respect left to right precedence?
 // Maybe that is for later when I implement proper expression handling
-void gen_asm_binary_op(ASTNode* node) {
+void gen_asm_binary_op(ASTNode* node, AsmContext ctx) {
     // The op needs to know which register/address to save the results in so we don't conflict
-    gen_asm(node->rhs); // RHS now in RAX
+    gen_asm(node->rhs, ctx); // RHS now in RAX
     char* sp = offset_to_stack_ptr(node->scratch_stack_offset);
     asm_add(3, "mov ", sp, ", rax");
-    gen_asm(node->lhs); // LHS now in RAX
+    gen_asm(node->lhs, ctx); // LHS now in RAX
     asm_add(2, "mov rbx, ", sp); // Move saved RHS to RBX
     // We are now ready for the binary operation
     switch (node->op_type) { // These are all integer operations'
@@ -265,7 +278,7 @@ void gen_asm_binary_op(ASTNode* node) {
 }
 
 // Generate assembly for an expression node
-void gen_asm_expr(ASTNode* node) {
+void gen_asm_expr(ASTNode* node, AsmContext ctx) {
     if (node->expr_type == EXPR_LITERAL) {
         asm_add(2, "mov rax, ", node->literal);
     }
@@ -280,12 +293,12 @@ void gen_asm_expr(ASTNode* node) {
         asm_add(2, "call ", node->func.name);
     }
     else if (node->expr_type == EXPR_UNOP) {
-        gen_asm_unary_op(node);
+        gen_asm_unary_op(node, ctx);
     }
     else if (node->expr_type == EXPR_BINOP) {
-        gen_asm_binary_op(node);
+        gen_asm_binary_op(node, ctx);
         if (node->top_level_expr) {
-            gen_asm(node->next);
+            gen_asm(node->next, ctx);
         }
     }
     else {
@@ -293,7 +306,7 @@ void gen_asm_expr(ASTNode* node) {
     }
 }
 
-void gen_asm_func(ASTNode* node) {
+void gen_asm_func(ASTNode* node, AsmContext ctx) {
     asm_set_indent(0);
     asm_add_newline();
     asm_add(2, node->func.name, ":");
@@ -308,80 +321,85 @@ void gen_asm_func(ASTNode* node) {
     //asm_add(1, "sub rsp, 16"); // Allocate space for variables on stack
     asm_add_com("; Function code start");
     // Do I need to allocate more stack space here?
-    gen_asm(node->body);
-    gen_asm(node->next);
+    gen_asm(node->body, ctx);
+    gen_asm(node->next, ctx);
 }
 
 // Generate assembly for an if conditional node
-void gen_asm_if(ASTNode* node) {
+void gen_asm_if(ASTNode* node, AsmContext ctx) {
     // Calculate conditional
     char* after_label;
     char* else_label;
     asm_add_newline();
     asm_add_com("; Calculating if statement conditional");
-    gen_asm(node->cond); // Value now in RAX
+    gen_asm(node->cond, ctx); // Value now in RAX
     asm_add(1, "cmp rax, 0");
     if (node->els != NULL) { // There is an else statement
         else_label = get_next_label_str();
         asm_add(3, "je ", else_label, " ; Conditional false => Jump to Else");
-        gen_asm(node->then); // If body
+        gen_asm(node->then, ctx); // If body
         after_label = get_next_label_str();
         asm_add(3, "jmp ", after_label, " ; Jump to end of if/else after if"); 
         asm_add_com("; Label: Else statement");
         asm_add(3, else_label, ":", " ; Else statement");
-        gen_asm(node->els); // Else body
+        gen_asm(node->els, ctx); // Else body
         asm_add_newline();
     }
     else { // No else statement
         after_label = get_next_label_str();
         asm_add(2, "je ", after_label, "; Conditional false => Jump to end of if block");
-        gen_asm(node->then); // If body
+        gen_asm(node->then, ctx); // If body
         asm_add_newline();
     }
     // Jump label after if
     asm_add(2, after_label, ":", " ;  End of if/else");
-    gen_asm(node->next);
+    gen_asm(node->next, ctx);
 }
 
 // Generate assembly for a loop node, condition at start, ex while and for loops
-void gen_asm_loop(ASTNode* node) {
+void gen_asm_loop(ASTNode* node, AsmContext ctx) {
     char* while_start_label = get_next_label_str();
     char* while_end_label = get_next_label_str();
+    // Setup ctx for break/continues
+    ctx.last_start_label = while_start_label;
+    ctx.last_end_label = while_end_label;
+    // Add asm
     asm_add_newline();
     asm_add(2, while_start_label, ":");
     asm_add_com("; Calculating loop statement conditional");
-    gen_asm(node->cond); // Value now in RAX
+    gen_asm(node->cond, ctx); // Value now in RAX
     asm_add(1, "cmp rax, 0");
     asm_add(2, "je ", while_end_label, " ; Jump to after loop if conditional is false");
     asm_add_com("; Else, evaluate loop body");
-    gen_asm(node->then);
+    gen_asm(node->then, ctx);
     asm_add(3, "jmp ",  while_start_label, " ; Jump to beginning of while");
     asm_add(3, while_end_label, ":", " ; End of loop jump label");
-    gen_asm(node->next);
+    gen_asm(node->next, ctx);
 }
 
 // Generate assembly for a do loop node, condition at end, ex do while loops
-void gen_asm_do_loop(ASTNode* node) {
+void gen_asm_do_loop(ASTNode* node, AsmContext ctx) {
     char* while_start_label = get_next_label_str();
+    ctx.last_start_label = while_start_label;
     asm_add_newline();
     asm_add(2, while_start_label, ":");
     asm_add_com("; Evaluate do while body");
-    gen_asm(node->then);
+    gen_asm(node->then, ctx);
     asm_add_com("; Calculating while statement conditional at end");
-    gen_asm(node->cond); // Value now in RAX
+    gen_asm(node->cond, ctx); // Value now in RAX
     asm_add(1, "cmp rax, 0");
     asm_add(2, "jne ", while_start_label, " ; Jump to start if conditional is true, otherwise keep going");
-    gen_asm(node->next);
+    gen_asm(node->next, ctx);
 }
 
 // Generate assembly for a return statement node
-void gen_asm_return(ASTNode* node) {
+void gen_asm_return(ASTNode* node, AsmContext ctx) {
     asm_add_com("; Evaluating return expr");
-    gen_asm(node->ret); // Expr is now in RAX
+    gen_asm(node->ret, ctx); // Expr is now in RAX
     asm_add_com("; Function return");
     asm_add(1, "add rsp, 128 ; Restore hardcoded 128 byte stack allocation");
     asm_add(1, "pop rbp");
     asm_add(1, "ret");
-    gen_asm(node->next);
+    gen_asm(node->next, ctx);
     asm_add_newline();
 }

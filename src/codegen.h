@@ -9,7 +9,14 @@ from the Abstract Syntax Tree created in the parsing step.
 #include "parser.h"
 #include "string_helpers.h"
 
-//void write_instr()
+// Contains various context data required
+struct AsmContext {
+    // Used by break and continue
+    char* last_start_label; // Latest start label for loops
+    char* last_end_label; // Latest end label for loops and switch
+};
+
+typedef struct AsmContext AsmContext;
 
 // Add assembly
 void asm_add_single(char* str);
@@ -43,31 +50,31 @@ char* get_next_label_str();
 char* generate_assembly(AST* ast);
 
 // Generate assembly from the node. Used recursively
-void gen_asm(ASTNode* node);
+void gen_asm(ASTNode* node, AsmContext ctx);
 
 // Generate assembly for an expression node
-void gen_asm_expr(ASTNode* node);
+void gen_asm_expr(ASTNode* node, AsmContext ctx);
 
 // Generate assembly for a unary op expression node
-void gen_asm_unary_op(ASTNode* node);
+void gen_asm_unary_op(ASTNode* node, AsmContext ctx);
 
 // Generate assembly for a binary op expression node
-void gen_asm_binary_op(ASTNode* node);
+void gen_asm_binary_op(ASTNode* node, AsmContext ctx);
 
 // Generate assembly for a function definition
-void gen_asm_func(ASTNode* node);
+void gen_asm_func(ASTNode* node, AsmContext ctx);
 
 // Generate assembly for an if conditional node
-void gen_asm_if(ASTNode* node);
+void gen_asm_if(ASTNode* node, AsmContext ctx);
 
 // Generate assembly for a loop node, condition at start, ex while and for loops
-void gen_asm_loop(ASTNode* node);
+void gen_asm_loop(ASTNode* nodel, AsmContext ctx);
 
 // Generate assembly for a do loop node, condition at end, ex do while loops
-void gen_asm_do_loop(ASTNode* node);
+void gen_asm_do_loop(ASTNode* node, AsmContext ctx);
 
 // Generate assembly for a return statement node
-void gen_asm_return(ASTNode* node);
+void gen_asm_return(ASTNode* node, AsmContext ctx);
 
 // Throw a codegen error
 void codegen_error(char* message);

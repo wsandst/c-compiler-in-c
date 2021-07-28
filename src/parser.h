@@ -43,7 +43,7 @@ enum OpType {
     UOP_DEREF,      // unary *
     UOP_NOT,        // unary !
     UOP_COMPL,      // unary ~
-    UOP_SIZEOF,     // should this be considered an op?
+    UOP_SIZEOF,     // sizeof
 };
 
 enum ASTNodeType {
@@ -51,22 +51,25 @@ enum ASTNodeType {
     AST_EXPR,
     //AST_COMMA,    // ,
     //AST_MEMBER,   // . (struct member access)
-    AST_RETURN,     // "return"
-    AST_IF,         // "if"
-    AST_LOOP,       // "while and for"
-    AST_DO_LOOP,    // "do while"
-    AST_SWITCH,     // "switch"
-    AST_CASE,       // "case"
-    AST_BLOCK,      // { ... }
-    //AST_GOTO,     // "goto"
+    AST_RETURN,     // return
+    AST_IF,         // if
+    AST_LOOP,       // while, for
+    AST_DO_LOOP,    // do while
+    AST_BREAK,      // break
+    AST_CONTINUE,   // continue
+    AST_SWITCH,     // switch
+    AST_CASE,       // case
+    AST_BLOCK,      // { ... }, scope
+
+    //AST_GOTO,     // goto
     //AST_LABEL,    // Labeled statement
-    AST_FUNC,
-    AST_STMT,
+    AST_FUNC,       // Function
+    AST_STMT,       // Empty statement
     AST_VAR_DEC,    // Variable declaration
     AST_CAST,       // Type cast
     AST_ASSIGN,     // This is actually an operation in C. Start out like this?
-    AST_END,
-    AST_NONE,
+    AST_END,        // End of scope/loop etc
+    AST_NONE,       // None
     AST_NULL_STMT, // Empty statement, used in certain for loops, need to represent it
 };
 
@@ -104,9 +107,6 @@ struct ASTNode {
     ASTNode* cond;
     ASTNode* then;
     ASTNode* els;
-    // For
-    ASTNode* incr;
-    ASTNode* init;
 
     //ASTNode *brk;
     //ASTNode *cont;

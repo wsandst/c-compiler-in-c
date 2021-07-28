@@ -209,6 +209,12 @@ void parse_single_statement(ASTNode* node, SymbolTable* symbols) {
     else if (accept(TK_KW_FOR)) { // For loop
         parse_for_loop(node, symbols);
     }
+    else if (accept(TK_KW_BREAK)) { // Break loop/switch
+        node->type = AST_BREAK;
+    }
+    else if (accept(TK_KW_BREAK)) { // Continue loop
+        node->type = AST_CONTINUE;
+    }
     else if (accept(TK_KW_RETURN)) { // Return statements
         node->type = AST_RETURN;
         node->ret = ast_node_new(AST_EXPR, 1);
