@@ -358,22 +358,30 @@ void gen_asm_if(ASTNode* node, AsmContext ctx) {
 
 // Generate assembly for a loop node, condition at start, ex while and for loops
 void gen_asm_loop(ASTNode* node, AsmContext ctx) {
-    char* while_start_label = get_next_label_str();
-    char* while_end_label = get_next_label_str();
+    char* loop_start_label = get_next_label_str();
+    char* loop_end_label = get_next_label_str();
+    // For loop
     // Setup ctx for break/continues
-    ctx.last_start_label = while_start_label;
-    ctx.last_end_label = while_end_label;
+    ctx.last_start_label = loop_start_label;
+    ctx.last_end_label = loop_end_label;
+    if (node->incr != NULL) { // For loop, jump needs to be near incr
+        ctx.last_start_label = get_next_label_str();
+    }
     // Add asm
     asm_add_newline();
-    asm_add(2, while_start_label, ":");
+    asm_add(2, loop_start_label, ":");
     asm_add_com("; Calculating loop statement conditional");
     gen_asm(node->cond, ctx); // Value now in RAX
     asm_add(1, "cmp rax, 0");
-    asm_add(2, "je ", while_end_label, " ; Jump to after loop if conditional is false");
+    asm_add(2, "je ", loop_end_label, " ; Jump to after loop if conditional is false");
     asm_add_com("; Else, evaluate loop body");
     gen_asm(node->then, ctx);
-    asm_add(3, "jmp ",  while_start_label, " ; Jump to beginning of while");
-    asm_add(3, while_end_label, ":", " ; End of loop jump label");
+    if(node->incr != NULL) { // For loop increment
+        asm_add(2, ctx.last_start_label, ":", " ; For continue label");
+        gen_asm(node->incr, ctx);
+    }
+    asm_add(3, "jmp ",  loop_start_label, " ; Jump to beginning of loop");
+    asm_add(3, loop_end_label, ":", " ; End of loop jump label");
     gen_asm(node->next, ctx);
 }
 

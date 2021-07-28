@@ -107,9 +107,7 @@ struct ASTNode {
     ASTNode* cond;
     ASTNode* then;
     ASTNode* els;
-
-    //ASTNode *brk;
-    //ASTNode *cont;
+    ASTNode* incr;
 
     // Function
     ASTNode* args;

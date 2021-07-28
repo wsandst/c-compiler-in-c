@@ -410,17 +410,17 @@ void parse_for_loop(ASTNode* node, SymbolTable* symbols) {
     parse_expression(loop_node->cond, scope_symbols);
 
     // Getting the increment expression
-    ASTNode* loop_increment = ast_node_new(AST_EXPR, 1);
+    loop_node->incr = ast_node_new(AST_EXPR, 1);
     scope_symbols->cur_stack_offset += 8;
-    parse_expression(loop_increment, scope_symbols);
-    loop_increment->next = ast_node_new(AST_END, 1);
+    parse_expression(loop_node->incr, scope_symbols);
+    loop_node->incr->next = ast_node_new(AST_END, 1);
 
     // Parsing the for-loop body
     loop_node->then = ast_node_new(AST_STMT, 1);
     parse_single_statement(loop_node->then, scope_symbols);
 
     // We need to insert the increment operation last
-    loop_node->then->next = loop_increment;
+    loop_node->then->next = ast_node_new(AST_END, 1);
 }
 
 void parse_error(char* error_message) {
