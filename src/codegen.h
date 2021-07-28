@@ -45,11 +45,32 @@ char* generate_assembly(AST* ast);
 // Generate assembly from the node. Used recursively
 void gen_asm(ASTNode* node);
 
+// Generate assembly for an expression node
+void gen_asm_expr(ASTNode* node);
+
 // Generate assembly for a unary op expression node
 void gen_asm_unary_op(ASTNode* node);
 
-// Generate assemly for a binary op expression node
+// Generate assembly for a binary op expression node
 void gen_asm_binary_op(ASTNode* node);
+
+// Generate assembly for a function definition
+void gen_asm_func(ASTNode* node);
+
+// Generate assembly for an if conditional node
+void gen_asm_if(ASTNode* node);
+
+// Generate assembly for a while loop node
+void gen_asm_while(ASTNode* node);
+
+// Generate assembly for a do while loop node
+void gen_asm_do_while(ASTNode* node);
+
+// Generate assembly for a for loop node
+void gen_asm_for(ASTNode* node);
+
+// Generate assembly for a return statement node
+void gen_asm_return(ASTNode* node);
 
 // Throw a codegen error
 void codegen_error(char* message);
