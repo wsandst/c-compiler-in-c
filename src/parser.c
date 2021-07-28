@@ -221,6 +221,19 @@ void parse_single_statement(ASTNode* node, SymbolTable* symbols) {
         parse_single_statement(node->then, symbols);
         node->then->next = ast_node_new(AST_END, 1);
     }
+    else if (accept(TK_KW_DO)) { // Do while statement
+        node->type = AST_DO_WHILE;
+        // Parse do while body
+        node->then = ast_node_new(AST_BLOCK, 1);
+        parse_single_statement(node->then, symbols);
+        node->then->next = ast_node_new(AST_END, 1);
+        // Parse while condition at end
+        expect(TK_KW_WHILE);
+        expect(TK_DL_OPENPAREN);
+        symbols->cur_stack_offset += 8;
+        node->cond = ast_node_new(AST_EXPR, 1);
+        parse_expression(node->cond, symbols);
+    }
     else if (accept(TK_KW_RETURN)) { // Return statements
         node->type = AST_RETURN;
         node->ret = ast_node_new(AST_EXPR, 1);

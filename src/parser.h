@@ -54,8 +54,8 @@ enum ASTNodeType {
     AST_RETURN,     // "return"
     AST_IF,         // "if"
     AST_WHILE,
-    AST_FOR,        // "for" or "while"
-    AST_DO,         // "do"
+    AST_DO_WHILE,   // "do ... while"
+    AST_FOR,        // "for"
     AST_SWITCH,     // "switch"
     AST_CASE,       // "case"
     AST_BLOCK,      // { ... }
