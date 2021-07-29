@@ -63,6 +63,7 @@ struct Function {
 struct ValueLabel { // Switch case labels
     int id;
     char* value;
+    bool is_default_case;
     ValueLabel* next; // Used as linked list for switch
 };
 

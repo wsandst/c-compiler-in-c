@@ -482,6 +482,7 @@ void gen_asm_do_loop(ASTNode* node, AsmContext ctx) {
 
 // Generate assembly for a switch statement
 void gen_asm_switch(ASTNode* node, AsmContext ctx) {
+    AsmContext start_context = ctx;
     asm_add_newline();
     asm_add_com("; Switch statement");
 
@@ -492,14 +493,25 @@ void gen_asm_switch(ASTNode* node, AsmContext ctx) {
 
     // Iterate over the linked list of cases
     ValueLabel* case_labels = node->switch_cases;
+    ValueLabel* default_label = NULL;
     while (case_labels != NULL) {
         // We need to do a comparison here, and jump if true
-        char* case_label_str = get_case_label_str(case_labels->id, case_labels->value);
-        asm_add(2, "cmp rax, ", case_labels->value);
-        asm_add(3, "je ", case_label_str, " ; Jump to the case label if value is equal");
-        asm_add(1, "mov rax, rbx"); // Restore rax
-        free(case_label_str);
+        if (case_labels->is_default_case) { // Default case
+            default_label = case_labels;
+        }
+        else { // Normal cases
+            char* case_label_str = get_case_label_str(case_labels->id, case_labels->value);
+            asm_add(2, "cmp rax, ", case_labels->value);
+            asm_add(3, "je ", case_label_str, " ; Jump to the case label if value is equal");
+            asm_add(1, "mov rax, rbx"); // Restore rax
+            free(case_label_str);
+        }
         case_labels = case_labels->next;
+    }
+    if (default_label != NULL) { // We found a default case
+        char* default_label_str = get_case_label_str(default_label->id, "D");
+        asm_add(3, "jmp ", default_label_str, " ; Jump to the default case label");
+        free(default_label_str);
     }
     char* switch_break_label = get_next_label_str();
     ctx.last_end_label = switch_break_label;
@@ -507,16 +519,23 @@ void gen_asm_switch(ASTNode* node, AsmContext ctx) {
     // Add label at end for break
     asm_add(2, switch_break_label, ":");
     free(switch_break_label);
-    gen_asm(node->next, ctx);
+    gen_asm(node->next, start_context);
 }
 
 // Generate assembly for a switch case
 void gen_asm_case(ASTNode* node, AsmContext ctx) {
-    char* case_label_str = get_case_label_str(node->label.id, node->label.value);
+    char* case_label_str;
+    if (node->label.is_default_case) { // Default case
+        case_label_str = get_case_label_str(node->label.id, "D");
+    }
+    else {
+        case_label_str = get_case_label_str(node->label.id, node->label.value);
+    }
     asm_add(3, case_label_str, ":", " ; Switch case label");
     free(case_label_str);
     gen_asm(node->next, ctx);
 }
+
 
 // Generate assembly for a return statement node
 void gen_asm_return(ASTNode* node, AsmContext ctx) {

@@ -198,6 +198,9 @@ void parse_switch(ASTNode* node, SymbolTable* symbols);
 // Parse a case statement
 void parse_case(ASTNode* node, SymbolTable* symbols);
 
+// Parse a default case statement
+void parse_default_case(ASTNode* node, SymbolTable* symbols);
+
 // Print a parse error to stderr and exit the program
 void parse_error(char* error_message);
 void parse_error_unexpected_symbol(enum TokenType expected, enum TokenType recieved);

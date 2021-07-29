@@ -264,6 +264,9 @@ void parse_single_statement(ASTNode* node, SymbolTable* symbols) {
     else if (accept(TK_KW_CASE)) { // Case statements
         parse_case(node, symbols);
     }
+    else if (accept(TK_KW_DEFAULT)) { // Default case
+        parse_default_case(node, symbols);
+    }
     else if (accept(TK_KW_GOTO)) {
         node->type = AST_GOTO;
         expect(TK_IDENT);
@@ -502,10 +505,20 @@ void parse_case(ASTNode* node, SymbolTable* symbols) {
     expect(TK_LINT);
     ValueLabel label;
     label.value = prev_token().string_repr;
+    label.is_default_case = false;
 
     label = symbol_table_insert_label(symbols, label);
     node->label = label;
     expect(TK_DL_COLON);
+}
+
+void parse_default_case(ASTNode* node, SymbolTable* symbols) {
+    node->type = AST_CASE;
+    expect(TK_DL_COLON);
+    ValueLabel label;
+    label.is_default_case = true;
+    label = symbol_table_insert_label(symbols, label);
+    node->label = label;
 }
 
 void parse_error(char* error_message) {
