@@ -56,7 +56,7 @@ void ast_free(AST* ast) {
 // Current token being parsed, global simplifies code a lot 
 Token* parse_token;
 
-AST parse(Tokens* tokens) {
+AST parse(Tokens* tokens, SymbolTable* global_symbols) {
     parse_token = &tokens->elems[0];
     // Setup initial AST
     AST ast;
@@ -64,14 +64,8 @@ AST parse(Tokens* tokens) {
     ast.program = program_node;
     program_node->body = ast_node_new(AST_NONE, 1);
 
-    // Create global symbol table
-    SymbolTable* global_symbols = symbol_table_new();
-
     // Start parsing
     parse_program(program_node->body, global_symbols);
-
-    // Free memory
-    symbol_table_free(global_symbols);
 
     return ast;
 }
@@ -259,10 +253,16 @@ void parse_single_statement(ASTNode* node, SymbolTable* symbols) {
     else if (accept(TK_KW_CONTINUE)) { // Continue loop
         node->type = AST_CONTINUE;
     }
+    else if (accept(TK_KW_SWITCH)) {
+        parse_switch(node, symbols);
+    }
     else if (accept(TK_KW_RETURN)) { // Return statements
         node->type = AST_RETURN;
         node->ret = ast_node_new(AST_EXPR, 1);
         parse_expression(node->ret, symbols);
+    }
+    else if (accept(TK_KW_CASE)) { // Case statements
+        parse_case(node, symbols);
     }
     else if (accept(TK_KW_GOTO)) {
         node->type = AST_GOTO;
@@ -473,6 +473,40 @@ void parse_for_loop(ASTNode* node, SymbolTable* symbols) {
 
     // We need to insert the increment operation last
     loop_node->then->next = ast_node_new(AST_END, 1);
+}
+
+// Parse a switch statement
+void parse_switch(ASTNode* node, SymbolTable* symbols) {
+    // Create a new switch scope
+    node->type = AST_SWITCH;
+    SymbolTable* switch_symbols = symbol_table_create_child(symbols, symbols->cur_stack_offset);
+    switch_symbols->is_switch_scope = true;
+    switch_symbols->label_prefix++;
+
+    expect(TK_DL_OPENPAREN);
+    // Get the switch value
+    node->cond = ast_node_new(AST_EXPR, 1);
+    switch_symbols->cur_stack_offset += 8;
+    parse_expression(node->cond, switch_symbols);
+    // Now we can parse the contents
+    node->body = ast_node_new(AST_STMT, 1);
+    node->body->next = ast_node_new(AST_NONE, 1);
+    parse_single_statement(node->body, switch_symbols);
+    // We now need to grab the case labels and store them in the AST Node
+    node->switch_cases = symbol_table_lookup_switch_case_labels(switch_symbols);
+    node->next = ast_node_new(AST_NONE, 1);
+}
+
+void parse_case(ASTNode* node, SymbolTable* symbols) {
+    node->type = AST_CASE;
+    expect(TK_LINT);
+    ValueLabel label;
+    label.prefix = symbols->label_prefix;
+    label.value = prev_token().string_repr;
+
+    symbol_table_insert_label(symbols, label);
+    node->label = label;
+    expect(TK_DL_COLON);
 }
 
 void parse_error(char* error_message) {

@@ -61,8 +61,8 @@ struct Function {
 };
 
 struct ValueLabel { // Switch case labels
-    char* ident;
-    int value;
+    int prefix;
+    char* value;
     ValueLabel* next; // Used as linked list for switch
 };
 
@@ -82,6 +82,7 @@ struct Object { // Structs, unions, enums, typedefs etc
 struct SymbolTable {
     bool is_global; // Is this the global scope, at the top?
     bool is_switch_scope;
+    int label_prefix;
     int cur_stack_offset;
     SymbolTable* parent;
 

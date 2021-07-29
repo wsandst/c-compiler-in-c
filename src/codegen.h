@@ -46,6 +46,9 @@ char* get_label_str(int label);
 // Get the next jump label and increment the global label counter
 char* get_next_label_str();
 
+// Get a switch case label from a ValueLabel label
+char* get_case_label_str(ValueLabel label);
+
 // Generate NASM assembly from the AST
 char* generate_assembly(AST* ast);
 
@@ -72,6 +75,12 @@ void gen_asm_loop(ASTNode* nodel, AsmContext ctx);
 
 // Generate assembly for a do loop node, condition at end, ex do while loops
 void gen_asm_do_loop(ASTNode* node, AsmContext ctx);
+
+// Generate assembly for a switch statement
+void gen_asm_switch(ASTNode* node, AsmContext ctx);
+
+// Generate assembly for a switch case
+void gen_asm_case(ASTNode* node, AsmContext ctx);
 
 // Generate assembly for a return statement node
 void gen_asm_return(ASTNode* node, AsmContext ctx);

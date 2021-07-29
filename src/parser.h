@@ -89,6 +89,7 @@ struct ASTNode {
     ASTNodeType type;
     Variable var;
     Function func;
+    ValueLabel label;
 
     ASTNode* func_args;
 
@@ -113,6 +114,8 @@ struct ASTNode {
     ASTNode* els;
     ASTNode* incr;
 
+    ValueLabel* switch_cases; // Used for switch cases
+
     // Function
     ASTNode* args;
     VarTypeEnum ret_type;
@@ -122,7 +125,6 @@ struct ASTNode {
     ASTNode* body;
     //long long int ival;
     //long double fval;
-    char* label;
 
     char* debug;
     ASTNode* next_mem; // Linked list used for freeing memory correctly
@@ -155,7 +157,7 @@ void ast_node_copy(ASTNode* node1, ASTNode* node2);
 // Uses recursive decending to construct the AST
 
 // Take in a list of tokens and return an Abstract Syntax Tree
-AST parse(Tokens* tokens);
+AST parse(Tokens* tokens, SymbolTable* global_symbols);
 
 // Parse the program (file)
 void parse_program(ASTNode* node, SymbolTable* symbols);
@@ -189,6 +191,12 @@ void parse_do_while_loop(ASTNode* node, SymbolTable* symbols);
 
 // Parse a for loop
 void parse_for_loop(ASTNode* node, SymbolTable* symbols);
+
+// Parse a switch statement
+void parse_switch(ASTNode* node, SymbolTable* symbols);
+
+// Parse a case statement
+void parse_case(ASTNode* node, SymbolTable* symbols);
 
 // Print a parse error to stderr and exit the program
 void parse_error(char* error_message);

@@ -5,9 +5,6 @@
 
 /*
 TODO:
-    Gotos
-    Post-unary operators (mainly ++ --)
-
     Expressions:
         Proper left-to-right evaluation, it doesn't work like that currently
         Operator precedence (using Shunting Yard)
@@ -83,13 +80,16 @@ int main(int argc, char *argv[]) {
     //tokens_print(&tokens);
 
     // Step 2: AST Parsing
-    AST ast = parse(&tokens); 
+    SymbolTable* symbols = symbol_table_new();
+    AST ast = parse(&tokens, symbols); 
 
     // Step 3: ASM Code Generation
     char* asm_src = generate_assembly(&ast);
 
     compile_asm(asm_src);
 
+    // Free memory
+    symbol_table_free(symbols);
     tokens_free(&tokens);
     ast_free(&ast);
     free(asm_src);

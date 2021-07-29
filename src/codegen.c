@@ -70,6 +70,12 @@ char* var_to_stack_ptr(Variable* var) {
     return offset_to_stack_ptr(var->stack_offset);
 }
 
+char* get_case_label_str(ValueLabel label) {
+    char buf[64];
+    snprintf(buf, 63, "C%d_%s", label.prefix, label.value);
+    return str_copy(buf);
+}
+
 char* get_label_str(int label) {
     char result[64];
     sprintf(result, ".L%d", label);
@@ -141,6 +147,12 @@ void gen_asm(ASTNode* node, AsmContext ctx) {
             asm_add(2, "jmp ", ctx.last_start_label);
             gen_asm(node->next, ctx);
             break;
+        case AST_SWITCH:
+            gen_asm_switch(node, ctx);
+            break;
+        case AST_CASE:
+            gen_asm_case(node, ctx);
+            break;
         case AST_RETURN:
             gen_asm_return(node, ctx);
             break;
@@ -151,6 +163,7 @@ void gen_asm(ASTNode* node, AsmContext ctx) {
         case AST_GOTO:
             asm_add(4, "jmp ", ".L", node->literal, " ; Goto");
             gen_asm(node->next, ctx);
+            break;
         case AST_NONE:
         case AST_END:
             break;
@@ -467,8 +480,42 @@ void gen_asm_do_loop(ASTNode* node, AsmContext ctx) {
     gen_asm(node->next, ctx);
 }
 
+// Generate assembly for a switch statement
+void gen_asm_switch(ASTNode* node, AsmContext ctx) {
+    asm_add_newline();
+    asm_add_com("; Switch statement");
+
+    // Get switch value into rax
+    gen_asm(node->cond, ctx);
+    // Save it on rbx
+    asm_add(1, "mov rbx, rax");
+
+    // Iterate over the linked list of cases
+    ValueLabel* case_labels = node->switch_cases;
+    while (case_labels != NULL) {
+        // We need to do a comparison here, and jump if true
+        asm_add(2, "cmp rax, ", case_labels->value);
+        char* case_label_str = get_case_label_str(*case_labels);
+        asm_add(3, "je .L", case_label_str, " ; Jump to the case label if value is equal");
+        asm_add(1, "mov rax, rbx"); // Restore rax
+        free(case_label_str);
+        case_labels = case_labels->next;
+    }
+    gen_asm(node->body, ctx);
+    gen_asm(node->next, ctx);
+}
+
+// Generate assembly for a switch case
+void gen_asm_case(ASTNode* node, AsmContext ctx) {
+    char* case_label_str = get_case_label_str(node->label);
+    asm_add(4, ".L", case_label_str, ":", " ; Switch case label");
+    free(case_label_str);
+    gen_asm(node->next, ctx);
+}
+
 // Generate assembly for a return statement node
 void gen_asm_return(ASTNode* node, AsmContext ctx) {
+    asm_add_newline();
     asm_add_com("; Evaluating return expr");
     gen_asm(node->ret, ctx); // Expr is now in RAX
     asm_add_com("; Function return");
@@ -476,5 +523,4 @@ void gen_asm_return(ASTNode* node, AsmContext ctx) {
     asm_add(1, "pop rbp");
     asm_add(1, "ret");
     gen_asm(node->next, ctx);
-    asm_add_newline();
 }
