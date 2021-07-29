@@ -14,6 +14,7 @@ struct AsmContext {
     // Used by break and continue
     char* last_start_label; // Latest start label for loops
     char* last_end_label; // Latest end label for loops and switch
+    char* func_return_label;
 };
 
 typedef struct AsmContext AsmContext;

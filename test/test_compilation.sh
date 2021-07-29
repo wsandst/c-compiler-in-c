@@ -2,7 +2,7 @@
 # and then compares the exit codes. If the exit codes do not match, the test fails
 # Credit to Nora Sandler for the original version of this script 
 use_valgrind=false
-silence_valgrind=false
+silence_valgrind=true
 
 RED='\033[0;31m'
 GREEN='\033[0;32m'

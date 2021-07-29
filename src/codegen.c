@@ -381,6 +381,7 @@ void gen_asm_expr(ASTNode* node, AsmContext ctx) {
 }
 
 void gen_asm_func(ASTNode* node, AsmContext ctx) {
+    ctx.func_return_label = get_next_label_str();
     asm_set_indent(0);
     asm_add_newline();
     asm_add(2, node->func.name, ":");
@@ -390,12 +391,16 @@ void gen_asm_func(ASTNode* node, AsmContext ctx) {
     asm_add(1, "mov rbp, rsp");
     asm_add_com("; Allocate a hardcoded 128 byte stack allocation per function");
     asm_add(1, "sub rsp, 128"); // Hardcoded 128 bytes on the stack for the function 
-    // I need to start allocating stack space here,
-    // currently only using the red zone
-    //asm_add(1, "sub rsp, 16"); // Allocate space for variables on stack
     asm_add_com("; Function code start");
     // Do I need to allocate more stack space here?
     gen_asm(node->body, ctx);
+    asm_add_newline();
+    // Add return
+    asm_add(2, ctx.func_return_label, ": ; Function return label");
+    asm_add(1, "add rsp, 128 ; Restore hardcoded 128 byte stack allocation");
+    asm_add(1, "pop rbp");
+    asm_add(1, "ret");
+    free(ctx.func_return_label);
     gen_asm(node->next, ctx);
 }
 
@@ -542,9 +547,6 @@ void gen_asm_return(ASTNode* node, AsmContext ctx) {
     asm_add_newline();
     asm_add_com("; Evaluating return expr");
     gen_asm(node->ret, ctx); // Expr is now in RAX
-    asm_add_com("; Function return");
-    asm_add(1, "add rsp, 128 ; Restore hardcoded 128 byte stack allocation");
-    asm_add(1, "pop rbp");
-    asm_add(1, "ret");
+    asm_add(3, "jmp ", ctx.func_return_label, " ; Function return");
     gen_asm(node->next, ctx);
 }
