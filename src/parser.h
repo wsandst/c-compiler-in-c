@@ -61,8 +61,8 @@ enum ASTNodeType {
     AST_CASE,       // case
     AST_BLOCK,      // { ... }, scope
 
-    //AST_GOTO,     // goto
-    //AST_LABEL,    // Labeled statement
+    AST_GOTO,     // goto
+    AST_LABEL,    // Labeled statement
     AST_FUNC,       // Function
     AST_STMT,       // Empty statement
     AST_VAR_DEC,    // Variable declaration
@@ -118,6 +118,7 @@ struct ASTNode {
     ASTNode* body;
     //long long int ival;
     //long double fval;
+    char* label;
 
     char* debug;
     ASTNode* next_mem; // Linked list used for freeing memory correctly

@@ -191,11 +191,21 @@ void parse_single_statement(ASTNode* node, SymbolTable* symbols) {
             return;
         }
     }
-    else if (accept(TK_IDENT)) {
-        // Treat as expression (probably assignment of some sort)
-        token_go_back(1);
-        node->top_level_expr = true;
-        parse_expression(node, symbols);
+    else if (accept(TK_IDENT)) { // I need to handle literals here too
+        if (accept(TK_DL_COLON)) { // Goto label
+            node->type = AST_LABEL;
+            token_go_back(1);
+            // We need to add a prefix here so the goto labels
+            // don't conflict with our own internal labels
+            node->literal = str_add("G", prev_token().string_repr);
+            expect(TK_DL_COLON);
+        }
+        else {
+            // Treat as expression (probably assignment of some sort)
+            token_go_back(1);
+            node->top_level_expr = true;
+            parse_expression(node, symbols);
+        }
     }
     else if (accept(TK_KW_IF)) { // If conditional
         parse_if(node, symbols);
@@ -219,6 +229,13 @@ void parse_single_statement(ASTNode* node, SymbolTable* symbols) {
         node->type = AST_RETURN;
         node->ret = ast_node_new(AST_EXPR, 1);
         parse_expression(node->ret, symbols);
+    }
+    else if (accept(TK_KW_GOTO)) {
+        node->type = AST_GOTO;
+        expect(TK_IDENT);
+        // We don't do any checks if the label exists here, would
+        // require two passes. Let the assembler handle it
+        node->literal = str_add("G", prev_token().string_repr);
     }
     else if (accept(TK_DL_OPENBRACE)) { // Scope begin
         parse_scope(node, symbols);

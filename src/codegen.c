@@ -144,6 +144,13 @@ void gen_asm(ASTNode* node, AsmContext ctx) {
         case AST_RETURN:
             gen_asm_return(node, ctx);
             break;
+        case AST_LABEL:
+            asm_add(4, ".L", node->literal, ":", " ; Goto label");
+            gen_asm(node->next, ctx);
+            break;
+        case AST_GOTO:
+            asm_add(4, "jmp ", ".L", node->literal, " ; Goto");
+            gen_asm(node->next, ctx);
         case AST_NONE:
         case AST_END:
             break;
