@@ -2,13 +2,13 @@
 
 int main() {
     int i;
-    for (i = 0; i < 100; i = i + 1)
+    for (i = 0; i < 100; i++)
     {
         continue;
     }
-    for (int x = 0; x < 5; x = x + 1)
+    for (int x = 0; x < 5; x++)
     {
-        i = i + 1;
+        i++;
         if (x == 5) {
             break;
         }

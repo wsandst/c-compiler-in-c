@@ -6,11 +6,11 @@ int main() {
         if (x > 6) {
             break;
         }
-        x = x + 1;
+        x++;
     }
     while(1) {
         break;
-        x = x + 1;
+        x++;
     }
     return x;
 }

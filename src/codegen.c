@@ -352,6 +352,9 @@ void gen_asm_expr(ASTNode* node, AsmContext ctx) {
     }
     else if (node->expr_type == EXPR_UNOP) {
         gen_asm_unary_op(node, ctx);
+        if (node->top_level_expr) {
+            gen_asm(node->next, ctx);
+        }
     }
     else if (node->expr_type == EXPR_BINOP) {
         gen_asm_binary_op(node, ctx);
