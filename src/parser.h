@@ -176,6 +176,8 @@ void parse_single_statement(ASTNode* node, SymbolTable* symbols);
 // Parse an expression, ex (a + b) + 3
 void parse_expression(ASTNode* node,  SymbolTable* symbols);
 
+void parse_func_call(ASTNode* node,  SymbolTable* symbols);
+
 // Parse a scope/block
 // <scope> ::= "{" <statement ...> "}"
 void parse_scope(ASTNode* node, SymbolTable* symbols);

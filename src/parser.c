@@ -153,19 +153,10 @@ void parse_program(ASTNode* node, SymbolTable* symbols) {
     }
     // Must either be a function or a global variable
     expect_var_type();
-    enum VarTypeEnum type = token_type_to_var_type(prev_token().type);
     expect(TK_IDENT);
-    char* ident = prev_token().value.string;
     if (accept(TK_DL_OPENPAREN)) { // Function
-        node->type = AST_FUNC;
-        Function func;
-        func.name = ident;
-        func.return_type = type;
-        func = symbol_table_insert_func(symbols, func);
-        node->func = func;
-        // Create new scope for function
-        SymbolTable* func_symbols = symbol_table_create_child(symbols, 0);
-        parse_func(node, func_symbols);
+        token_go_back(3);
+        parse_func(node, symbols);
     }
     else if (accept(TK_DL_SEMICOLON) || accept(TK_OP_ASSIGN)) { // Global declaration or assignment
         token_go_back(2);
@@ -176,14 +167,39 @@ void parse_program(ASTNode* node, SymbolTable* symbols) {
 }
 
 void parse_func(ASTNode* node, SymbolTable* symbols) {
-    //Function *func = function_new(func_name);
-    //func->return_type = return_type;
-    //node->func = func;
-    expect(TK_DL_CLOSEPAREN);
+    node->type = AST_FUNC;
+    Function func;
+    expect_var_type();
+    enum VarTypeEnum type = token_type_to_var_type(prev_token().type);
+    expect(TK_IDENT);
+    char* ident = prev_token().value.string;
+    func.name = ident;
+    func.return_type = type;
+
+    // Create new scope for function
+    SymbolTable* func_symbols = symbol_table_create_child(symbols, 0);
+
+    expect(TK_DL_OPENPAREN);
+    // Parse function arguments
+    while (!accept(TK_DL_CLOSEPAREN)) { // Add argument variables to symbol map
+        Variable var; 
+        expect_var_type();
+        var.type = token_type_to_var_type(prev_token().type);
+        expect(TK_IDENT);
+        var.name = prev_token().string_repr;
+        accept(TK_DL_COMMA);
+        symbol_table_insert_var(func_symbols, var);
+    }
+    // We can directly take the variables pointer, as nothing else will be added
+    // in this scope
+    func.params = func_symbols->vars;
+    func.param_count = func_symbols->var_count;
+    node->func = symbol_table_insert_func(symbols, func);
+
     expect(TK_DL_OPENBRACE);
-    ASTNode* stmt = ast_node_new(AST_NONE, 1);
-    node->body = stmt;
-    parse_statement(stmt, symbols);
+    node->body = ast_node_new(AST_NONE, 1);
+    parse_scope(node->body, func_symbols);
+    node->next = ast_node_new(AST_END, 1);
 }
 
 void parse_single_statement(ASTNode* node, SymbolTable* symbols) {
@@ -307,6 +323,7 @@ void parse_scope(ASTNode* node, SymbolTable* symbols) {
     node->body = ast_node_new(AST_STMT, 1);
     SymbolTable* scope_symbols = symbol_table_create_child(symbols, symbols->cur_stack_offset);
     parse_statement(node->body, scope_symbols);
+    node->next = ast_node_new(AST_END, 1);
 }
 
 void parse_expression(ASTNode* node, SymbolTable* symbols) {
@@ -322,9 +339,8 @@ void parse_expression(ASTNode* node, SymbolTable* symbols) {
     else if (accept(TK_IDENT)) { // Variable or function call
         char* ident = prev_token().string_repr;
         if (accept(TK_DL_OPENPAREN)) { // Function call
-            node->expr_type = EXPR_FUNC_CALL;
-            node->func = symbol_table_lookup_func(symbols, ident);
-            expect(TK_DL_CLOSEPAREN);
+            token_go_back(1);
+            parse_func_call(node, symbols);
         }  
         else { // Variable
             node->expr_type = EXPR_VAR;
@@ -392,6 +408,22 @@ void parse_expression(ASTNode* node, SymbolTable* symbols) {
     else {
         parse_error("Invalid expression");
     }
+}
+
+void parse_func_call(ASTNode* node, SymbolTable* symbols) {
+    node->expr_type = EXPR_FUNC_CALL;
+    char* ident = prev_token().string_repr;
+    expect(TK_DL_OPENPAREN);
+    node->func = symbol_table_lookup_func(symbols, ident);
+
+    node->args = ast_node_new(AST_EXPR, 1);
+    ASTNode* arg_node = node->args;
+    while (!(accept(TK_DL_CLOSEPAREN) || prev_token().type == TK_DL_CLOSEPAREN)) { // Go through argument expressions
+        parse_expression(arg_node, symbols);
+        arg_node->next = ast_node_new(AST_END, 1);
+        arg_node = arg_node->next;
+    }
+
 }
 
 void parse_if(ASTNode* node, SymbolTable* symbols) {

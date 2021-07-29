@@ -41,6 +41,7 @@ struct Variable {
     char* name;
     VarTypeEnum type;
     int size;
+    bool is_function_arg;
     int stack_offset; // How do we calculate this? Simple, 
     // it's just the inherent offset of the symbol table + index in symbol table
     // The inherent offset of a symbol table is 0 at the function level, then 
@@ -52,7 +53,7 @@ struct Function {
     char* name;
     VarTypeEnum return_type;
     int param_count;
-    VarTypeEnum* params;
+    Variable* params;
 
     // How do I generate the entire program?
     // I want to go over every function and add them as cod
@@ -134,6 +135,8 @@ Variable symbol_table_lookup_var(SymbolTable* table, char* var_name);
 Variable symbol_table_insert_var(SymbolTable* table, Variable var);
 
 void symbol_table_vars_realloc(SymbolTable* table, int new_size);
+
+Variable* symbol_table_get_function_args(SymbolTable* table);
 
 // ================ Functions ==================
 Function symbol_table_lookup_func(SymbolTable* table, char* func_name);
