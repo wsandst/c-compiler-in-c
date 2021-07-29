@@ -70,15 +70,15 @@ char* var_to_stack_ptr(Variable* var) {
     return offset_to_stack_ptr(var->stack_offset);
 }
 
-char* get_case_label_str(ValueLabel label) {
-    char buf[64];
-    snprintf(buf, 63, "C%d_%s", label.prefix, label.value);
-    return str_copy(buf);
-}
-
 char* get_label_str(int label) {
     char result[64];
     sprintf(result, ".L%d", label);
+    return str_copy(result);
+}
+
+char* get_case_label_str(int label, char* value) {
+    char result[64];
+    sprintf(result, ".LC%d_%s", label, value);
     return str_copy(result);
 }
 
@@ -494,21 +494,26 @@ void gen_asm_switch(ASTNode* node, AsmContext ctx) {
     ValueLabel* case_labels = node->switch_cases;
     while (case_labels != NULL) {
         // We need to do a comparison here, and jump if true
+        char* case_label_str = get_case_label_str(case_labels->id, case_labels->value);
         asm_add(2, "cmp rax, ", case_labels->value);
-        char* case_label_str = get_case_label_str(*case_labels);
-        asm_add(3, "je .L", case_label_str, " ; Jump to the case label if value is equal");
+        asm_add(3, "je ", case_label_str, " ; Jump to the case label if value is equal");
         asm_add(1, "mov rax, rbx"); // Restore rax
         free(case_label_str);
         case_labels = case_labels->next;
     }
+    char* switch_break_label = get_next_label_str();
+    ctx.last_end_label = switch_break_label;
     gen_asm(node->body, ctx);
+    // Add label at end for break
+    asm_add(2, switch_break_label, ":");
+    free(switch_break_label);
     gen_asm(node->next, ctx);
 }
 
 // Generate assembly for a switch case
 void gen_asm_case(ASTNode* node, AsmContext ctx) {
-    char* case_label_str = get_case_label_str(node->label);
-    asm_add(4, ".L", case_label_str, ":", " ; Switch case label");
+    char* case_label_str = get_case_label_str(node->label.id, node->label.value);
+    asm_add(3, case_label_str, ":", " ; Switch case label");
     free(case_label_str);
     gen_asm(node->next, ctx);
 }

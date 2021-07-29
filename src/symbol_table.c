@@ -171,11 +171,15 @@ void symbol_table_find_labels_recursively(SymbolTable* table, ValueLabel* cur_la
     }
 }
 
+int cur_value_label_id = 0;
+
 ValueLabel symbol_table_insert_label(SymbolTable* table, ValueLabel label) {
     table->label_count++;
     if (table->label_count > table->label_max_count) {
         symbol_table_labels_realloc(table, table->label_max_count*2);
     }
+    cur_value_label_id++;
+    label.id = cur_value_label_id;
     table->labels[table->label_count-1] = label;
     return label;
 }

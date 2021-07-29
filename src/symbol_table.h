@@ -61,7 +61,7 @@ struct Function {
 };
 
 struct ValueLabel { // Switch case labels
-    int prefix;
+    int id;
     char* value;
     ValueLabel* next; // Used as linked list for switch
 };

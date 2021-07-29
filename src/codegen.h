@@ -43,11 +43,11 @@ void asm_add_indent(int amount);
 // Get a C string representing a jump label
 char* get_label_str(int label);
 
+// Get a C string representing a switch case jump label
+char* get_case_label_str(int label, char* value);
+
 // Get the next jump label and increment the global label counter
 char* get_next_label_str();
-
-// Get a switch case label from a ValueLabel label
-char* get_case_label_str(ValueLabel label);
 
 // Generate NASM assembly from the AST
 char* generate_assembly(AST* ast);

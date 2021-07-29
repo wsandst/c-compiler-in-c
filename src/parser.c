@@ -501,10 +501,9 @@ void parse_case(ASTNode* node, SymbolTable* symbols) {
     node->type = AST_CASE;
     expect(TK_LINT);
     ValueLabel label;
-    label.prefix = symbols->label_prefix;
     label.value = prev_token().string_repr;
 
-    symbol_table_insert_label(symbols, label);
+    label = symbol_table_insert_label(symbols, label);
     node->label = label;
     expect(TK_DL_COLON);
 }
