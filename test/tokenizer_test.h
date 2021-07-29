@@ -54,7 +54,6 @@ void test_tokenizer_comments() {
     char* src = "//#define\n #define \n while // hello \n/*test */ \n while /* \n if \n */while\n"
     "/*\n*/";
     Tokens tokens = tokenize(src);
-    tokens_print(&tokens);
     assert(tokens.elems[0].type == TK_COMMENT);
     assert(strcmp(tokens.elems[1].value.string, "#define") == 0);
     assert(tokens.elems[1].type == TK_PREPROCESSOR);

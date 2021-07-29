@@ -15,6 +15,8 @@
 typedef enum VarTypeEnum VarTypeEnum;
 typedef struct Variable Variable;
 typedef struct Function Function;
+typedef struct ValueLabel ValueLabel;
+typedef struct Object Object;
 typedef struct SymbolTable SymbolTable;
 
 enum VarTypeEnum {
@@ -34,6 +36,7 @@ enum VarTypeEnum {
   //TY_FUNC,
 };
 
+// Variable object
 struct Variable {
     char* name;
     VarTypeEnum type;
@@ -44,7 +47,7 @@ struct Variable {
     // whatever the size of the parent block is when encountered. 
 };
 
-// Functions are stored outside of the main AST
+// Function object
 struct Function {
     char* name;
     VarTypeEnum return_type;
@@ -57,9 +60,28 @@ struct Function {
     // We loop over these and add them as code.
 };
 
+struct ValueLabel { // Switch case labels
+    char* ident;
+    int value;
+    ValueLabel* next; // Used as linked list for switch
+};
+
+enum ObjectTypeEnum {
+    STRUCT,
+    UNION,
+    ENUM,
+    TYPEDEF,
+};
+
+struct Object { // Structs, unions, enums, typedefs etc
+    char* name;
+    enum ObjectTypeEnum type;
+};
+
 // This is a tree of tables
 struct SymbolTable {
     bool is_global; // Is this the global scope, at the top?
+    bool is_switch_scope;
     int cur_stack_offset;
     SymbolTable* parent;
 
@@ -78,12 +100,24 @@ struct SymbolTable {
     int func_count;
     int func_max_count;
     Function* funcs;
+
+    // Value Label vector (switch cases)
+    int label_count;
+    int label_max_count;
+    ValueLabel* labels;
+
+    // Object vector (struct, union, enums, typedef)
+    int object_count;
+    int object_max_count;
+    Object* objects;
 };
 
 void symbol_error(char* error_message);
 void symbol_error2(char* symbol_name, char* error_message);
 
 SymbolTable* symbol_table_new();
+
+void symbol_table_init(SymbolTable* table);
 
 // Free the symbol table and its children
 void symbol_table_free(SymbolTable* table);
@@ -106,6 +140,27 @@ Function symbol_table_lookup_func(SymbolTable* table, char* func_name);
 Function symbol_table_insert_func(SymbolTable* table, Function func);
 
 void symbol_table_funcs_realloc(SymbolTable* table, int new_size);
+
+
+// ================= Labels ====================
+
+// Find all lower scope value labels except if in another switch
+// Used for switch cases. Results are in a linked label list
+ValueLabel* symbol_table_lookup_switch_case_labels(SymbolTable* table);
+// Helper for above
+void symbol_table_find_labels_recursively(SymbolTable* table, ValueLabel* cur_label);
+
+ValueLabel symbol_table_insert_label(SymbolTable* table, ValueLabel label);
+
+void symbol_table_labels_realloc(SymbolTable* table, int new_size);
+
+// ================= Objects ===================
+
+Object symbol_table_lookup_object(SymbolTable* table, char* object_name);
+
+Object symbol_table_insert_object(SymbolTable* table, Object object);
+
+void symbol_table_objects_realloc(SymbolTable* table, int new_size);
 
 
 // =============== Tree related ================
