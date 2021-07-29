@@ -44,6 +44,10 @@ enum OpType {
     UOP_NOT,        // unary !
     UOP_COMPL,      // unary ~
     UOP_SIZEOF,     // sizeof
+    UOP_POST_INCR,  // x++
+    UOP_PRE_INCR,   // ++x
+    UOP_POST_DECR,   // x--
+    UOP_PRE_DECR,    // x--
 };
 
 enum ASTNodeType {
@@ -141,6 +145,12 @@ ASTNode *ast_node_new(ASTNodeType type, int count);
 // Destructor, free the AST node
 void ast_node_free(ASTNode* ast_node);
 
+// Swap the memory of two nodes
+void ast_node_swap(ASTNode* node1, ASTNode* node2);
+
+// Copies node2 into node1
+void ast_node_copy(ASTNode* node1, ASTNode* node2);
+
 // =========== Parsing ============
 // Uses recursive decending to construct the AST
 
@@ -200,12 +210,16 @@ bool accept(enum TokenType type);
 bool accept_var_type();
 // Accept a unary operator Token type
 bool accept_unop_type();
+// Accept a unary operator with two tokens (++ and --)
+bool accept_unop_two_token_type();
 // Accept a binary operator Token type
 bool accept_binop_type();
 
 // Convert a TokenType variable type to the corresponding VarTypeEnum
 VarTypeEnum token_type_to_var_type(enum TokenType type);
-// Convert a TokenType unary operator type to the corresponding UnaryOpType
-OpType token_type_to_uop_type(enum TokenType type);
+// Convert a TokenType unary operator type to the corresponding prefix UnaryOpType
+OpType token_type_to_pre_uop_type(enum TokenType type);
+// Convert a TokenType unary operator type to the corresponding postfix UnaryOpType
+OpType token_type_to_post_uop_type(enum TokenType type);
 // Convert a TokenType binary operator type to the corresponding BinaryOpType
 OpType token_type_to_bop_type(enum TokenType type);

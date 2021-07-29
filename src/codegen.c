@@ -164,8 +164,11 @@ void gen_asm(ASTNode* node, AsmContext ctx) {
     }
 }
 
+// I need to refactor so my values aren't passed back in RAX
+
 void gen_asm_unary_op(ASTNode* node, AsmContext ctx) {
     gen_asm(node->rhs, ctx); // The value we are acting on is now in RAX
+    char* var_sp = var_to_stack_ptr(&node->rhs->var);
     switch (node->op_type) {
         case UOP_NEG: // Negation
             asm_add(1, "neg rax");
@@ -178,10 +181,56 @@ void gen_asm_unary_op(ASTNode* node, AsmContext ctx) {
             asm_add(1, "mov rax, 0");
             asm_add(1, "sete al");
             break;
+        // Increment, decrement
+        // This is kind of a form of assignment
+        case UOP_PRE_INCR: // ++x
+            // Increment and return incremented value
+            if (node->rhs->expr_type != EXPR_VAR) {
+                codegen_error("Only variables can be incremented to");
+            }
+            asm_add_com("; Op: ++ (pre)");
+            asm_add(2, "mov rax, ", var_sp);
+            asm_add(1, "inc rax");
+            asm_add(3, "mov ", var_sp, ", rax");
+            // Value is now in RAX
+            break;
+        case UOP_PRE_DECR: // --x
+            // Decrement and return incremented value
+            if (node->rhs->expr_type != EXPR_VAR) {
+                codegen_error("Only variables can be decremented to");
+            }
+            asm_add_com("; Op: -- (pre)");
+            asm_add(2, "mov rax, ", var_sp);
+            asm_add(1, "dec rax");
+            asm_add(3, "mov ", var_sp, ", rax");
+            break;
+        case UOP_POST_INCR: // x++
+            // Increment and return previous value
+            if (node->rhs->expr_type != EXPR_VAR) {
+                codegen_error("Only variables can be incremented to");
+            }
+            asm_add_com("; Op: ++ (post)");
+            asm_add(2, "mov rax, ", var_sp);
+            asm_add(1, "mov rbx, rax"); // Peform operation in rbx to keep rax value
+            asm_add(1, "inc rbx");
+            asm_add(3, "mov ", var_sp, ", rbx");
+            break;
+        case UOP_POST_DECR: // x--
+            // Decrement and return previous value
+            if (node->rhs->expr_type != EXPR_VAR) {
+                codegen_error("Only variables can be decremented to");
+            }
+            asm_add_com("; Op: -- (post)");
+            asm_add(2, "mov rax, ", var_sp);
+            asm_add(1, "mov rbx, rax"); // Peform operation in rbx to keep rax value
+            asm_add(1, "dec rbx");
+            asm_add(3, "mov ", var_sp, ", rbx");
+            break;
         default:
             codegen_error("Unsupported unary operation found!");
             break;
     }
+    free(var_sp);
 }
 
 // How do I respect left to right precedence?
@@ -202,6 +251,7 @@ void gen_asm_binary_op(ASTNode* node, AsmContext ctx) {
                 char* var_sp = var_to_stack_ptr(&node->lhs->var);
                 asm_add(1, "mov rax, rbx"); // We need to return the value
                 asm_add(3, "mov ", var_sp, ", rax");
+                free(var_sp);
             }
             break;
         case BOP_ADD: // Addition
@@ -282,6 +332,7 @@ void gen_asm_binary_op(ASTNode* node, AsmContext ctx) {
             codegen_error("Unsupported binary operation found!");
             break;
     }
+    free(sp);
 }
 
 // Generate assembly for an expression node
@@ -351,6 +402,7 @@ void gen_asm_if(ASTNode* node, AsmContext ctx) {
         asm_add(3, else_label, ":", " ; Else statement");
         gen_asm(node->els, ctx); // Else body
         asm_add_newline();
+        free(else_label);
     }
     else { // No else statement
         after_label = get_next_label_str();
@@ -360,6 +412,7 @@ void gen_asm_if(ASTNode* node, AsmContext ctx) {
     }
     // Jump label after if
     asm_add(2, after_label, ":", " ;  End of if/else");
+    free(after_label);
     gen_asm(node->next, ctx);
 }
 
@@ -386,9 +439,12 @@ void gen_asm_loop(ASTNode* node, AsmContext ctx) {
     if(node->incr != NULL) { // For loop increment
         asm_add(2, ctx.last_start_label, ":", " ; For continue label");
         gen_asm(node->incr, ctx);
+        free(ctx.last_start_label);
     }
     asm_add(3, "jmp ",  loop_start_label, " ; Jump to beginning of loop");
     asm_add(3, loop_end_label, ":", " ; End of loop jump label");
+    free(loop_start_label);
+    free(loop_end_label);
     gen_asm(node->next, ctx);
 }
 
@@ -404,6 +460,7 @@ void gen_asm_do_loop(ASTNode* node, AsmContext ctx) {
     gen_asm(node->cond, ctx); // Value now in RAX
     asm_add(1, "cmp rax, 0");
     asm_add(2, "jne ", while_start_label, " ; Jump to start if conditional is true, otherwise keep going");
+    free(while_start_label);
     gen_asm(node->next, ctx);
 }
 

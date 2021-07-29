@@ -573,6 +573,7 @@ char* token_type_to_string(enum TokenType type) {
         "TK_LFLOAT", 
         "TK_LSTRING", 
         "TK_LCHAR",
+        // Delimiters
         "TK_DL_SEMICOLON", 
         "TK_DL_COMMA", 
         "TK_DL_COLON", 
@@ -583,6 +584,7 @@ char* token_type_to_string(enum TokenType type) {
         "TK_DL_CLOSEBRACE", 
         "TK_DL_OPENBRACKET", 
         "TK_DL_CLOSEBRACKET",
+        // Operations
         "TK_OP_PLUS", 
         "TK_OP_MINUS", 
         "TK_OP_EXP", 
@@ -606,6 +608,9 @@ char* token_type_to_string(enum TokenType type) {
         "TK_OP_LTE", 
         "TK_OP_GTE", 
         "TK_OP_QST",
+        "TK_OP_INCR",
+        "TK_OP_DECR",
+        // Keywords
         "TK_KW_IF", 
         "TK_KW_ELSE", 
         "TK_KW_WHILE", 

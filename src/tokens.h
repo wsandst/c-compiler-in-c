@@ -59,6 +59,8 @@ enum TokenType {
     TK_OP_LTE, 
     TK_OP_GTE, 
     TK_OP_QST,
+    TK_OP_INCR,
+    TK_OP_DECR,
     // Keywords
     TK_KW_IF, 
     TK_KW_ELSE, 
