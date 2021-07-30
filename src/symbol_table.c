@@ -106,6 +106,17 @@ void symbol_table_vars_realloc(SymbolTable* table, int new_size) {
     table->var_max_count = new_size;
 }
 
+// Get the max stack space recursively used by the symbol table and all children
+int symbol_table_get_max_stack_space(SymbolTable* table) {
+    int max_space = table->cur_stack_offset;
+    for (size_t i = 0; i < table->children_count; i++)
+    {
+        int children_space = symbol_table_get_max_stack_space(table->children_ptrs[i]);
+        max_space = max(max_space, children_space);
+    }
+    return max_space;
+}
+
 // ================ Functions ==================
 
 Function symbol_table_lookup_func(SymbolTable* table, char* func_name) {

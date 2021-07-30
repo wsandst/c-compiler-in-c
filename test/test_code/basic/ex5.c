@@ -1,0 +1,5 @@
+// No return
+
+int main() {
+    
+}

@@ -11,12 +11,14 @@ TODO:
         I might be using too much scratch memory, not sure if what I'm doing
         currently is optimal
         Constant expressions (compile time expressions) (only really required for advanced switch cases)
+        AND and OR short circuiting
 
-    Function parameters, proper calling convention:
-        Start with adding one parameter
-        Return 0 from functions if there is no return statement, won't follow spec otherwise
+    Functions, proper calling convention:
+        Stack arguments, floating point arguments, floating point returns
 
     Globals
+
+    Optimize scratch space usage
 
 */
 

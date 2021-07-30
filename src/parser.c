@@ -195,12 +195,15 @@ void parse_func(ASTNode* node, SymbolTable* symbols) {
     // in this scope
     func.params = func_symbols->vars;
     func.param_count = func_symbols->var_count;
+
     node->func = symbol_table_insert_func(symbols, func);
 
     expect(TK_DL_OPENBRACE);
     node->body = ast_node_new(AST_NONE, 1);
     parse_scope(node->body, func_symbols);
     node->next = ast_node_new(AST_END, 1);
+    // Calculate stack space necessary for function
+    node->func.stack_space_used = symbol_table_get_max_stack_space(func_symbols);
 }
 
 void parse_single_statement(ASTNode* node, SymbolTable* symbols) {

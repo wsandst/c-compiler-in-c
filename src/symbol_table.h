@@ -42,10 +42,7 @@ struct Variable {
     VarTypeEnum type;
     int size;
     bool is_function_arg;
-    int stack_offset; // How do we calculate this? Simple, 
-    // it's just the inherent offset of the symbol table + index in symbol table
-    // The inherent offset of a symbol table is 0 at the function level, then 
-    // whatever the size of the parent block is when encountered. 
+    int stack_offset;
 };
 
 // Function object
@@ -54,6 +51,7 @@ struct Function {
     VarTypeEnum return_type;
     int param_count;
     Variable* params;
+    int stack_space_used;
 
     // How do I generate the entire program?
     // I want to go over every function and add them as cod
@@ -138,8 +136,13 @@ void symbol_table_vars_realloc(SymbolTable* table, int new_size);
 
 Variable* symbol_table_get_function_args(SymbolTable* table);
 
+// Get the max stack space recursively used by the symbol table and all children
+int symbol_table_get_max_stack_space(SymbolTable* table);
+
 // ================ Functions ==================
 Function symbol_table_lookup_func(SymbolTable* table, char* func_name);
+
+Function* symbol_table_lookup_func_ptr(SymbolTable* table, char* func_name);
 
 // Insert a variable in this scope of the symbol table
 Function symbol_table_insert_func(SymbolTable* table, Function func);

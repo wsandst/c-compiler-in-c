@@ -177,7 +177,37 @@ void gen_asm(ASTNode* node, AsmContext ctx) {
     }
 }
 
-// I need to refactor so my values aren't passed back in RAX
+// Generate assembly for an expression node
+void gen_asm_expr(ASTNode* node, AsmContext ctx) {
+    if (node->expr_type == EXPR_LITERAL) {
+        asm_add(2, "mov rax, ", node->literal);
+    }
+    else if (node->expr_type == EXPR_VAR) {
+        char* sp2 = var_to_stack_ptr(&node->var);
+        asm_add(2, "mov rax, ", sp2);
+        free(sp2);
+    }
+    else if (node->expr_type == EXPR_FUNC_CALL) { // Function call
+        gen_asm_func_call(node, ctx);
+        //asm_add(1, "sub rsp, 16"); // Allocate space for parameters on stack
+        //asm_add(2, "call ", node->func.name);
+    }
+    else if (node->expr_type == EXPR_UNOP) {
+        gen_asm_unary_op(node, ctx);
+        if (node->top_level_expr) {
+            gen_asm(node->next, ctx);
+        }
+    }
+    else if (node->expr_type == EXPR_BINOP) {
+        gen_asm_binary_op(node, ctx);
+        if (node->top_level_expr) {
+            gen_asm(node->next, ctx);
+        }
+    }
+    else {
+        codegen_error("Non-supported expression type encountered!");
+    }
+}
 
 void gen_asm_unary_op(ASTNode* node, AsmContext ctx) {
     gen_asm(node->rhs, ctx); // The value we are acting on is now in RAX
@@ -249,14 +279,13 @@ void gen_asm_unary_op(ASTNode* node, AsmContext ctx) {
 // How do I respect left to right precedence?
 // Maybe that is for later when I implement proper expression handling
 void gen_asm_binary_op(ASTNode* node, AsmContext ctx) {
-    // The op needs to know which register/address to save the results in so we don't conflict
     gen_asm(node->rhs, ctx); // RHS now in RAX
-    char* sp = offset_to_stack_ptr(node->scratch_stack_offset);
-    asm_add(3, "mov ", sp, ", rax");
+    asm_add(1, "mov rbx, rax");
+    asm_add(1, "push rbx"); // Save in rbx
     gen_asm(node->lhs, ctx); // LHS now in RAX
-    asm_add(2, "mov rbx, ", sp); // Move saved RHS to RBX
+    asm_add(1, "pop rbx"); // Pop saved RHS to RBX
     // We are now ready for the binary operation
-    switch (node->op_type) { // These are all integer operations'
+    switch (node->op_type) { // These are all integer operations
         case BOP_ASSIGN: {
                 if (node->lhs->expr_type != EXPR_VAR) {
                     codegen_error("Only variables can be assigned to");
@@ -281,8 +310,10 @@ void gen_asm_binary_op(ASTNode* node, AsmContext ctx) {
             break;
         case BOP_DIV: // Integer division
             asm_add_com("; Op: / (Integer)");
+            asm_add(1, "push rdx");
             asm_add(1, "mov rdx, 0"); // Need to reset rdx, won't work otherwise
             asm_add(1, "idiv rbx");
+            asm_add(1, "pop rdx");
             break;
         case BOP_MOD: // Modulo
             asm_add_com("; Op: %");
@@ -345,39 +376,6 @@ void gen_asm_binary_op(ASTNode* node, AsmContext ctx) {
             codegen_error("Unsupported binary operation found!");
             break;
     }
-    free(sp);
-}
-
-// Generate assembly for an expression node
-void gen_asm_expr(ASTNode* node, AsmContext ctx) {
-    if (node->expr_type == EXPR_LITERAL) {
-        asm_add(2, "mov rax, ", node->literal);
-    }
-    else if (node->expr_type == EXPR_VAR) {
-        char* sp2 = var_to_stack_ptr(&node->var);
-        asm_add(2, "mov rax, ", sp2);
-        free(sp2);
-    }
-    else if (node->expr_type == EXPR_FUNC_CALL) { // Function call
-        gen_asm_func_call(node, ctx);
-        //asm_add(1, "sub rsp, 16"); // Allocate space for parameters on stack
-        //asm_add(2, "call ", node->func.name);
-    }
-    else if (node->expr_type == EXPR_UNOP) {
-        gen_asm_unary_op(node, ctx);
-        if (node->top_level_expr) {
-            gen_asm(node->next, ctx);
-        }
-    }
-    else if (node->expr_type == EXPR_BINOP) {
-        gen_asm_binary_op(node, ctx);
-        if (node->top_level_expr) {
-            gen_asm(node->next, ctx);
-        }
-    }
-    else {
-        codegen_error("Non-supported expression type encountered!");
-    }
 }
 
 // Generate assembly for a function call
@@ -427,8 +425,9 @@ void gen_asm_func(ASTNode* node, AsmContext ctx) {
     asm_add_com("; Setting up function stack pointer");
     asm_add(1, "push rbp");
     asm_add(1, "mov rbp, rsp");
-    asm_add_com("; Allocate a hardcoded 128 byte stack allocation per function");
-    asm_add(1, "sub rsp, 128"); // Hardcoded 128 bytes on the stack for the function 
+    char stack_space_str[63];
+    sprintf(stack_space_str, "%d", node->func.stack_space_used);
+    asm_add(3, "sub rsp, ", stack_space_str, " ; Allocate the stack space used by the function function");
     // Evaluate arguments
     asm_add_com("; Store passed function arguments");
     for (size_t i = 0; i < node->func.param_count; i++) {
@@ -442,8 +441,9 @@ void gen_asm_func(ASTNode* node, AsmContext ctx) {
     gen_asm(node->body, ctx);
     asm_add_newline();
     // Add return
+    asm_add(1, "mov rax, 0 ; Default function return is 0");
     asm_add(2, ctx.func_return_label, ": ; Function return label");
-    asm_add(1, "add rsp, 128 ; Restore hardcoded 128 byte stack allocation");
+    asm_add(3, "add rsp, ", stack_space_str, " ; Restore stack allocation");
     asm_add(1, "pop rbp");
     asm_add(1, "ret");
     free(ctx.func_return_label);

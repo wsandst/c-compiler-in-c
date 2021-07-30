@@ -246,3 +246,10 @@ char* str_strip(char* str) {
     }
     return str_substr(start, end - start+1);
 }
+
+int max(int a, int b) {
+    if (a > b)
+        return a;
+    else
+        return b;
+}
