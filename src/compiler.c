@@ -15,11 +15,15 @@ TODO:
         Stack arguments, floating point arguments, floating point returns
 
     Globals:
-        Issue: Globals become expressions. I can't really differentiate these from normal expressions
-            Also, all the globals need to go at the top. How do I accomplish this?
-            I create a separate data vec which only contains the data
-            Then, I make the global an actual variable definition, then use this to add to the
-            data vec. Join them in the end.
+        Issue:
+            Global declarations have to be in the symbol table.
+            Then I parse this in the codegen and add it to the assembly.
+            Global assignment can overwrite the values in the symbol table,
+            or they can be undefined, leading to a .bss definition
+            This way I can remove the data and bss str vector, and do everything
+            in one stage correctly. 
+            I can then remove the globals from the AST and everything is fine
+
 
     Optimize scratch space usage
 
@@ -59,7 +63,7 @@ int main(int argc, char *argv[]) {
     AST ast = parse(&tokens, symbols); 
 
     // Step 3: ASM Code Generation
-    char* asm_src = generate_assembly(&ast);
+    char* asm_src = generate_assembly(&ast, symbols);
 
     compile_asm(asm_src);
 

@@ -32,9 +32,6 @@ void asm_add_newline();
 // A newline and proper indentation is added beforehand
 void asm_add(int n, ...);
 
-// Add assembly to the data section
-void asm_add_data(int, ...);
-
 // Set the indendentation level and update
 void asm_set_indent(int indent);
 
@@ -54,13 +51,19 @@ char* get_case_label_str(int label, char* value);
 char* get_next_label_str();
 
 // Generate NASM assembly from the AST
-char* generate_assembly(AST* ast);
+char* generate_assembly(AST* ast, SymbolTable* symbols);
 
 // Generate assembly from the node. Used recursively
 void gen_asm(ASTNode* node, AsmContext ctx);
 
+// Generate globals in the data and bss section
+void gen_asm_symbols(SymbolTable* symbols);
+
 // Generate assembly for an expression node
 void gen_asm_expr(ASTNode* node, AsmContext ctx);
+
+// Generate assembly for a constant expression node (used mainly for globals currently)
+void gen_asm_const_expr(ASTNode* node, AsmContext ctx);
 
 // Generate assembly for a unary op expression node
 void gen_asm_unary_op(ASTNode* node, AsmContext ctx);

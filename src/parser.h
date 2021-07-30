@@ -54,7 +54,6 @@ enum ASTNodeType {
     AST_PROGRAM,
     AST_EXPR,
     AST_SCOPE,      // { ... }, scope
-    AST_VAR_DEC,    // Variable declaration
 
     AST_FUNC,       // Function def
     AST_RETURN,     // Return
@@ -69,6 +68,7 @@ enum ASTNodeType {
     AST_LABEL,      // Label
     //AST_COMMA,    // ,
 
+    AST_CONST_EXPR,
     AST_STMT,       // Statement
     AST_END,        // End of scope/loop etc
     AST_NULL_STMT, // Empty statement, used in certain for loops, need to represent it
@@ -175,6 +175,8 @@ void parse_single_statement(ASTNode* node, SymbolTable* symbols);
 // Parse an expression, ex (a + b) + 3
 void parse_expression(ASTNode* node,  SymbolTable* symbols);
 
+void parse_global(ASTNode* node, SymbolTable* symbols);
+
 // <function_call> ::= <identifier> "(" <expression ...> ")"
 void parse_func_call(ASTNode* node,  SymbolTable* symbols);
 
@@ -213,6 +215,11 @@ void parse_default_case(ASTNode* node, SymbolTable* symbols);
 // Print a parse error to stderr and exit the program
 void parse_error(char* error_message);
 void parse_error_unexpected_symbol(enum TokenType expected, enum TokenType recieved);
+
+bool is_const_expression(ASTNode* node, SymbolTable* symbols);
+
+// Evaluate a constant expression
+char* evaluate_const_expression(ASTNode* node, SymbolTable* symbols);
 
 // Various helpers
 

@@ -43,9 +43,11 @@ struct Variable {
     char* name;
     VarTypeEnum type;
     int size;
-    bool is_global;
     bool is_function_arg;
     int stack_offset;
+    bool is_global;
+    bool is_undefined;
+    char* const_expr;
 };
 
 // Function object
@@ -131,6 +133,8 @@ void symbol_table_free(SymbolTable* table);
 // If not found in this scope, traverse up the scopes until found
 // If the variable does not exist anywhere, throw an error
 Variable symbol_table_lookup_var(SymbolTable* table, char* var_name);
+
+Variable* symbol_table_lookup_var_ptr(SymbolTable* table, char* var_name);
 
 // Insert a variable in this scope of the symbol table
 Variable symbol_table_insert_var(SymbolTable* table, Variable var);

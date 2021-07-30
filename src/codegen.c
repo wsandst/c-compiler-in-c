@@ -4,7 +4,6 @@
 const bool INCLUDE_COMMENTS = true;
 
 StrVector asm_src;
-StrVector asm_data_src;
 char* asm_indent_str;
 int label_count = 1;
 int indent_level = 0;
@@ -25,20 +24,6 @@ void asm_add(int n, ...) {
     }
     va_end(vl);
 }
-
-void asm_add_data(int n, ...) {
-    asm_add_newline();
-    char* str;
-    va_list vl;
-    va_start(vl, n);
-    for (int i = 0; i < n; i++)
-    {
-        str = va_arg(vl, char*);
-        asm_add_single(&asm_data_src, str);
-    }
-    va_end(vl);
-}
-
 
 void asm_add_com(char* comment) {
     if (INCLUDE_COMMENTS) {
@@ -82,7 +67,14 @@ char* offset_to_stack_ptr(int offset) {
 }
 
 char* var_to_stack_ptr(Variable* var) {
-    return offset_to_stack_ptr(var->stack_offset);
+    if (!var->is_global) {
+        return offset_to_stack_ptr(var->stack_offset);
+    }
+    else { // Global variable
+        char buf[64];
+        snprintf(buf, 63, "[%s]", var->name);
+        return str_copy(buf);
+    }
 }
 
 char* get_label_str(int label) {
@@ -102,13 +94,14 @@ char* get_next_label_str() {
     return get_label_str(label_count);
 }
 
-char* generate_assembly(AST* ast) {
+char* generate_assembly(AST* ast, SymbolTable* symbols) {
     asm_src = str_vec_new(16);
     asm_indent_str = calloc(1, sizeof(char));
 
     // Setup globals/functions
     asm_set_indent(0);
-    asm_add(1, "global main");
+    gen_asm_symbols(symbols);
+
     asm_add(1, "section .text");
     // Setup context object
     AsmContext ctx;
@@ -118,11 +111,49 @@ char* generate_assembly(AST* ast) {
     gen_asm(ast->program, ctx);
     asm_add_newline();
 
-    StrVector complete_asm_src = *str_vec_add(&asm_src, &asm_data_src);
-    char* asm_src_str = str_vec_join(&complete_asm_src);
+    char* asm_src_str = str_vec_join(&asm_src);
     str_vec_free(&asm_src);
     free(asm_indent_str);
     return asm_src_str;
+}
+
+void gen_asm_symbols(SymbolTable* symbols) {
+    // The variables in this scope are always global
+    if (symbols->var_count == 0) { // No need if there are no globals
+        return;
+    }
+    // .data section, globals with constants
+    asm_add(1, "section .data");
+    asm_set_indent(1);
+    int undefined_count = 0;
+    for (size_t i = 0; i < symbols->var_count; i++)
+    {
+        Variable var = symbols->vars[i];
+        if (!var.is_undefined) {
+            asm_add(2, "global ", var.name);
+            asm_add(3, var.name, ": dq ", var.const_expr);
+        }
+        else {
+            undefined_count++;
+        }
+    }   
+    // .bss section, uninitialized globals
+    if (undefined_count) { // Only add .bss if necessary
+        asm_set_indent(0);
+        asm_add_newline();
+        asm_add(1, "section .bss");
+        asm_set_indent(1);
+        for (size_t i = 0; i < symbols->var_count; i++)
+        {
+            Variable var = symbols->vars[i];
+            if (var.is_undefined) {
+                asm_add(2, "global ", var.name);
+                asm_add(2, var.name, ": resq 1 ");
+            }
+        }   
+    }
+    asm_set_indent(0);
+    asm_add_newline();
 }
 
 void gen_asm(ASTNode* node, AsmContext ctx) {
@@ -139,9 +170,6 @@ void gen_asm(ASTNode* node, AsmContext ctx) {
         case AST_SCOPE:
             // Blocks/scopes are a virtual construct, does not exist in the assembly
             gen_asm(node->body, ctx);
-            gen_asm(node->next, ctx);
-            break;
-        case AST_VAR_DEC:
             gen_asm(node->next, ctx);
             break;
         case AST_IF: // If conditional
@@ -221,6 +249,10 @@ void gen_asm_expr(ASTNode* node, AsmContext ctx) {
     else {
         codegen_error("Non-supported expression type encountered!");
     }
+}
+
+void gen_asm_const_expr(ASTNode* node, AsmContext ctx) {
+    // Assignment when a variable is global inserts into the data section
 }
 
 void gen_asm_unary_op(ASTNode* node, AsmContext ctx) {
@@ -430,10 +462,10 @@ void gen_asm_func(ASTNode* node, AsmContext ctx) {
     */
     static char *reg_strs[6] = {"rdi", "rsi", "rdx", "rcx", "r8", "r9"};
     Variable* param = node->func.params;
-    asm_add_com("; Expression function call");
     ctx.func_return_label = get_next_label_str();
     asm_set_indent(0);
     asm_add_newline();
+    asm_add(2, "global ", node->func.name); // Set function as global to allow linker to find it
     asm_add(2, node->func.name, ":");
     asm_set_indent(1);
     asm_add_com("; Setting up function stack pointer");
@@ -441,7 +473,7 @@ void gen_asm_func(ASTNode* node, AsmContext ctx) {
     asm_add(1, "mov rbp, rsp");
     char stack_space_str[63];
     sprintf(stack_space_str, "%d", node->func.stack_space_used);
-    asm_add(3, "sub rsp, ", stack_space_str, " ; Allocate the stack space used by the function function");
+    asm_add(3, "sub rsp, ", stack_space_str, " ; Allocate the stack space used by the function");
     // Evaluate arguments
     asm_add_com("; Store passed function arguments");
     for (size_t i = 0; i < node->func.param_count; i++) {
@@ -609,9 +641,4 @@ void gen_asm_return(ASTNode* node, AsmContext ctx) {
     gen_asm(node->ret, ctx); // Expr is now in RAX
     asm_add(3, "jmp ", ctx.func_return_label, " ; Function return");
     gen_asm(node->next, ctx);
-}
-
-// Generate assembly for a global variable declaration
-void gen_asm_global_dec(ASTNode* node, AsmContext ctx) {
-
 }

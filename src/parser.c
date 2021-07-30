@@ -152,15 +152,21 @@ void parse_program(ASTNode* node, SymbolTable* symbols) {
         return;
     }
     // Must either be a function or a global variable
-    expect_var_type();
-    expect(TK_IDENT);
-    if (accept(TK_DL_OPENPAREN)) { // Function
-        token_go_back(3);
-        parse_func(node, symbols);
+    if (accept(TK_IDENT)) { // Global assignment
+        token_go_back(1);
+        parse_global(node, symbols);
     }
-    else if (accept(TK_DL_SEMICOLON) || accept(TK_OP_ASSIGN)) { // Global declaration or assignment
-        token_go_back(3);
-        parse_single_statement(node, symbols);
+    else {
+        expect_var_type();
+        expect(TK_IDENT);
+        if (accept(TK_DL_OPENPAREN)) { // Function
+            token_go_back(3);
+            parse_func(node, symbols);
+        }
+        else if (accept(TK_DL_SEMICOLON) || accept(TK_OP_ASSIGN)) { // Global declaration
+            token_go_back(3);
+            parse_global(node, symbols);
+        }
     }
     node->next = ast_node_new(AST_END, 1);
     parse_program(node->next, symbols);
@@ -228,7 +234,6 @@ void parse_single_statement(ASTNode* node, SymbolTable* symbols) {
             // Treat this as an expresison
             token_go_back(2); // Go back to ident token
             node->type = AST_EXPR;
-            node->assign = ast_node_new(AST_EXPR, 1);
             node->top_level_expr = true;
             parse_expression(node, symbols);
         }
@@ -414,6 +419,43 @@ void parse_expression(ASTNode* node, SymbolTable* symbols) {
     }
 }
 
+void parse_global(ASTNode* node, SymbolTable* symbols) {
+    if (accept(TK_IDENT)) { // Definition of already declared global variable
+        char* ident = prev_token().value.string;
+        token_go_back(1);
+        parse_expression(node, symbols);
+        if (!is_const_expression(node, symbols)) {
+                parse_error("Non-constant global expression found");
+        }
+        Variable* inserted_var = symbol_table_lookup_var_ptr(symbols, ident);
+        inserted_var->const_expr = evaluate_const_expression(node, symbols);
+        inserted_var->is_undefined = false;
+    }
+    else {
+        accept_var_type();
+        Variable var;
+        var.type = token_type_to_var_type(prev_token().type);
+        expect(TK_IDENT);
+        char* ident = prev_token().value.string;
+        var.name = ident;
+        var.size = 8; // 64 bit
+        var.is_undefined = true;
+        symbol_table_insert_var(symbols, var);
+        if (accept(TK_OP_ASSIGN)) {
+            token_go_back(2);
+            parse_expression(node, symbols);
+            if (!is_const_expression(node, symbols)) {
+                parse_error("Non-constant global expression found");
+            }
+            Variable* inserted_var = symbol_table_lookup_var_ptr(symbols, ident);
+            inserted_var->const_expr = evaluate_const_expression(node, symbols);
+            inserted_var->is_undefined = false;
+        }
+        accept(TK_DL_SEMICOLON);
+    }
+    node->type = AST_NULL_STMT; // This is just a virtual node
+}
+
 void parse_func_call(ASTNode* node, SymbolTable* symbols) {
     node->expr_type = EXPR_FUNC_CALL;
     char* ident = prev_token().string_repr;
@@ -573,15 +615,17 @@ void parse_error_unexpected_symbol(enum TokenType expected, enum TokenType recie
     parse_error(buff);
 }
 
+bool is_const_expression(ASTNode* node, SymbolTable* symbols) {
+    return (node->type == AST_EXPR && 
+            node->expr_type == EXPR_BINOP && 
+            node->op_type == BOP_ASSIGN &&
+            node->lhs->expr_type == EXPR_VAR &&
+            node->rhs->expr_type == EXPR_LITERAL);
+}
 
-int find_main_index(Tokens* tokens) {
-    for (size_t i = 0; i < tokens->size; i++) {
-        Token token = tokens->elems[i];
-        if (token.type == TK_IDENT && strcmp(token.value.string, "main") == 0) {
-            return i-1;
-        }
-    }
-    return -1;
+// Evaluate a constant expression
+char* evaluate_const_expression(ASTNode* node, SymbolTable* symbols) {
+    return node->rhs->literal;
 }
 
 VarTypeEnum token_type_to_var_type(enum TokenType type) {

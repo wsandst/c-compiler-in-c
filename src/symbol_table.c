@@ -69,13 +69,17 @@ SymbolTable* symbol_table_get_child(SymbolTable* table, int index) {
 // If not found in this scope, traverse up the scopes until found
 // If the variable does not exist anywhere, throw an error
 Variable symbol_table_lookup_var(SymbolTable* table, char* var_name) {
+    return *symbol_table_lookup_var_ptr(table, var_name);
+}
+
+Variable* symbol_table_lookup_var_ptr(SymbolTable* table, char* var_name) {
     // Linear search for now, should be a hashtable later
     for (size_t i = 0; i < table->var_count; i++)
     {
         Variable* var = &table->vars[i];
         if (strcmp(var->name, var_name) == 0) {
             // Found it!
-            return *var;
+            return var;
         }
     }
     if (table->is_global) {
@@ -84,7 +88,7 @@ Variable symbol_table_lookup_var(SymbolTable* table, char* var_name) {
         symbol_error2(var_name, "variable referenced but never declared!");
     }
     // We did not find the variable in this scope, go up a scope
-    return symbol_table_lookup_var(table->parent, var_name);
+    return symbol_table_lookup_var_ptr(table->parent, var_name);
 }
 
 // Insert a variable in this scope of the symbol table
@@ -95,8 +99,10 @@ Variable symbol_table_insert_var(SymbolTable* table, Variable var) {
     if (table->var_count > table->var_max_count) {
         symbol_table_vars_realloc(table, table->var_max_count*2);
     }
-    table->cur_stack_offset += var.size;
-    var.stack_offset = table->cur_stack_offset;
+    if (!table->is_global) {
+        table->cur_stack_offset += var.size;
+        var.stack_offset = table->cur_stack_offset;
+    }
     var.is_global = table->is_global;
     table->vars[table->var_count-1] = var;
     return var;
