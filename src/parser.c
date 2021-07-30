@@ -187,6 +187,7 @@ void parse_func(ASTNode* node, SymbolTable* symbols) {
         var.type = token_type_to_var_type(prev_token().type);
         expect(TK_IDENT);
         var.name = prev_token().string_repr;
+        var.size = 8;
         accept(TK_DL_COMMA);
         symbol_table_insert_var(func_symbols, var);
     }
@@ -415,15 +416,16 @@ void parse_func_call(ASTNode* node, SymbolTable* symbols) {
     char* ident = prev_token().string_repr;
     expect(TK_DL_OPENPAREN);
     node->func = symbol_table_lookup_func(symbols, ident);
-
     node->args = ast_node_new(AST_EXPR, 1);
     ASTNode* arg_node = node->args;
     while (!(accept(TK_DL_CLOSEPAREN) || prev_token().type == TK_DL_CLOSEPAREN)) { // Go through argument expressions
+        symbols->cur_stack_offset += 8;
         parse_expression(arg_node, symbols);
+        symbols->cur_stack_offset -= 8;
         arg_node->next = ast_node_new(AST_END, 1);
         arg_node = arg_node->next;
     }
-
+    symbols->cur_stack_offset += 8;
 }
 
 void parse_if(ASTNode* node, SymbolTable* symbols) {

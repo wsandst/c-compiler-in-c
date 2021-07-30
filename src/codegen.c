@@ -359,9 +359,9 @@ void gen_asm_expr(ASTNode* node, AsmContext ctx) {
         free(sp2);
     }
     else if (node->expr_type == EXPR_FUNC_CALL) { // Function call
-        asm_add_com("; Expression function call");
+        gen_asm_func_call(node, ctx);
         //asm_add(1, "sub rsp, 16"); // Allocate space for parameters on stack
-        asm_add(2, "call ", node->func.name);
+        //asm_add(2, "call ", node->func.name);
     }
     else if (node->expr_type == EXPR_UNOP) {
         gen_asm_unary_op(node, ctx);
@@ -380,7 +380,45 @@ void gen_asm_expr(ASTNode* node, AsmContext ctx) {
     }
 }
 
+// Generate assembly for a function call
+void gen_asm_func_call(ASTNode* node, AsmContext ctx) {
+    /* 
+    x86 Linux Calling convention
+    Integer arguments: RDI, RSI, RDX, RCX, R8, R9
+    Floating point argument: XMM0, XMM1, XMM2, XMM3, XMM4, XMM5, XMM6 and XMM7
+    Then rest on stack
+    Callee-saved RBX, RSP, RBP, and R12–R15
+    Return: RAX 
+    */
+    static char *reg_strs[6] = {"rdi", "rsi", "rdx", "rcx", "r8", "r9"};
+    asm_add_com("; Expression function call");
+    // Evaluate arguments
+    ASTNode* current_arg = node->args;
+    for (int i = 0; i <  node->func.param_count; i++) { // Current arg is somehow corrupted when the loop starts
+        gen_asm(current_arg, ctx);
+        asm_add(3, "mov ", reg_strs[i], ", rax");
+        asm_add(2, "push ", reg_strs[i]);
+        current_arg = current_arg->next;
+    }
+    // Make everything ready for call
+    for (size_t i = 0; i < node->func.param_count; i++){
+        asm_add(2, "pop ", reg_strs[i]);
+    }
+    asm_add(2, "call ", node->func.name);
+}
+
 void gen_asm_func(ASTNode* node, AsmContext ctx) {
+    /* 
+    x86 Linux Calling convention
+    Integer arguments: RDI, RSI, RDX, RCX, R8, R9
+    Floating point argument: XMM0, XMM1, XMM2, XMM3, XMM4, XMM5, XMM6 and XMM7
+    Then rest on stack
+    Callee-saved RBX, RSP, RBP, and R12–R15
+    Return: RAX 
+    */
+    static char *reg_strs[6] = {"rdi", "rsi", "rdx", "rcx", "r8", "r9"};
+    Variable* param = node->func.params;
+    asm_add_com("; Expression function call");
     ctx.func_return_label = get_next_label_str();
     asm_set_indent(0);
     asm_add_newline();
@@ -391,6 +429,14 @@ void gen_asm_func(ASTNode* node, AsmContext ctx) {
     asm_add(1, "mov rbp, rsp");
     asm_add_com("; Allocate a hardcoded 128 byte stack allocation per function");
     asm_add(1, "sub rsp, 128"); // Hardcoded 128 bytes on the stack for the function 
+    // Evaluate arguments
+    asm_add_com("; Store passed function arguments");
+    for (size_t i = 0; i < node->func.param_count; i++) {
+        char* param_ptr = var_to_stack_ptr(param);
+        asm_add(4, "mov ", param_ptr, ", ", reg_strs[i]);
+        param++;
+        free(param_ptr);
+    }
     asm_add_com("; Function code start");
     // Do I need to allocate more stack space here?
     gen_asm(node->body, ctx);

@@ -68,6 +68,9 @@ void gen_asm_binary_op(ASTNode* node, AsmContext ctx);
 // Generate assembly for a function definition
 void gen_asm_func(ASTNode* node, AsmContext ctx);
 
+// Generate assembly for a function call
+void gen_asm_func_call(ASTNode* node, AsmContext ctx);
+
 // Generate assembly for an if conditional node
 void gen_asm_if(ASTNode* node, AsmContext ctx);
 
