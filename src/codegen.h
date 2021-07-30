@@ -20,7 +20,7 @@ struct AsmContext {
 typedef struct AsmContext AsmContext;
 
 // Add assembly
-void asm_add_single(char* str);
+void asm_add_single(StrVector* asm_src, char* str);
 
 // Add assembly comment
 void asm_add_com(char* str);
@@ -31,6 +31,9 @@ void asm_add_newline();
 // Add assembly, variable amount of strings which are combined
 // A newline and proper indentation is added beforehand
 void asm_add(int n, ...);
+
+// Add assembly to the data section
+void asm_add_data(int, ...);
 
 // Set the indendentation level and update
 void asm_set_indent(int indent);
@@ -88,6 +91,9 @@ void gen_asm_case(ASTNode* node, AsmContext ctx);
 
 // Generate assembly for a return statement node
 void gen_asm_return(ASTNode* node, AsmContext ctx);
+
+// Generate assembly for a global variable declaration
+void gen_asm_global_dec(ASTNode* node, AsmContext ctx);
 
 // Throw a codegen error
 void codegen_error(char* message);

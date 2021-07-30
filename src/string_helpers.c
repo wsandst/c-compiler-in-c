@@ -103,6 +103,17 @@ StrVector str_split(char* str, char delimiter) {
     return str_vec;
 }
 
+// Add two string vectors
+StrVector* str_vec_add(StrVector *str_vec1, StrVector* str_vec2) {
+    str_vec1->elems = realloc(str_vec1->elems, (str_vec1->size + str_vec2->size) * sizeof(char*));
+    memcpy(str_vec1->elems+str_vec1->size, str_vec2->elems, str_vec2->size*sizeof(char*));
+    str_vec1->size = str_vec1->size + str_vec2->size;
+    str_vec1->max_size = str_vec1->size;
+    free(str_vec2->elems);
+    return str_vec1;
+}
+
+// Print contents of string vector
 void str_vec_print(StrVector* str_vec) {
     for (size_t i = 0; i < str_vec->size; i++)
     {

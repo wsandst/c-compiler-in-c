@@ -8,17 +8,31 @@ TODO:
     Expressions:
         Proper left-to-right evaluation, it doesn't work like that currently
         Operator precedence (using Shunting Yard)
-        I might be using too much scratch memory, not sure if what I'm doing
-        currently is optimal
         Constant expressions (compile time expressions) (only really required for advanced switch cases)
         AND and OR short circuiting
 
     Functions, proper calling convention:
         Stack arguments, floating point arguments, floating point returns
 
-    Globals
+    Globals:
+        Issue: Globals become expressions. I can't really differentiate these from normal expressions
+            Also, all the globals need to go at the top. How do I accomplish this?
+            I create a separate data vec which only contains the data
+            Then, I make the global an actual variable definition, then use this to add to the
+            data vec. Join them in the end.
 
     Optimize scratch space usage
+
+    Types:
+        Type conversion:
+            bool -> char -> short int -> int -> 
+            unsigned int -> long -> unsigned -> 
+            long long -> float -> double -> long double
+
+    section .data
+        var: dq 1
+        .align 8
+
 
 */
 

@@ -1,9 +1,9 @@
-// Assigment as binary operator
+// Short circuiting
+
+int sc_test() {
+    
+}
 
 int main() {
-    int x;
-    if (x = 1) {
-        return 1;
-    }
-    return 0;
+
 }

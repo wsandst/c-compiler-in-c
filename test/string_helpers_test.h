@@ -30,19 +30,18 @@ void test_str_vec() {
     assert(strcmp(joined_str, "helloworldtesttest2") == 0);
     free(joined_str);
 
-    char *added_str = str_add("hello ", "world");
-    assert(strcmp(added_str, "hello world") == 0);
-    free(added_str);
+    // Add two StrVectors
+    StrVector vec1 = str_split("hello world cool", ' ');
+    StrVector vec2 = str_split("more cool stuff", ' ');
 
-    char *multiplied_str = str_multiply("a", 5);
-    assert(strcmp(multiplied_str, "aaaaa") == 0);
-    free(multiplied_str);
-
-    multiplied_str = str_multiply("a", 0);
-    assert(strcmp(multiplied_str, "") == 0);
-    free(multiplied_str);
-
-
+    StrVector* added_vec = str_vec_add(&vec1, &vec2);
+    assert(added_vec == &vec1);
+    assert(added_vec->size == 6);
+    assert(added_vec->max_size == 6);
+    assert(strcmp(added_vec->elems[2], "cool") == 0);
+    assert(strcmp(added_vec->elems[3], "more") == 0);
+    
+    str_vec_free(added_vec);
     str_vec_free(&vec);
 }
 
@@ -111,6 +110,20 @@ void test_string_helper_funcs() {
     for (size_t i = 0; i < strlen(test_str); i++) {
         assert(test_str[i] == 't');
     }
+
+    // Str add
+    char *added_str = str_add("hello ", "world");
+    assert(strcmp(added_str, "hello world") == 0);
+    free(added_str);
+
+    // Str multiply
+    char *multiplied_str = str_multiply("a", 5);
+    assert(strcmp(multiplied_str, "aaaaa") == 0);
+    free(multiplied_str);
+
+    multiplied_str = str_multiply("a", 0);
+    assert(strcmp(multiplied_str, "") == 0);
+    free(multiplied_str);
     
     free(test_str);
 }

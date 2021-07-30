@@ -62,7 +62,7 @@ AST parse(Tokens* tokens, SymbolTable* global_symbols) {
     AST ast;
     ASTNode *program_node = ast_node_new(AST_PROGRAM, 1);
     ast.program = program_node;
-    program_node->body = ast_node_new(AST_NONE, 1);
+    program_node->body = ast_node_new(AST_END, 1);
 
     // Start parsing
     parse_program(program_node->body, global_symbols);
@@ -159,10 +159,10 @@ void parse_program(ASTNode* node, SymbolTable* symbols) {
         parse_func(node, symbols);
     }
     else if (accept(TK_DL_SEMICOLON) || accept(TK_OP_ASSIGN)) { // Global declaration or assignment
-        token_go_back(2);
-        parse_statement(node, symbols);
+        token_go_back(3);
+        parse_single_statement(node, symbols);
     }
-    node->next = ast_node_new(AST_NONE, 1);
+    node->next = ast_node_new(AST_END, 1);
     parse_program(node->next, symbols);
 }
 
@@ -199,7 +199,7 @@ void parse_func(ASTNode* node, SymbolTable* symbols) {
     node->func = symbol_table_insert_func(symbols, func);
 
     expect(TK_DL_OPENBRACE);
-    node->body = ast_node_new(AST_NONE, 1);
+    node->body = ast_node_new(AST_END, 1);
     parse_scope(node->body, func_symbols);
     node->next = ast_node_new(AST_END, 1);
     // Calculate stack space necessary for function
@@ -313,7 +313,7 @@ void parse_single_statement(ASTNode* node, SymbolTable* symbols) {
 void parse_statement(ASTNode* node, SymbolTable* symbols) {
     if (accept(TK_DL_CLOSEBRACE)) {
         // Scope or function end
-        node->type = AST_NONE;
+        node->type = AST_END;
         return;
     }
     parse_single_statement(node, symbols);
@@ -323,7 +323,7 @@ void parse_statement(ASTNode* node, SymbolTable* symbols) {
 
 void parse_scope(ASTNode* node, SymbolTable* symbols) {
     // Make a new child symbol table for this scope
-    node->type = AST_BLOCK;
+    node->type = AST_SCOPE;
     node->body = ast_node_new(AST_STMT, 1);
     SymbolTable* scope_symbols = symbol_table_create_child(symbols, symbols->cur_stack_offset);
     parse_statement(node->body, scope_symbols);
@@ -364,7 +364,7 @@ void parse_expression(ASTNode* node, SymbolTable* symbols) {
         return;
     }
     else if (accept(TK_DL_CLOSEPAREN)) {
-        node->type = AST_NONE;
+        node->type = AST_END;
         return; // Atom end 
     }
     else {
@@ -437,7 +437,7 @@ void parse_if(ASTNode* node, SymbolTable* symbols) {
     expect(TK_DL_OPENPAREN);
     parse_expression(node->cond, symbols);
     symbols->cur_stack_offset += 8;
-    node->then = ast_node_new(AST_BLOCK, 1);
+    node->then = ast_node_new(AST_SCOPE, 1);
     parse_single_statement(node->then, symbols);
     node->then->next = ast_node_new(AST_END, 1);
     // Check if the if has an attached else
@@ -455,7 +455,7 @@ void parse_while_loop(ASTNode* node, SymbolTable* symbols) {
     expect(TK_DL_OPENPAREN);
     parse_expression(node->cond, symbols);
     symbols->cur_stack_offset += 8;
-    node->then = ast_node_new(AST_BLOCK, 1);
+    node->then = ast_node_new(AST_SCOPE, 1);
     parse_single_statement(node->then, symbols);
     node->then->next = ast_node_new(AST_END, 1);
 }
@@ -464,7 +464,7 @@ void parse_while_loop(ASTNode* node, SymbolTable* symbols) {
 void parse_do_while_loop(ASTNode* node, SymbolTable* symbols) {
     node->type = AST_DO_LOOP;
     // Parse do while body
-    node->then = ast_node_new(AST_BLOCK, 1);
+    node->then = ast_node_new(AST_SCOPE, 1);
     parse_single_statement(node->then, symbols);
     node->then->next = ast_node_new(AST_END, 1);
     // Parse while condition at end
@@ -482,7 +482,7 @@ void parse_for_loop(ASTNode* node, SymbolTable* symbols) {
     // int i = 0; while(i < 10) { i++; ... }
 
     // We need a new scope for the for variable declaration
-    node->type = AST_BLOCK;
+    node->type = AST_SCOPE;
     node->body = ast_node_new(AST_STMT, 1);
     SymbolTable* scope_symbols = symbol_table_create_child(symbols, symbols->cur_stack_offset);
     node->next = ast_node_new(AST_STMT, 1);
@@ -494,7 +494,7 @@ void parse_for_loop(ASTNode* node, SymbolTable* symbols) {
     // Now we can treat this like a while loop almost
     node->body->next = ast_node_new(AST_LOOP, 1);
     ASTNode* loop_node = node->body->next;
-    loop_node->next = ast_node_new(AST_NONE, 1);
+    loop_node->next = ast_node_new(AST_END, 1);
 
     // Getting the condition
     loop_node->cond = ast_node_new(AST_EXPR, 1);
@@ -530,11 +530,11 @@ void parse_switch(ASTNode* node, SymbolTable* symbols) {
     parse_expression(node->cond, switch_symbols);
     // Now we can parse the contents
     node->body = ast_node_new(AST_STMT, 1);
-    node->body->next = ast_node_new(AST_NONE, 1);
+    node->body->next = ast_node_new(AST_END, 1);
     parse_single_statement(node->body, switch_symbols);
     // We now need to grab the case labels and store them in the AST Node
     node->switch_cases = symbol_table_lookup_switch_case_labels(switch_symbols);
-    node->next = ast_node_new(AST_NONE, 1);
+    node->next = ast_node_new(AST_END, 1);
 }
 
 void parse_case(ASTNode* node, SymbolTable* symbols) {

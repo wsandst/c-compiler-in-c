@@ -53,27 +53,24 @@ enum OpType {
 enum ASTNodeType {
     AST_PROGRAM,
     AST_EXPR,
-    //AST_COMMA,    // ,
-    //AST_MEMBER,   // . (struct member access)
-    AST_RETURN,     // return
-    AST_IF,         // if
-    AST_LOOP,       // while, for
-    AST_DO_LOOP,    // do while
-    AST_BREAK,      // break
-    AST_CONTINUE,   // continue
-    AST_SWITCH,     // switch
-    AST_CASE,       // case
-    AST_BLOCK,      // { ... }, scope
-
-    AST_GOTO,     // goto
-    AST_LABEL,    // Labeled statement
-    AST_FUNC,       // Function
-    AST_STMT,       // Empty statement
+    AST_SCOPE,      // { ... }, scope
     AST_VAR_DEC,    // Variable declaration
-    AST_CAST,       // Type cast
-    AST_ASSIGN,     // This is actually an operation in C. Start out like this?
+
+    AST_FUNC,       // Function def
+    AST_RETURN,     // Return
+    AST_IF,         // If
+    AST_LOOP,       // While, for
+    AST_DO_LOOP,    // Do while
+    AST_BREAK,      // Break
+    AST_CONTINUE,   // Continue
+    AST_SWITCH,     // Switch
+    AST_CASE,       // Case
+    AST_GOTO,       // Goto
+    AST_LABEL,      // Label
+    //AST_COMMA,    // ,
+
+    AST_STMT,       // Statement
     AST_END,        // End of scope/loop etc
-    AST_NONE,       // None
     AST_NULL_STMT, // Empty statement, used in certain for loops, need to represent it
 };
 
@@ -83,6 +80,7 @@ enum ExprType {
     EXPR_LITERAL,
     EXPR_VAR,
     EXPR_FUNC_CALL,
+    EXPR_CAST, // Type cast
 };
 
 struct ASTNode {
@@ -160,6 +158,7 @@ void ast_node_copy(ASTNode* node1, ASTNode* node2);
 AST parse(Tokens* tokens, SymbolTable* global_symbols);
 
 // Parse the program (file)
+// <program> ::= { <function> | <declaration> }
 void parse_program(ASTNode* node, SymbolTable* symbols);
 
 // Parse a function definition
@@ -167,7 +166,7 @@ void parse_program(ASTNode* node, SymbolTable* symbols);
 void parse_func(ASTNode* node,  SymbolTable* symbols);
 
 // Parse a statement, continue with next statement
-// <statement> ::= <keyword> | <expression>
+// <statement> ::= <keyword> | <expression> | <declaration>
 void parse_statement(ASTNode* node,  SymbolTable* symbols);
 
 // Parse a single statement, do not continue with next.
@@ -176,6 +175,7 @@ void parse_single_statement(ASTNode* node, SymbolTable* symbols);
 // Parse an expression, ex (a + b) + 3
 void parse_expression(ASTNode* node,  SymbolTable* symbols);
 
+// <function_call> ::= <identifier> "(" <expression ...> ")"
 void parse_func_call(ASTNode* node,  SymbolTable* symbols);
 
 // Parse a scope/block
@@ -183,24 +183,31 @@ void parse_func_call(ASTNode* node,  SymbolTable* symbols);
 void parse_scope(ASTNode* node, SymbolTable* symbols);
 
 // Parse an if conditional
+// <if> ::= "if" "(" <expression> ")" <statement>
 void parse_if(ASTNode* node, SymbolTable* symbols);
 
 // Parse a while loop
+// <while> ::= "while" "(" <expression> ")" <statement>
 void parse_while_loop(ASTNode* node, SymbolTable* symbols);
 
 // Parse a do while loop
+// <do_while> ::= "do" <statement> "while" "(" <expression> ")"
 void parse_do_while_loop(ASTNode* node, SymbolTable* symbols);
 
 // Parse a for loop
+// <for> ::= "for" "(" <statement> <expression> <expression> ")" <statement>
 void parse_for_loop(ASTNode* node, SymbolTable* symbols);
 
 // Parse a switch statement
+// <switch> ::= "switch" "(" <expression> ")" (<statement> | <case> | <default_case>)
 void parse_switch(ASTNode* node, SymbolTable* symbols);
 
 // Parse a case statement
+// <case> ::= "case" <identifier> ":"
 void parse_case(ASTNode* node, SymbolTable* symbols);
 
 // Parse a default case statement
+// <default_case> ::= "default" ":"
 void parse_default_case(ASTNode* node, SymbolTable* symbols);
 
 // Print a parse error to stderr and exit the program

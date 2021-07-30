@@ -97,6 +97,7 @@ Variable symbol_table_insert_var(SymbolTable* table, Variable var) {
     }
     table->cur_stack_offset += var.size;
     var.stack_offset = table->cur_stack_offset;
+    var.is_global = table->is_global;
     table->vars[table->var_count-1] = var;
     return var;
 }

@@ -12,6 +12,8 @@
 #include <stdio.h>
 #include <string.h>
 
+#include "string_helpers.h"
+
 typedef enum VarTypeEnum VarTypeEnum;
 typedef struct Variable Variable;
 typedef struct Function Function;
@@ -41,6 +43,7 @@ struct Variable {
     char* name;
     VarTypeEnum type;
     int size;
+    bool is_global;
     bool is_function_arg;
     int stack_offset;
 };

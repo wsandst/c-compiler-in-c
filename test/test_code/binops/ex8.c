@@ -1,7 +1,9 @@
-// Not equals
+// Assigment as binary operator
 
 int main() {
-    int x = 7 != 6;
-    int y = 7 != 7;
-    return x + y;
+    int x;
+    if (x = 1) {
+        return 1;
+    }
+    return 0;
 }

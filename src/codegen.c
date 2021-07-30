@@ -4,12 +4,13 @@
 const bool INCLUDE_COMMENTS = true;
 
 StrVector asm_src;
+StrVector asm_data_src;
 char* asm_indent_str;
 int label_count = 1;
 int indent_level = 0;
 
-void asm_add_single(char* str) {
-    str_vec_push(&asm_src, str);
+void asm_add_single(StrVector* src, char* str) {
+    str_vec_push(src, str);
 }
 
 void asm_add(int n, ...) {
@@ -20,22 +21,36 @@ void asm_add(int n, ...) {
     for (int i = 0; i < n; i++)
     {
         str = va_arg(vl, char*);
-        asm_add_single(str);
+        asm_add_single(&asm_src, str);
     }
     va_end(vl);
 }
 
+void asm_add_data(int n, ...) {
+    asm_add_newline();
+    char* str;
+    va_list vl;
+    va_start(vl, n);
+    for (int i = 0; i < n; i++)
+    {
+        str = va_arg(vl, char*);
+        asm_add_single(&asm_data_src, str);
+    }
+    va_end(vl);
+}
+
+
 void asm_add_com(char* comment) {
     if (INCLUDE_COMMENTS) {
         asm_add_newline();
-        asm_add_single(comment);
+        asm_add_single(&asm_src, comment);
     }
 }
 
 void asm_add_newline() {
     char buf[64];
     snprintf(buf, 63, "\n%s", asm_indent_str);
-    asm_add_single(buf);
+    asm_add_single(&asm_src, buf);
 }
 
 void asm_update_indent() {
@@ -103,7 +118,8 @@ char* generate_assembly(AST* ast) {
     gen_asm(ast->program, ctx);
     asm_add_newline();
 
-    char* asm_src_str = str_vec_join(&asm_src);
+    StrVector complete_asm_src = *str_vec_add(&asm_src, &asm_data_src);
+    char* asm_src_str = str_vec_join(&complete_asm_src);
     str_vec_free(&asm_src);
     free(asm_indent_str);
     return asm_src_str;
@@ -120,13 +136,12 @@ void gen_asm(ASTNode* node, AsmContext ctx) {
         case AST_EXPR:
             gen_asm_expr(node, ctx);
             break;
-        case AST_BLOCK:
+        case AST_SCOPE:
             // Blocks/scopes are a virtual construct, does not exist in the assembly
             gen_asm(node->body, ctx);
             gen_asm(node->next, ctx);
             break;
         case AST_VAR_DEC:
-            // Do nothing
             gen_asm(node->next, ctx);
             break;
         case AST_IF: // If conditional
@@ -164,7 +179,6 @@ void gen_asm(ASTNode* node, AsmContext ctx) {
             asm_add(4, "jmp ", ".L", node->literal, " ; Goto");
             gen_asm(node->next, ctx);
             break;
-        case AST_NONE:
         case AST_END:
             break;
         case AST_STMT:
@@ -595,4 +609,9 @@ void gen_asm_return(ASTNode* node, AsmContext ctx) {
     gen_asm(node->ret, ctx); // Expr is now in RAX
     asm_add(3, "jmp ", ctx.func_return_label, " ; Function return");
     gen_asm(node->next, ctx);
+}
+
+// Generate assembly for a global variable declaration
+void gen_asm_global_dec(ASTNode* node, AsmContext ctx) {
+
 }
