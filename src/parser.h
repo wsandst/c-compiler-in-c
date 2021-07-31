@@ -46,8 +46,8 @@ enum OpType {
     UOP_SIZEOF,     // sizeof
     UOP_POST_INCR,  // x++
     UOP_PRE_INCR,   // ++x
-    UOP_POST_DECR,   // x--
-    UOP_PRE_DECR,    // x--
+    UOP_POST_DECR,  // x--
+    UOP_PRE_DECR,   // --x
 };
 
 enum ASTNodeType {
@@ -173,7 +173,8 @@ void parse_statement(ASTNode* node,  SymbolTable* symbols);
 void parse_single_statement(ASTNode* node, SymbolTable* symbols);
 
 // Parse an expression, ex (a + b) + 3
-void parse_expression(ASTNode* node,  SymbolTable* symbols);
+void parse_expression(ASTNode* node,  SymbolTable* symbols, int min_precedence);
+void parse_expression_atom(ASTNode* node,  SymbolTable* symbols, int min_precedence);
 
 void parse_global(ASTNode* node, SymbolTable* symbols);
 
@@ -241,6 +242,8 @@ bool accept_unop_type();
 bool accept_unop_two_token_type();
 // Accept a binary operator Token type
 bool accept_binop_type();
+
+int get_binary_operator_precedence(OpType type);
 
 // Convert a TokenType variable type to the corresponding VarTypeEnum
 VarTypeEnum token_type_to_var_type(enum TokenType type);
