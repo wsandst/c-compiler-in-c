@@ -5,6 +5,10 @@
 
 /*
 TODO:
+    Tomorrow:
+        AND and OR short circuiting
+        Proper expression evaluation
+
     Expressions:
         Proper left-to-right evaluation, it doesn't work like that currently
         Operator precedence (using Shunting Yard)
@@ -14,28 +18,11 @@ TODO:
     Functions, proper calling convention:
         Stack arguments, floating point arguments, floating point returns
 
-    Globals:
-        Issue:
-            Global declarations have to be in the symbol table.
-            Then I parse this in the codegen and add it to the assembly.
-            Global assignment can overwrite the values in the symbol table,
-            or they can be undefined, leading to a .bss definition
-            This way I can remove the data and bss str vector, and do everything
-            in one stage correctly. 
-            I can then remove the globals from the AST and everything is fine
-
-
-    Optimize scratch space usage
-
     Types:
         Type conversion:
             bool -> char -> short int -> int -> 
             unsigned int -> long -> unsigned -> 
             long long -> float -> double -> long double
-
-    section .data
-        var: dq 1
-        .align 8
 
 
 */
