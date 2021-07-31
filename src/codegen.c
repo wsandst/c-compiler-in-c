@@ -322,7 +322,6 @@ void gen_asm_unary_op(ASTNode* node, AsmContext ctx) {
     free(var_sp);
 }
 
-// How do I respect left to right precedence?
 // Maybe that is for later when I implement proper expression handling
 void gen_asm_binary_op(ASTNode* node, AsmContext ctx) {
     gen_asm(node->rhs, ctx); // RHS now in RAX

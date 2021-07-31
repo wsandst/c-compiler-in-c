@@ -78,10 +78,9 @@ void token_go_back(int steps) {
 }
 
 void expect(enum TokenType type) {
-    if (parse_token->type != type) {
+    if (!accept(type)) {
         parse_error_unexpected_symbol(type, parse_token->type);
     }
-    parse_token++;
 }
 
 void expect_var_type() {
@@ -95,6 +94,7 @@ void expect_var_type() {
 
 bool accept(enum TokenType type) {
     if (parse_token->type == type) {
+        //printf("T: %s\n", token_type_to_string(type));
         parse_token++;
         return true;
     }
@@ -236,6 +236,7 @@ void parse_single_statement(ASTNode* node, SymbolTable* symbols) {
             node->type = AST_EXPR;
             node->top_level_expr = true;
             parse_expression(node, symbols, 1);
+            expect(TK_DL_SEMICOLON);
         }
         else {
             expect(TK_DL_SEMICOLON);
@@ -258,6 +259,7 @@ void parse_single_statement(ASTNode* node, SymbolTable* symbols) {
             token_go_back(1);
             node->top_level_expr = true;
             parse_expression(node, symbols, 1);
+            expect(TK_DL_SEMICOLON);
         }
     }
     else if (accept(TK_KW_IF)) { // If conditional
@@ -285,6 +287,7 @@ void parse_single_statement(ASTNode* node, SymbolTable* symbols) {
         node->type = AST_RETURN;
         node->ret = ast_node_new(AST_EXPR, 1);
         parse_expression(node->ret, symbols, 1);
+        expect(TK_DL_SEMICOLON);
     }
     else if (accept(TK_KW_CASE)) { // Case statements
         parse_case(node, symbols);
@@ -335,38 +338,42 @@ void parse_scope(ASTNode* node, SymbolTable* symbols) {
     node->next = ast_node_new(AST_END, 1);
 }
 
+// The end of the expression (, ; is up for the caller to clean up
 void parse_expression(ASTNode* node, SymbolTable* symbols, int min_precedence) {
-    // Do Shunting-yard algorithm
-    // We only handle integer constants currently
+    // Uses precedence climbing
     node->type = AST_EXPR;
 
-    parse_expression_atom(node, symbols, min_precedence);
+    parse_expression_atom(node, symbols);
 
-    if (accept_binop()) { 
-        // Binary op next up, we need to change this node to binop
-        // and set the previous values to the lhs node
-        // Copy this node to node->lhs
-        ASTNode* lhs = ast_node_new(AST_EXPR, 1);
-        ast_node_copy(lhs, node);
-        node->lhs = lhs;
-        node->rhs = ast_node_new(AST_EXPR, 1);
-        node->expr_type = EXPR_BINOP;
-        node->op_type = token_type_to_bop_type(prev_token().type);
-
-        parse_expression(node->rhs, symbols, 1);
-    }
-    else if (accept(TK_DL_SEMICOLON) || accept(TK_DL_COMMA) || accept(TK_DL_OPENBRACE) || accept(TK_DL_CLOSEPAREN) || accept(TK_DL_CLOSEBRACE)) {
-        return; 
-    }
-    else {
-        parse_error("Invalid expression");
+    while(true) {
+        if (accept_binop()) { 
+            OpType op_type = token_type_to_bop_type(prev_token().type);
+            int op_precedence = get_binary_operator_precedence(op_type);
+            if (op_precedence < min_precedence) {
+                // We found an end node
+                token_go_back(1);
+                break;
+            }
+            // Copy this node to node->lhs
+            ASTNode* lhs = ast_node_new(AST_EXPR, 1);
+            ast_node_copy(lhs, node);
+            node->lhs = lhs;
+            node->rhs = ast_node_new(AST_EXPR, 1);
+            node->expr_type = EXPR_BINOP;
+            node->op_type = op_type;
+            int new_min_precedence = op_precedence + !is_binary_operation_right_associative(op_type);
+            parse_expression(node->rhs, symbols, new_min_precedence);
+        }
+        else {
+            break;
+        }
     }
 }
 
-void parse_expression_atom(ASTNode* node,  SymbolTable* symbols, int min_precedence) {
+void parse_expression_atom(ASTNode* node,  SymbolTable* symbols) {
     // Isolate atom
     if (accept(TK_LINT)) { // Literal
-        node->expr_type = EXPR_LITERAL;
+         node->expr_type = EXPR_LITERAL;
         node->literal = prev_token().string_repr;
     }
     else if (accept(TK_IDENT)) { // Variable or function call
@@ -381,8 +388,9 @@ void parse_expression_atom(ASTNode* node,  SymbolTable* symbols, int min_precede
         }
     }
     else if (accept(TK_DL_OPENPAREN)) {
-        symbols->cur_stack_offset += 8;
+        // () resets the precedence
         parse_expression(node, symbols, 1);
+        expect(TK_DL_CLOSEPAREN);
     }
     // Unary op
     else if (accept_unop()) { // Unary operation
@@ -390,7 +398,7 @@ void parse_expression_atom(ASTNode* node,  SymbolTable* symbols, int min_precede
         node->op_type = token_type_to_pre_uop_type(prev_token().type);
         node->rhs = ast_node_new(AST_EXPR, 1);
         //parse_expression(node->lhs, symbols, 1);
-        parse_expression_atom(node->rhs, symbols, 1);
+        parse_expression_atom(node->rhs, symbols);
     }
     else if (accept(TK_DL_CLOSEPAREN)) { 
         // Only scenario this triggers is with a null expression, ex
@@ -416,6 +424,7 @@ void parse_global(ASTNode* node, SymbolTable* symbols) {
         char* ident = prev_token().value.string;
         token_go_back(1);
         parse_expression(node, symbols, 1);
+        expect(TK_DL_SEMICOLON);
         if (!is_const_expression(node, symbols)) {
                 parse_error("Non-constant global expression found");
         }
@@ -443,7 +452,7 @@ void parse_global(ASTNode* node, SymbolTable* symbols) {
             inserted_var->const_expr = evaluate_const_expression(node, symbols);
             inserted_var->is_undefined = false;
         }
-        accept(TK_DL_SEMICOLON);
+        expect(TK_DL_SEMICOLON);
     }
     node->type = AST_NULL_STMT; // This is just a virtual node
 }
@@ -456,13 +465,11 @@ void parse_func_call(ASTNode* node, SymbolTable* symbols) {
     node->args = ast_node_new(AST_EXPR, 1);
     ASTNode* arg_node = node->args;
     while (!(accept(TK_DL_CLOSEPAREN) || prev_token().type == TK_DL_CLOSEPAREN)) { // Go through argument expressions
-        symbols->cur_stack_offset += 8;
         parse_expression(arg_node, symbols, 1);
-        symbols->cur_stack_offset -= 8;
         arg_node->next = ast_node_new(AST_END, 1);
         arg_node = arg_node->next;
+        accept(TK_DL_COMMA);
     }
-    symbols->cur_stack_offset += 8;
 }
 
 void parse_if(ASTNode* node, SymbolTable* symbols) {
@@ -470,6 +477,7 @@ void parse_if(ASTNode* node, SymbolTable* symbols) {
     node->cond = ast_node_new(AST_EXPR, 1);
     expect(TK_DL_OPENPAREN);
     parse_expression(node->cond, symbols, 1);
+    expect(TK_DL_CLOSEPAREN);
     symbols->cur_stack_offset += 8;
     node->then = ast_node_new(AST_SCOPE, 1);
     parse_single_statement(node->then, symbols);
@@ -488,6 +496,7 @@ void parse_while_loop(ASTNode* node, SymbolTable* symbols) {
     node->cond = ast_node_new(AST_EXPR, 1);
     expect(TK_DL_OPENPAREN);
     parse_expression(node->cond, symbols, 1);
+    expect(TK_DL_CLOSEPAREN);
     symbols->cur_stack_offset += 8;
     node->then = ast_node_new(AST_SCOPE, 1);
     parse_single_statement(node->then, symbols);
@@ -507,6 +516,8 @@ void parse_do_while_loop(ASTNode* node, SymbolTable* symbols) {
     symbols->cur_stack_offset += 8;
     node->cond = ast_node_new(AST_EXPR, 1);
     parse_expression(node->cond, symbols, 1);
+    expect(TK_DL_CLOSEPAREN);
+    expect(TK_DL_SEMICOLON);
 }
 
 // Parse a for loop
@@ -534,12 +545,14 @@ void parse_for_loop(ASTNode* node, SymbolTable* symbols) {
     loop_node->cond = ast_node_new(AST_EXPR, 1);
     scope_symbols->cur_stack_offset += 8;
     parse_expression(loop_node->cond, scope_symbols, 1);
+    accept(TK_DL_SEMICOLON);
 
     // Getting the increment expression
     loop_node->incr = ast_node_new(AST_EXPR, 1);
     scope_symbols->cur_stack_offset += 8;
     parse_expression(loop_node->incr, scope_symbols, 1);
     loop_node->incr->next = ast_node_new(AST_END, 1);
+    expect(TK_DL_CLOSEPAREN);
 
     // Parsing the for-loop body
     loop_node->then = ast_node_new(AST_STMT, 1);
@@ -562,6 +575,7 @@ void parse_switch(ASTNode* node, SymbolTable* symbols) {
     node->cond = ast_node_new(AST_EXPR, 1);
     switch_symbols->cur_stack_offset += 8;
     parse_expression(node->cond, switch_symbols,1 );
+    expect(TK_DL_CLOSEPAREN);
     // Now we can parse the contents
     node->body = ast_node_new(AST_STMT, 1);
     node->body->next = ast_node_new(AST_END, 1);
@@ -624,8 +638,8 @@ char* evaluate_const_expression(ASTNode* node, SymbolTable* symbols) {
 // The higher the number, the higher the precedence
 int get_binary_operator_precedence(OpType type) {
     switch (type) {
-            case BOP_MUL:         // *
             case BOP_DIV:         // /
+            case BOP_MUL:         // *
             case BOP_MOD:         // %
                 return 13;
             case BOP_ADD:         // +
@@ -658,6 +672,17 @@ int get_binary_operator_precedence(OpType type) {
             // 1 = comma
             default:
                 return 0;
+    }
+}
+
+// Get associativity of a binary operator
+// The higher the number, the higher the precedence
+bool is_binary_operation_right_associative(OpType type) {
+    switch (type) {
+            case BOP_ASSIGN:
+                return true;
+            default:
+                return false;
     }
 }
 

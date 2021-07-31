@@ -11,6 +11,7 @@ CLEAR='\033[0m'
 failed_test=false
 
 echo "[TEST] Running automated compilation tests..."
+#for i in test/test_code/binops/ex11.c
 for i in test/test_code/*/*.c
 do
     gcc -w $i               #compile with gcc
