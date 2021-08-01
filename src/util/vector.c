@@ -1,18 +1,4 @@
-// Void pointer vector type
-#pragma once
-#include <stdbool.h>
-#include <stdlib.h>
-#include <stdio.h>
-#include <string.h>
-
-typedef struct Vec Vec;
-
-struct Vec {
-    int size;
-    int max_size;
-    int elem_bytes;
-    void* elems;
-};
+#include "vector.h"
 
 Vec vec_new(int bytes) {
     Vec vec;
@@ -23,8 +9,13 @@ Vec vec_new(int bytes) {
     return vec;
 }
 
+void vec_free(Vec* vec) {
+    free(vec->elems);
+}
+
 void vec_realloc(Vec* vec, int new_max_size) {
     vec->elems = realloc(vec->elems, vec->elem_bytes*new_max_size);
+    vec->max_size = new_max_size;
 }
 
 void vec_push(Vec* vec, void* elem) {
@@ -32,5 +23,9 @@ void vec_push(Vec* vec, void* elem) {
     if (vec->size > vec->max_size) {
         vec_realloc(vec, vec->max_size*2);
     }
-    memcpy(vec->elems + vec->size, elem, vec->elem_bytes);
+    memcpy((char*) (vec->elems) + (vec->size-1)*vec->elem_bytes, elem, vec->elem_bytes);
+}
+
+void* vec_get(Vec* vec, int i) {
+    return (void*)(((char*)vec->elems) + i*(vec->elem_bytes));
 }

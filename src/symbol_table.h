@@ -12,7 +12,7 @@
 #include <stdio.h>
 #include <string.h>
 
-#include "string_helpers.h"
+#include "util/string_helpers.h"
 
 typedef enum VarTypeEnum VarTypeEnum;
 typedef struct Variable Variable;

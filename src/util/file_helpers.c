@@ -1,6 +1,4 @@
-#pragma once
-#include <stdio.h>
-#include <stdlib.h>
+#include "file_helpers.h"
 
 char* load_file_to_string(char* filename) {
     FILE *file = fopen(filename, "r");

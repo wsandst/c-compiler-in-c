@@ -7,7 +7,7 @@ from the Abstract Syntax Tree created in the parsing step.
 #include <stdarg.h>
 
 #include "parser.h"
-#include "string_helpers.h"
+#include "util/string_helpers.h"
 
 // Contains various context data required
 struct AsmContext {

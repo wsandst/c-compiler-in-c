@@ -11,7 +11,7 @@ Normally a task like this is more suited to regex.
 #include <string.h>
 #include <ctype.h>
 
-#include "string_helpers.h"
+#include "util/string_helpers.h"
 
 typedef enum TokenType TokenType;
 

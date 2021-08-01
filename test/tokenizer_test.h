@@ -4,7 +4,7 @@
 #include <string.h>
 
 #include "../src/tokens.h"
-#include "../src/file_helpers.h"
+#include "../src/util/file_helpers.h"
 
 // Declarations
 void test_tokenizer();

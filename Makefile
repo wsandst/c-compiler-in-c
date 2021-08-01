@@ -6,6 +6,7 @@ BIN_DIR := build
 
 EXE := $(BIN_DIR)/ccompiler
 SRC := $(wildcard $(SRC_DIR)/*.c)
+SRC += $(wildcard $(SRC_DIR)/util/*.c)
 OBJ := $(SRC:$(SRC_DIR)/%.c=$(OBJ_DIR)/%.o)
 SRC_NO_MAIN := $(filter-out $(SRC_DIR)/compiler.c, $(SRC))
 OBJ_NO_MAIN := $(SRC_NO_MAIN:$(SRC_DIR)/%.c=$(OBJ_DIR)/%.o)
@@ -32,6 +33,7 @@ $(OBJ_DIR)/%.o: $(SRC_DIR)/%.c | $(OBJ_DIR)
 
 $(BIN_DIR) $(OBJ_DIR) $(TEST_OBJ_DIR):
 	mkdir -p $@
+	mkdir -p $@/util
 
 testexe: clean $(TEST_EXE)
 

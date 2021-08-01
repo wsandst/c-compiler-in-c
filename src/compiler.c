@@ -1,12 +1,10 @@
-#include "tokens.h"
+#include "preprocess.h"
 #include "parser.h"
 #include "codegen.h"
-#include "file_helpers.h"
 
 /*
 TODO:
     Tomorrow:
-        Function declarations
         Simple pointers
         Preproccessor planning, architecture
 
@@ -14,13 +12,6 @@ TODO:
         Constant expressions (compile time expressions) (only really required for advanced switch cases)
 
     Functions, proper calling convention:
-        Function declarations:
-            If I encounter a function declaration, I add it to the symbol table
-            Same thing with a definition, got to make sure I overwrite the old function
-            A definition needs to tag the function to make the compiler know it exists
-            If a definition doesn't exist, we assume it is external and add an
-            extern xxx.
-            I can add printf and such this way by hardcoding it
         Stack arguments, floating point arguments, floating point returns
 
     Types:
@@ -31,12 +22,12 @@ TODO:
         Arrays
 
     Preprocessor:
-        Includes
+        Includes:
+            Copy paste the content of another file into this location
+            This works recursively. I need some structure to keep track of the included files
+            and defines and such, to implement pragma once
         Defines
         Pragma once
-    
-
-
 */
 
 int main(int argc, char *argv[]) {
@@ -51,10 +42,11 @@ int main(int argc, char *argv[]) {
 
     printf("Compiling source file \"%s\"\n", src_path);
 
-    char* src = load_file_to_string(src_path);
+    //char* src = load_file_to_string(src_path);
 
-    // Step 1: Tokenization
-    Tokens tokens = tokenize(src);
+    // Step 1: Preprocessing + Tokenization
+    PreprocessorTable table = preprocessor_table_new();
+    Tokens tokens = preprocess(src_path, table);
     //tokens_print(&tokens);
 
     // Step 2: AST Parsing
@@ -71,7 +63,6 @@ int main(int argc, char *argv[]) {
     tokens_free(&tokens);
     ast_free(&ast);
     free(asm_src);
-    free(src);
     
     printf("Compilation complete\n");
 
