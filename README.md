@@ -14,6 +14,7 @@ The compiler uses a handwritten tokenizer, a recursive decent parser and a code 
     * Unary operations (post and pre)
     * Parenthesis
     * Operator precedence, associativity
+    * Logical short circuiting
 * Functions
     * Integer function arguments (up to 6 arguments)
     * Return values (integer)

@@ -409,6 +409,7 @@ void parse_expression_atom(ASTNode* node,  SymbolTable* symbols) {
     }
 }
 
+
 void parse_global(ASTNode* node, SymbolTable* symbols) {
     if (accept(TK_IDENT)) { // Definition of already declared global variable
         char* ident = prev_token().value.string;
@@ -469,9 +470,9 @@ void parse_if(ASTNode* node, SymbolTable* symbols) {
     parse_expression(node->cond, symbols, 1);
     expect(TK_DL_CLOSEPAREN);
     symbols->cur_stack_offset += 8;
-    node->then = ast_node_new(AST_SCOPE, 1);
-    parse_single_statement(node->then, symbols);
-    node->then->next = ast_node_new(AST_END, 1);
+    node->body = ast_node_new(AST_SCOPE, 1);
+    parse_single_statement(node->body, symbols);
+    node->body->next = ast_node_new(AST_END, 1);
     // Check if the if has an attached else
     if (accept(TK_KW_ELSE)) {
         node->els = ast_node_new(AST_STMT, 1);
@@ -488,18 +489,18 @@ void parse_while_loop(ASTNode* node, SymbolTable* symbols) {
     parse_expression(node->cond, symbols, 1);
     expect(TK_DL_CLOSEPAREN);
     symbols->cur_stack_offset += 8;
-    node->then = ast_node_new(AST_SCOPE, 1);
-    parse_single_statement(node->then, symbols);
-    node->then->next = ast_node_new(AST_END, 1);
+    node->body = ast_node_new(AST_SCOPE, 1);
+    parse_single_statement(node->body, symbols);
+    node->body->next = ast_node_new(AST_END, 1);
 }
 
 // Parse a do while loop
 void parse_do_while_loop(ASTNode* node, SymbolTable* symbols) {
     node->type = AST_DO_LOOP;
     // Parse do while body
-    node->then = ast_node_new(AST_SCOPE, 1);
-    parse_single_statement(node->then, symbols);
-    node->then->next = ast_node_new(AST_END, 1);
+    node->body = ast_node_new(AST_SCOPE, 1);
+    parse_single_statement(node->body, symbols);
+    node->body->next = ast_node_new(AST_END, 1);
     // Parse while condition at end
     expect(TK_KW_WHILE);
     expect(TK_DL_OPENPAREN);
@@ -545,11 +546,11 @@ void parse_for_loop(ASTNode* node, SymbolTable* symbols) {
     expect(TK_DL_CLOSEPAREN);
 
     // Parsing the for-loop body
-    loop_node->then = ast_node_new(AST_STMT, 1);
-    parse_single_statement(loop_node->then, scope_symbols);
+    loop_node->body = ast_node_new(AST_STMT, 1);
+    parse_single_statement(loop_node->body, scope_symbols);
 
     // We need to insert the increment operation last
-    loop_node->then->next = ast_node_new(AST_END, 1);
+    loop_node->body->next = ast_node_new(AST_END, 1);
 }
 
 // Parse a switch statement

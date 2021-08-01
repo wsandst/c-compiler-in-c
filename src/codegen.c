@@ -107,6 +107,10 @@ char* generate_assembly(AST* ast, SymbolTable* symbols) {
     AsmContext ctx;
     ctx.last_start_label = NULL;
     ctx.last_end_label = NULL;
+    ctx.and_short_circuit_label = NULL;
+    ctx.or_short_circuit_label = NULL;
+    ctx.and_end_node = false;
+    ctx.or_end_node = false;
 
     gen_asm(ast->program, ctx);
     asm_add_newline();
@@ -231,6 +235,9 @@ void gen_asm_expr(ASTNode* node, AsmContext ctx) {
     }
     else if (node->expr_type == EXPR_FUNC_CALL) { // Function call
         gen_asm_func_call(node, ctx);
+        if (node->top_level_expr) {
+            gen_asm(node->next, ctx);
+        }
         //asm_add(1, "sub rsp, 16"); // Allocate space for parameters on stack
         //asm_add(2, "call ", node->func.name);
     }
@@ -324,11 +331,16 @@ void gen_asm_unary_op(ASTNode* node, AsmContext ctx) {
 
 // Maybe that is for later when I implement proper expression handling
 void gen_asm_binary_op(ASTNode* node, AsmContext ctx) {
-    gen_asm(node->rhs, ctx); // RHS now in RAX
-    asm_add(1, "mov rbx, rax");
-    asm_add(1, "push rbx"); // Save in rbx
+    gen_asm_setup_short_circuiting(node, &ctx); // AND/OR Short circuiting related
+
     gen_asm(node->lhs, ctx); // LHS now in RAX
-    asm_add(1, "pop rbx"); // Pop saved RHS to RBX
+
+    gen_asm_add_short_circuit_jumps(node, ctx); // AND/OR Short circuiting related
+
+    asm_add(1, "push rax"); // Save RAX
+    gen_asm(node->rhs, ctx); // LHS now in RAX
+    asm_add(1, "mov rbx, rax"); // Move RHS to RBX
+    asm_add(1, "pop rax"); // LHS now in RAX
     // We are now ready for the binary operation
     switch (node->op_type) { // These are all integer operations
         case BOP_ASSIGN: 
@@ -403,18 +415,10 @@ void gen_asm_binary_op(ASTNode* node, AsmContext ctx) {
             asm_add(1, "setge al");
             break;
         case BOP_AND: // Logical and
-            asm_add_com("; Op: && (AND)");
-            asm_add(1, "and rax, rbx");
-            asm_add(1, "cmp rax, 0");
-            asm_add(1, "mov rax, 0");
-            asm_add(1, "setne al");
+            gen_asm_binary_op_and(node, ctx);
             break;
         case BOP_OR: // Logical or
-            asm_add_com("; Op: || (OR)");
-            asm_add(1, "or rax, rbx");
-            asm_add(1, "cmp rax, 0");
-            asm_add(1, "mov rax, 0");
-            asm_add(1, "setne al");
+            gen_asm_binary_op_or(node, ctx);
             break;
         // Bitwise
         case BOP_ASSIGN_BITAND:
@@ -461,6 +465,74 @@ void gen_asm_binary_op_assign(ASTNode* node, AsmContext ctx) {
     asm_add(3, "mov ", var_sp, ", rax");
     free(var_sp);
 }
+
+
+// Short circuiting
+void gen_asm_setup_short_circuiting(ASTNode* node, AsmContext* ctx) {
+    // First AND node found
+    if (node->op_type != BOP_AND && ctx->and_end_node) {
+        ctx->and_end_node = false;
+        ctx->and_short_circuit_label = NULL;
+    }
+    else if (node->op_type == BOP_AND) {
+        if (ctx->and_short_circuit_label == NULL ) {
+            ctx->and_short_circuit_label = get_next_label_str();
+            ctx->and_end_node = true;
+        }
+        else {
+            ctx->and_end_node = false;
+        }
+    }
+    else if (node->op_type != BOP_OR && ctx->or_end_node) {
+        ctx->or_end_node = false;
+        ctx->and_short_circuit_label = NULL;
+    }
+    else if (node->op_type == BOP_OR) {
+        if (ctx->or_short_circuit_label == NULL ) {
+            ctx->or_short_circuit_label = get_next_label_str();
+            ctx->or_end_node = true;
+        }
+        else {
+            ctx->or_end_node = false;
+        }
+    }
+}
+
+void gen_asm_add_short_circuit_jumps(ASTNode* node, AsmContext ctx) {
+    if (node->op_type == BOP_AND) {
+        // Does this ruin rax?
+        asm_add(1, "cmp rax, 0");
+        asm_add(3, "je ", ctx.and_short_circuit_label, " ; Short circuit AND jump");
+    }
+    if (node->op_type == BOP_OR) {
+        // Does this ruin rax?
+        asm_add(1, "cmp rax, 1");
+        asm_add(3, "je ", ctx.or_short_circuit_label, " ; Short circuit OR jump");
+    }
+}
+
+void gen_asm_binary_op_and(ASTNode* node, AsmContext ctx) {
+    asm_add_com("; Op: && (AND)");
+    asm_add(1, "and rax, rbx");
+    asm_add(1, "cmp rax, 0");
+    asm_add(1, "mov rax, 0");
+    asm_add(1, "setne al");
+    if (ctx.and_end_node) { // Add short circuit end jump label
+        asm_add(2, ctx.and_short_circuit_label, ": ; Logical short circuit end label");
+    }
+}
+
+void gen_asm_binary_op_or(ASTNode* node, AsmContext ctx) {
+    asm_add_com("; Op: || (OR)");
+    asm_add(1, "or rax, rbx");
+    asm_add(1, "cmp rax, 0");
+    asm_add(1, "mov rax, 0");
+    asm_add(1, "setne al");
+    if (ctx.or_end_node) { // Add short circuit end jump label
+        asm_add(2, ctx.or_short_circuit_label, ": ; Logical short circuit end label");
+    }
+}
+
 
 // Generate assembly for a function call
 void gen_asm_func_call(ASTNode* node, AsmContext ctx) {
@@ -546,7 +618,7 @@ void gen_asm_if(ASTNode* node, AsmContext ctx) {
     if (node->els != NULL) { // There is an else statement
         else_label = get_next_label_str();
         asm_add(3, "je ", else_label, " ; Conditional false => Jump to Else");
-        gen_asm(node->then, ctx); // If body
+        gen_asm(node->body, ctx); // If body
         after_label = get_next_label_str();
         asm_add(3, "jmp ", after_label, " ; Jump to end of if/else after if"); 
         asm_add_com("; Label: Else statement");
@@ -558,7 +630,7 @@ void gen_asm_if(ASTNode* node, AsmContext ctx) {
     else { // No else statement
         after_label = get_next_label_str();
         asm_add(2, "je ", after_label, "; Conditional false => Jump to end of if block");
-        gen_asm(node->then, ctx); // If body
+        gen_asm(node->body, ctx); // If body
         asm_add_newline();
     }
     // Jump label after if
@@ -586,7 +658,7 @@ void gen_asm_loop(ASTNode* node, AsmContext ctx) {
     asm_add(1, "cmp rax, 0");
     asm_add(2, "je ", loop_end_label, " ; Jump to after loop if conditional is false");
     asm_add_com("; Else, evaluate loop body");
-    gen_asm(node->then, ctx);
+    gen_asm(node->body, ctx);
     if(node->incr != NULL) { // For loop increment
         asm_add(2, ctx.last_start_label, ":", " ; For continue label");
         gen_asm(node->incr, ctx);
@@ -606,7 +678,7 @@ void gen_asm_do_loop(ASTNode* node, AsmContext ctx) {
     asm_add_newline();
     asm_add(2, while_start_label, ":");
     asm_add_com("; Evaluate do while body");
-    gen_asm(node->then, ctx);
+    gen_asm(node->body, ctx);
     asm_add_com("; Calculating while statement conditional at end");
     gen_asm(node->cond, ctx); // Value now in RAX
     asm_add(1, "cmp rax, 0");

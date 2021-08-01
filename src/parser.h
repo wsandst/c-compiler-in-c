@@ -98,12 +98,8 @@ struct ASTNode {
     Function func;
     ValueLabel label;
 
-    ASTNode* func_args;
-
     ASTNode* next;
-
-    // Assign
-    ASTNode* assign;
+    ASTNode* body;
 
     // Expr
     ExprType expr_type;
@@ -112,12 +108,10 @@ struct ASTNode {
     ASTNode* lhs;
     // Literal
     char* literal;
-    int scratch_stack_offset;
     bool top_level_expr;
 
     // IF, WHILE, FOR etc
     ASTNode* cond;
-    ASTNode* then;
     ASTNode* els;
     ASTNode* incr;
 
@@ -127,11 +121,6 @@ struct ASTNode {
     ASTNode* args;
     VarTypeEnum ret_type;
     ASTNode* ret; // necessary?
-    // return?
-
-    ASTNode* body;
-    //long long int ival;
-    //long double fval;
 
     char* debug;
     ASTNode* next_mem; // Linked list used for freeing memory correctly
@@ -184,6 +173,8 @@ void parse_single_statement(ASTNode* node, SymbolTable* symbols);
 // Parse an expression, ex (a + b) + 3
 void parse_expression(ASTNode* node,  SymbolTable* symbols, int min_precedence);
 void parse_expression_atom(ASTNode* node,  SymbolTable* symbols);
+// Used later for short circuiting
+void mark_first_and_or_nodes(ASTNode* node, OpType new_op);
 
 void parse_global(ASTNode* node, SymbolTable* symbols);
 

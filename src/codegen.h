@@ -15,6 +15,11 @@ struct AsmContext {
     char* last_start_label; // Latest start label for loops
     char* last_end_label; // Latest end label for loops and switch
     char* func_return_label;
+    // Short circuiting
+    char* and_short_circuit_label;
+    char* or_short_circuit_label;
+    bool and_end_node;
+    bool or_end_node;
 };
 
 typedef struct AsmContext AsmContext;
@@ -72,6 +77,14 @@ void gen_asm_unary_op(ASTNode* node, AsmContext ctx);
 void gen_asm_binary_op(ASTNode* node, AsmContext ctx);
 // Generate assembly for a binary op assignment expression node
 void gen_asm_binary_op_assign(ASTNode* node, AsmContext ctx);
+// Generate assembly for a binary op AND node (with short circuiting)
+void gen_asm_binary_op_and(ASTNode* node, AsmContext ctx);
+// Generate assembly for a binary op OR node (with short circuiting)
+void gen_asm_binary_op_or(ASTNode* node, AsmContext ctx);
+// Setup short circuiting labels for and and or
+void gen_asm_setup_short_circuiting(ASTNode* node, AsmContext* ctx);
+// Add short circuiting conditional jump after lhs evaluation for AND/OR
+void gen_asm_add_short_circuit_jumps(ASTNode* node, AsmContext ctx);
 
 // Generate assembly for a function definition
 void gen_asm_func(ASTNode* node, AsmContext ctx);

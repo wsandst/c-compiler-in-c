@@ -5,9 +5,17 @@
 
 /*
 TODO:
+    Tomorrow:
+        AND and OR short circuiting
+        Function declarations
+        Simple pointers
+        Preproccessor planning, architecture
+
     Expressions:
         Constant expressions (compile time expressions) (only really required for advanced switch cases)
         AND and OR short circuiting
+
+    a && b && c. If a false,, skip to end of c.
 
     Functions, proper calling convention:
         Function declarations
