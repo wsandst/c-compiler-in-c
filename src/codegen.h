@@ -70,6 +70,8 @@ void gen_asm_unary_op(ASTNode* node, AsmContext ctx);
 
 // Generate assembly for a binary op expression node
 void gen_asm_binary_op(ASTNode* node, AsmContext ctx);
+// Generate assembly for a binary op assignment expression node
+void gen_asm_binary_op_assign(ASTNode* node, AsmContext ctx);
 
 // Generate assembly for a function definition
 void gen_asm_func(ASTNode* node, AsmContext ctx);

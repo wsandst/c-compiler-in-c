@@ -92,9 +92,9 @@ void expect_var_type() {
     }
 }
 
-bool accept(enum TokenType type) {
+bool accept(TokenType type) {
     if (parse_token->type == type) {
-        //printf("T: %s\n", token_type_to_string(type));
+        //printf("%s\n", token_type_to_string(parse_token->type));
         parse_token++;
         return true;
     }
@@ -103,40 +103,30 @@ bool accept(enum TokenType type) {
     }
 }
 
-bool accept_var_type() {
-    return (accept(TK_KW_INT) || accept(TK_KW_FLOAT) || accept(TK_KW_DOUBLE) || accept(TK_KW_CHAR));
-}
-
-// Accept a unary operator with two tokens (++ and --)
-bool accept_unop_two_token_type() {
-    if (accept(TK_OP_MINUS)) {
-        if (accept(TK_OP_MINUS)) {
-            (parse_token-1)->type = TK_OP_DECR;
-            return true;
-        }
-        token_go_back(1);
-    }
-    else if (accept(TK_OP_PLUS)) {
-        if (accept(TK_OP_PLUS)) {
-            (parse_token-1)->type = TK_OP_INCR;
-            return true;
-        }
-        token_go_back(1);
+// Accept any token within this range
+bool accept_range(TokenType from_token, TokenType to_token) {
+    if (parse_token->type >= from_token && parse_token->type <= to_token) {
+        //printf("%s\n", token_type_to_string(parse_token->type));
+        parse_token++;
+        return true;
     }
     return false;
 }
 
+bool accept_var_type() {
+    return (accept(TK_KW_INT) || accept(TK_KW_FLOAT) || accept(TK_KW_DOUBLE) || accept(TK_KW_CHAR));
+}
+
 bool accept_unop() {
-    return (accept_unop_two_token_type() || accept(TK_OP_MINUS) || accept(TK_OP_NOT) || accept(TK_OP_COMPL));
+    return (accept(TK_OP_MINUS) || accept(TK_OP_NOT) || accept(TK_OP_COMPL) || accept(TK_OP_INCR) || accept(TK_OP_DECR));
+}
+
+bool accept_post_unop() {
+    return (accept(TK_OP_INCR) || accept(TK_OP_DECR));
 }
 
 bool accept_binop() {
-    return (
-        accept(TK_OP_PLUS) || accept(TK_OP_MINUS) || accept(TK_OP_MULT) || accept(TK_OP_DIV) || 
-        accept(TK_OP_EQ) || accept(TK_OP_NEQ) || accept(TK_OP_LT) || accept(TK_OP_LTE) || 
-        accept(TK_OP_GT) || accept(TK_OP_GTE) || accept(TK_OP_MOD) || accept(TK_OP_AND) || 
-        accept(TK_OP_OR) || accept(TK_OP_ASSIGN)
-        );
+    return accept_range(TK_OP_PLUS, TK_OP_ASSIGN_BITXOR);
 }
 
 void parse_program(ASTNode* node, SymbolTable* symbols) {
@@ -361,7 +351,7 @@ void parse_expression(ASTNode* node, SymbolTable* symbols, int min_precedence) {
             node->rhs = ast_node_new(AST_EXPR, 1);
             node->expr_type = EXPR_BINOP;
             node->op_type = op_type;
-            int new_min_precedence = op_precedence + !is_binary_operation_right_associative(op_type);
+            int new_min_precedence = op_precedence + !is_binary_operation_assignment(op_type);
             parse_expression(node->rhs, symbols, new_min_precedence);
         }
         else {
@@ -410,7 +400,7 @@ void parse_expression_atom(ASTNode* node,  SymbolTable* symbols) {
         parse_error("Invalid expression atom");
     }
 
-    while (accept_unop_two_token_type()) { // Accept postfix unary operators
+    while (accept_post_unop()) { // Accept postfix unary operators
         ASTNode* rhs = ast_node_new(AST_EXPR, 1);
         ast_node_copy(rhs, node);
         node->rhs = rhs;
@@ -668,6 +658,16 @@ int get_binary_operator_precedence(OpType type) {
                 return 4;
             // 3 = ternary
             case BOP_ASSIGN:      // =
+            case BOP_ASSIGN_ADD:
+            case BOP_ASSIGN_SUB:
+            case BOP_ASSIGN_MULT:
+            case BOP_ASSIGN_DIV:
+            case BOP_ASSIGN_MOD:
+            case BOP_ASSIGN_LEFTSHIFT:
+            case BOP_ASSIGN_RIGHTSHIFT:
+            case BOP_ASSIGN_BITAND:
+            case BOP_ASSIGN_BITOR:
+            case BOP_ASSIGN_BITXOR:
                 return 2;
             // 1 = comma
             default:
@@ -675,11 +675,20 @@ int get_binary_operator_precedence(OpType type) {
     }
 }
 
-// Get associativity of a binary operator
-// The higher the number, the higher the precedence
-bool is_binary_operation_right_associative(OpType type) {
+// Assignment is right associative, needed for the precedence parsing
+bool is_binary_operation_assignment(OpType type) {
     switch (type) {
             case BOP_ASSIGN:
+            case BOP_ASSIGN_ADD:
+            case BOP_ASSIGN_SUB:
+            case BOP_ASSIGN_MULT:
+            case BOP_ASSIGN_DIV:
+            case BOP_ASSIGN_MOD:
+            case BOP_ASSIGN_LEFTSHIFT:
+            case BOP_ASSIGN_RIGHTSHIFT:
+            case BOP_ASSIGN_BITAND:
+            case BOP_ASSIGN_BITOR:
+            case BOP_ASSIGN_BITXOR:
                 return true;
             default:
                 return false;
@@ -758,8 +767,38 @@ OpType token_type_to_bop_type(enum TokenType type) {
             return BOP_AND;
         case TK_OP_OR:
             return BOP_OR;
+        case TK_OP_BITOR:
+            return BOP_BITOR;
+        case TK_OP_BITAND:
+            return BOP_BITAND;
+        case TK_OP_BITXOR:
+            return BOP_BITXOR;
+        case TK_OP_LEFTSHIFT:
+            return BOP_LEFTSHIFT;
+        case TK_OP_RIGHTSHIFT:
+            return BOP_RIGHTSHIFT;
         case TK_OP_ASSIGN:
             return BOP_ASSIGN;
+        case TK_OP_ASSIGN_ADD:
+            return BOP_ASSIGN_ADD;
+        case TK_OP_ASSIGN_SUB:
+            return BOP_ASSIGN_SUB;
+        case TK_OP_ASSIGN_MULT:
+            return BOP_ASSIGN_MULT;
+        case TK_OP_ASSIGN_DIV:
+            return BOP_ASSIGN_DIV;
+        case TK_OP_ASSIGN_MOD:
+            return BOP_ASSIGN_MOD;
+        case TK_OP_ASSIGN_LEFTSHIFT:
+            return BOP_ASSIGN_LEFTSHIFT;
+        case TK_OP_ASSIGN_RIGHTSHIFT:
+            return BOP_ASSIGN_RIGHTSHIFT;
+        case TK_OP_ASSIGN_BITAND:
+            return BOP_ASSIGN_BITAND;
+        case TK_OP_ASSIGN_BITOR:
+            return BOP_ASSIGN_BITOR;
+        case TK_OP_ASSIGN_BITXOR:
+            return BOP_ASSIGN_BITXOR;
         default:
             parse_error("Unsupported binary operation encountered while parsing");
             return 0;

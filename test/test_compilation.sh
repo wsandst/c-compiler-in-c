@@ -14,9 +14,9 @@ echo "[TEST] Running automated compilation tests..."
 #for i in test/test_code/binops/ex11.c
 for i in test/test_code/*/*.c
 do
-    gcc -w $i               #compile with gcc
-    ./a.out                 #run it
-    expected=$?             #get exit code
+    gcc -w $i     #compile with gcc
+    ./a.out       #run it
+    expected=$?   #get exit code
     #compile with ccompiler, optionally use valgrind to check for mem issues
     if [ "$use_valgrind" = true ] ; then
         echo "${YELLOW}Running compiler with valgrind, expect slow compilation!${CLEAR}"
@@ -32,8 +32,8 @@ do
     else
         ./build/ccompiler $i
     fi
-    ./output                 # Run the binary we assembled
-    actual=$?                # get exit code from binary
+    ./output    # Run the binary we assembled
+    actual=$?   # get exit code from binary
     echo -n "[TEST] $i:    "
     # Give error if exit code does not match gcc
     if [ "$expected" -ne "$actual" ] ; then

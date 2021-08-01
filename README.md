@@ -1,6 +1,7 @@
 [![Build Status](https://travis-ci.com/wsandst/c-compiler-in-c.svg?branch=main)](https://travis-ci.com/wsandst/c-compiler-in-c)
 # Simple C Compiler written in C
 This project is a C compiler, written completely in C. The aim of the project is to eventually have a working compiler which can compile itself. For this reason, no external dependencies are used. The compiler generates x86-64 executables.
+The compiler uses a handwritten tokenizer, a recursive decent parser and a code generator which generates NASM assembly.
 
 ## Supported constructs
 * Variables
@@ -9,11 +10,10 @@ This project is a C compiler, written completely in C. The aim of the project is
     * Scopes
     * Currently only supports 64-bit integers
 * Expressions
-    * Binary operations
+    * All binary operations implemented
     * Unary operations (post and pre)
     * Parenthesis
-    * No order of operations currently
-    * Incorrect associativity (right hand)
+    * Operator precedence, associativity
 * Functions
     * Integer function arguments (up to 6 arguments)
     * Return values (integer)

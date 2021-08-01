@@ -331,28 +331,26 @@ void gen_asm_binary_op(ASTNode* node, AsmContext ctx) {
     asm_add(1, "pop rbx"); // Pop saved RHS to RBX
     // We are now ready for the binary operation
     switch (node->op_type) { // These are all integer operations
-        case BOP_ASSIGN: {
-                if (node->lhs->expr_type != EXPR_VAR) {
-                    codegen_error("Only variables can be assigned to");
-                }
-                char* var_sp = var_to_stack_ptr(&node->lhs->var);
-                asm_add(1, "mov rax, rbx"); // We need to return the value
-                asm_add(3, "mov ", var_sp, ", rax");
-                free(var_sp);
-            }
+        case BOP_ASSIGN: 
+            // Rest of assignment is handled after the switch
+            asm_add(1, "mov rax, rbx"); // We need the rhs value in rax
             break;
+        case BOP_ASSIGN_ADD:
         case BOP_ADD: // Addition
             asm_add_com("; Op: +");
             asm_add(1, "add rax, rbx");
             break;
+        case BOP_ASSIGN_SUB: // Assignment subtraction
         case BOP_SUB: // Subtraction
             asm_add_com("; Op: -");
             asm_add(1, "sub rax, rbx");
             break;
+        case BOP_ASSIGN_MULT:
         case BOP_MUL: // Multiplication
             asm_add_com("; Op: *");
             asm_add(1, "imul rax, rbx");
             break;
+        case BOP_ASSIGN_DIV:
         case BOP_DIV: // Integer division
             asm_add_com("; Op: / (Integer)");
             asm_add(1, "push rdx");
@@ -360,6 +358,7 @@ void gen_asm_binary_op(ASTNode* node, AsmContext ctx) {
             asm_add(1, "idiv rbx");
             asm_add(1, "pop rdx");
             break;
+        case BOP_ASSIGN_MOD:
         case BOP_MOD: // Modulo
             asm_add_com("; Op: %");
             asm_add(1, "mov rdx, 0");
@@ -417,10 +416,50 @@ void gen_asm_binary_op(ASTNode* node, AsmContext ctx) {
             asm_add(1, "mov rax, 0");
             asm_add(1, "setne al");
             break;
+        // Bitwise
+        case BOP_ASSIGN_BITAND:
+        case BOP_BITAND: // Bitwise and
+            asm_add_com("; Op: & (BITWISE AND)");
+            asm_add(1, "and rax, rbx");
+            break;
+        case BOP_ASSIGN_BITOR:
+        case BOP_BITOR: // Bitwise or
+            asm_add_com("; Op: & (BITWISE OR)");
+            asm_add(1, "or rax, rbx");
+            break;
+        case BOP_ASSIGN_BITXOR:
+        case BOP_BITXOR: // Bitwise xor
+            asm_add_com("; Op: & (BITWISE XOR)");
+            asm_add(1, "xor rax, rbx");
+            break;
+        case BOP_ASSIGN_LEFTSHIFT:
+        case BOP_LEFTSHIFT: // Bitwise leftshift
+            asm_add_com("; Op: << (BITWISE LEFTSHIFT)");
+            asm_add(1, "mov rcx, rbx");
+            asm_add(1, "sal rax, cl");
+            break;
+        case BOP_ASSIGN_RIGHTSHIFT:
+        case BOP_RIGHTSHIFT: // Bitwise rightshift
+            asm_add_com("; Op: >> (BITWISE RIGHTSHIFT)");
+            asm_add(1, "mov rcx, rbx");
+            asm_add(1, "sar rax, cl");
+            break;
         default:
             codegen_error("Unsupported binary operation found!");
             break;
     }
+    if (is_binary_operation_assignment(node->op_type)) {
+        gen_asm_binary_op_assign(node, ctx);
+    }
+}
+
+void gen_asm_binary_op_assign(ASTNode* node, AsmContext ctx) {
+    if (node->lhs->expr_type != EXPR_VAR) {
+            codegen_error("Only variables can be assigned to");
+    } // a = a+1
+    char* var_sp = var_to_stack_ptr(&node->lhs->var);
+    asm_add(3, "mov ", var_sp, ", rax");
+    free(var_sp);
 }
 
 // Generate assembly for a function call

@@ -19,35 +19,45 @@ typedef struct ASTNode ASTNode;
 typedef struct AST AST;
 
 enum OpType {
-    BOP_ADD,        // +
-    BOP_SUB,        // -
-    BOP_MUL,        // *
-    BOP_DIV,        // /
-    BOP_MOD,        // %
-    BOP_BITAND,     // &
-    BOP_BITOR,      // |
-    BOP_BITXOR,     // ^
-    BOP_LEFTSHIFT,  // <<
-    BOP_RIGHTSHIFT, // >>
-    BOP_EQ,         // ==
-    BOP_NEQ,         // !=
-    BOP_LT,         // <
-    BOP_LTE,        // <=
-    BOP_GT,         // <
-    BOP_GTE,        // <=
-    BOP_ASSIGN,     // =
-    BOP_AND,        // &&
-    BOP_OR,         // ||
-    UOP_NEG,        // unary -
-    UOP_ADDR,       // unary &
-    UOP_DEREF,      // unary *
-    UOP_NOT,        // unary !
-    UOP_COMPL,      // unary ~
-    UOP_SIZEOF,     // sizeof
-    UOP_POST_INCR,  // x++
-    UOP_PRE_INCR,   // ++x
-    UOP_POST_DECR,  // x--
-    UOP_PRE_DECR,   // --x
+    BOP_ADD,                // +
+    BOP_SUB,                // -
+    BOP_MUL,                // *
+    BOP_DIV,                // /
+    BOP_MOD,                // %
+    BOP_BITAND,             // &
+    BOP_BITOR,              // |
+    BOP_BITXOR,             // ^
+    BOP_LEFTSHIFT,          // <<
+    BOP_RIGHTSHIFT,         // >>
+    BOP_EQ,                 // ==
+    BOP_NEQ,                // !=
+    BOP_LT,                 // <
+    BOP_LTE,                // <=
+    BOP_GT,                 // <
+    BOP_GTE,                // <=
+    BOP_AND,                // &&
+    BOP_OR,                 // ||
+    BOP_ASSIGN,             // =
+    BOP_ASSIGN_ADD,         // +=
+    BOP_ASSIGN_SUB,         // -=
+    BOP_ASSIGN_MULT,        // *=
+    BOP_ASSIGN_DIV,         // /=
+    BOP_ASSIGN_MOD,         // %=
+    BOP_ASSIGN_RIGHTSHIFT,  // >>=
+    BOP_ASSIGN_LEFTSHIFT,   // <<=
+    BOP_ASSIGN_BITAND,      // &=
+    BOP_ASSIGN_BITOR,       // |=
+    BOP_ASSIGN_BITXOR,      // ^=
+    UOP_NEG,                // unary -
+    UOP_ADDR,               // unary &
+    UOP_DEREF,              // unary *
+    UOP_NOT,                // unary !
+    UOP_COMPL,              // unary ~
+    UOP_SIZEOF,             // sizeof
+    UOP_POST_INCR,          // x++
+    UOP_PRE_INCR,           // ++x
+    UOP_POST_DECR,          // x--
+    UOP_PRE_DECR,           // --x
 };
 
 enum ASTNodeType {
@@ -68,7 +78,6 @@ enum ASTNodeType {
     AST_LABEL,      // Label
     //AST_COMMA,    // ,
 
-    AST_CONST_EXPR,
     AST_STMT,       // Statement
     AST_END,        // End of scope/loop etc
     AST_NULL_STMT, // Empty statement, used in certain for loops, need to represent it
@@ -229,30 +238,32 @@ Token prev_token();
 
 // Make sure the current token matches the sent in token, else
 // send an error message and exit the program
-void expect(enum TokenType type);
+void expect(TokenType type);
 void expect_var_type();
 
 // Return true or false whether the current token matches the sent in token
-bool accept(enum TokenType type);
+bool accept(TokenType type);
+// Accept any token within this range
+bool accept_range(TokenType from_token, TokenType to_token);
 // Accept a variable Token type (Int, Float etc...)
 bool accept_var_type();
 // Accept a unary operator Token type
 bool accept_unop_type();
-// Accept a unary operator with two tokens (++ and --)
-bool accept_unop_two_token_type();
+// Accept postfix/suffix unary operator Token Type
+bool accept_post_unop();
 // Accept a binary operator Token type
 bool accept_binop_type();
 
 // Get precedence of binary operator
 int get_binary_operator_precedence(OpType type);
-// Get whether a binary operator is right associtative (tex =)
-bool is_binary_operation_right_associative(OpType type);
+// Assignment is right associative, needed for the precedence parsing
+bool is_binary_operation_assignment(OpType type);
 
 // Convert a TokenType variable type to the corresponding VarTypeEnum
-VarTypeEnum token_type_to_var_type(enum TokenType type);
+VarTypeEnum token_type_to_var_type(TokenType type);
 // Convert a TokenType unary operator type to the corresponding prefix UnaryOpType
-OpType token_type_to_pre_uop_type(enum TokenType type);
+OpType token_type_to_pre_uop_type(TokenType type);
 // Convert a TokenType unary operator type to the corresponding postfix UnaryOpType
-OpType token_type_to_post_uop_type(enum TokenType type);
+OpType token_type_to_post_uop_type(TokenType type);
 // Convert a TokenType binary operator type to the corresponding BinaryOpType
-OpType token_type_to_bop_type(enum TokenType type);
+OpType token_type_to_bop_type(TokenType type);

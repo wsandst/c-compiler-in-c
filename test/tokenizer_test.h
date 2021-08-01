@@ -8,6 +8,7 @@
 
 // Declarations
 void test_tokenizer();
+void test_tokenizer_helpers();
 void test_tokenizer_preprocessor();
 void test_tokenizer_comments();
 void test_tokenizer_strings();
@@ -22,6 +23,7 @@ void test_tokenizer_large_src();
 void test_tokenizer() {
     printf("[CTEST] Running tokenizer tests...\n");
 
+    test_tokenizer_helpers();
     test_tokenizer_preprocessor();
     test_tokenizer_comments();
     test_tokenizer_strings();
@@ -34,6 +36,13 @@ void test_tokenizer() {
     test_tokenizer_large_src();
 
     printf("[CTEST] Passed tokenizer tests!\n");
+}
+
+void test_tokenizer_helpers() {
+    // String conversion
+    assert(strcmp(token_type_to_string(TK_OP_ASSIGN_BITOR), "TK_OP_ASSIGN_BITOR") == 0);
+    assert(strcmp(token_type_to_string(TK_KW_VOID), "TK_KW_VOID") == 0);
+    assert(strcmp(token_type_to_string(TK_LINT), "TK_LINT") == 0);
 }
 
 void test_tokenizer_preprocessor() {
@@ -123,7 +132,7 @@ void test_tokenizer_keywords() {
 
 void test_tokenizer_ops() {
     // Operations
-    char* src = "|| && >> << == != ** >= <= + - * / % | & ~ ^ > < ! = ?";
+    char* src = "|| && >> << == != >= <= + - * / % | & ~ ^ > < ! = ? ++ -- += -= *= /= %= <<= >>= &= |= ^=";
     Tokens tokens = tokenize(src);
     assert(tokens.elems[0].type  == TK_OP_OR);
     assert(tokens.elems[1].type  == TK_OP_AND);
@@ -131,23 +140,35 @@ void test_tokenizer_ops() {
     assert(tokens.elems[3].type  == TK_OP_LEFTSHIFT);
     assert(tokens.elems[4].type  == TK_OP_EQ);
     assert(tokens.elems[5].type  == TK_OP_NEQ);
-    assert(tokens.elems[6].type  == TK_OP_EXP);
-    assert(tokens.elems[7].type  == TK_OP_GTE);
-    assert(tokens.elems[8].type  == TK_OP_LTE);
-    assert(tokens.elems[9].type  == TK_OP_PLUS);
-    assert(tokens.elems[10].type == TK_OP_MINUS);
-    assert(tokens.elems[11].type == TK_OP_MULT);
-    assert(tokens.elems[12].type == TK_OP_DIV);
-    assert(tokens.elems[13].type == TK_OP_MOD);
-    assert(tokens.elems[14].type == TK_OP_BITOR);
-    assert(tokens.elems[15].type == TK_OP_BITAND);
-    assert(tokens.elems[16].type == TK_OP_COMPL);
-    assert(tokens.elems[17].type == TK_OP_XOR);
-    assert(tokens.elems[18].type == TK_OP_GT);
-    assert(tokens.elems[19].type == TK_OP_LT);
-    assert(tokens.elems[20].type == TK_OP_NOT);
-    assert(tokens.elems[21].type == TK_OP_ASSIGN);
-    assert(tokens.elems[22].type == TK_OP_QST);
+    assert(tokens.elems[6].type  == TK_OP_GTE);
+    assert(tokens.elems[7].type  == TK_OP_LTE);
+    assert(tokens.elems[8].type  == TK_OP_PLUS);
+    assert(tokens.elems[9].type == TK_OP_MINUS);
+    assert(tokens.elems[10].type == TK_OP_MULT);
+    assert(tokens.elems[11].type == TK_OP_DIV);
+    assert(tokens.elems[12].type == TK_OP_MOD);
+    assert(tokens.elems[13].type == TK_OP_BITOR);
+    assert(tokens.elems[14].type == TK_OP_BITAND);
+    assert(tokens.elems[15].type == TK_OP_COMPL);
+    assert(tokens.elems[16].type == TK_OP_BITXOR);
+    assert(tokens.elems[17].type == TK_OP_GT);
+    assert(tokens.elems[18].type == TK_OP_LT);
+    assert(tokens.elems[19].type == TK_OP_NOT);
+    assert(tokens.elems[20].type == TK_OP_ASSIGN);
+    assert(tokens.elems[21].type == TK_OP_QST);
+    assert(tokens.elems[22].type == TK_OP_INCR);
+    assert(tokens.elems[23].type == TK_OP_DECR);
+    assert(tokens.elems[24].type == TK_OP_ASSIGN_ADD);
+    assert(tokens.elems[25].type == TK_OP_ASSIGN_SUB);
+    assert(tokens.elems[26].type == TK_OP_ASSIGN_MULT);
+    assert(tokens.elems[27].type == TK_OP_ASSIGN_DIV);
+    assert(tokens.elems[28].type == TK_OP_ASSIGN_MOD);
+    assert(tokens.elems[29].type == TK_OP_ASSIGN_LEFTSHIFT);
+    assert(tokens.elems[30].type == TK_OP_ASSIGN_RIGHTSHIFT);
+    assert(tokens.elems[31].type == TK_OP_ASSIGN_BITAND);
+    assert(tokens.elems[32].type == TK_OP_ASSIGN_BITOR);
+    assert(tokens.elems[33].type == TK_OP_ASSIGN_BITXOR);
+
     tokens_free(&tokens);
 }
 

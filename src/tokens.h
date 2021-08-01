@@ -13,6 +13,8 @@ Normally a task like this is more suited to regex.
 
 #include "string_helpers.h"
 
+typedef enum TokenType TokenType;
+
 enum TokenType {
     TK_NONE, 
     TK_IDENT, 
@@ -38,7 +40,6 @@ enum TokenType {
     // Operations
     TK_OP_PLUS, 
     TK_OP_MINUS, 
-    TK_OP_EXP, 
     TK_OP_MULT, 
     TK_OP_DIV, 
     TK_OP_MOD, 
@@ -46,14 +47,13 @@ enum TokenType {
     TK_OP_LEFTSHIFT, 
     TK_OP_BITOR, 
     TK_OP_BITAND,
+    TK_OP_BITXOR, 
     TK_OP_COMPL, 
-    TK_OP_XOR, 
     TK_OP_NOT, 
     TK_OP_AND, 
     TK_OP_OR, 
     TK_OP_EQ, 
     TK_OP_NEQ, 
-    TK_OP_ASSIGN, 
     TK_OP_GT, 
     TK_OP_LT, 
     TK_OP_LTE, 
@@ -61,7 +61,17 @@ enum TokenType {
     TK_OP_QST,
     TK_OP_INCR,
     TK_OP_DECR,
-    // Keywords
+    TK_OP_ASSIGN, 
+    TK_OP_ASSIGN_ADD,
+    TK_OP_ASSIGN_SUB,
+    TK_OP_ASSIGN_MULT,
+    TK_OP_ASSIGN_DIV,
+    TK_OP_ASSIGN_MOD,
+    TK_OP_ASSIGN_RIGHTSHIFT,
+    TK_OP_ASSIGN_LEFTSHIFT,
+    TK_OP_ASSIGN_BITAND,
+    TK_OP_ASSIGN_BITOR,
+    TK_OP_ASSIGN_BITXOR,
     TK_KW_IF, 
     TK_KW_ELSE, 
     TK_KW_WHILE, 

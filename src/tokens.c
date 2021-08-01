@@ -260,28 +260,45 @@ void tokenize_keyword(Tokens* tokens, StrVector *str_split, char* keyword, enum 
 void tokenize_ops(Tokens* tokens, StrVector *str_split) {
     // Similar to keywords tokenization, except we want to isolate words
     // which only have >=<
+    tokenize_op(tokens, str_split, "+=", TK_OP_ASSIGN_ADD);
+    tokenize_op(tokens, str_split, "-=", TK_OP_ASSIGN_SUB);
+    tokenize_op(tokens, str_split, "*=", TK_OP_ASSIGN_MULT);
+    tokenize_op(tokens, str_split, "/=", TK_OP_ASSIGN_DIV);
+    tokenize_op(tokens, str_split, "%=", TK_OP_ASSIGN_MOD);
+    tokenize_op(tokens, str_split, "<<=", TK_OP_ASSIGN_LEFTSHIFT);
+    tokenize_op(tokens, str_split, ">>=", TK_OP_ASSIGN_RIGHTSHIFT);
+    tokenize_op(tokens, str_split, "&=", TK_OP_ASSIGN_BITAND);
+    tokenize_op(tokens, str_split, "|=", TK_OP_ASSIGN_BITOR);
+    tokenize_op(tokens, str_split, "^=", TK_OP_ASSIGN_BITXOR);
+
     tokenize_op(tokens, str_split, "||", TK_OP_OR);
     tokenize_op(tokens, str_split, "&&", TK_OP_AND);
-    tokenize_op(tokens, str_split, ">>", TK_OP_RIGHTSHIFT);
-    tokenize_op(tokens, str_split, "<<", TK_OP_LEFTSHIFT);
     tokenize_op(tokens, str_split, "==", TK_OP_EQ);
     tokenize_op(tokens, str_split, "!=", TK_OP_NEQ);
-    tokenize_op(tokens, str_split, "**", TK_OP_EXP);
     tokenize_op(tokens, str_split, ">=", TK_OP_GTE);
     tokenize_op(tokens, str_split, "<=", TK_OP_LTE);
+
+    tokenize_op(tokens, str_split, ">>", TK_OP_RIGHTSHIFT);
+    tokenize_op(tokens, str_split, "<<", TK_OP_LEFTSHIFT);
+
+    tokenize_op(tokens, str_split, "++", TK_OP_INCR);
+    tokenize_op(tokens, str_split, "--", TK_OP_DECR);
+
+    tokenize_op(tokens, str_split, "=", TK_OP_ASSIGN);
     tokenize_op(tokens, str_split, "+", TK_OP_PLUS);
     tokenize_op(tokens, str_split, "-", TK_OP_MINUS);
     tokenize_op(tokens, str_split, "*", TK_OP_MULT);
     tokenize_op(tokens, str_split, "/", TK_OP_DIV);
     tokenize_op(tokens, str_split, "%", TK_OP_MOD);
-    tokenize_op(tokens, str_split, "|", TK_OP_BITOR);
-    tokenize_op(tokens, str_split, "&", TK_OP_BITAND);
-    tokenize_op(tokens, str_split, "~", TK_OP_COMPL);
-    tokenize_op(tokens, str_split, "^", TK_OP_XOR);
+
     tokenize_op(tokens, str_split, ">", TK_OP_GT);
     tokenize_op(tokens, str_split, "<", TK_OP_LT);
     tokenize_op(tokens, str_split, "!", TK_OP_NOT);
-    tokenize_op(tokens, str_split, "=", TK_OP_ASSIGN);
+
+    tokenize_op(tokens, str_split, "|", TK_OP_BITOR);
+    tokenize_op(tokens, str_split, "&", TK_OP_BITAND);
+    tokenize_op(tokens, str_split, "~", TK_OP_COMPL);
+    tokenize_op(tokens, str_split, "^", TK_OP_BITXOR);
     tokenize_op(tokens, str_split, "?", TK_OP_QST);
 }
 
@@ -587,7 +604,6 @@ char* token_type_to_string(enum TokenType type) {
         // Operations
         "TK_OP_PLUS", 
         "TK_OP_MINUS", 
-        "TK_OP_EXP", 
         "TK_OP_MULT", 
         "TK_OP_DIV", 
         "TK_OP_MOD", 
@@ -595,14 +611,13 @@ char* token_type_to_string(enum TokenType type) {
         "TK_OP_LEFTSHIFT", 
         "TK_OP_BITOR", 
         "TK_OP_BITAND",
+        "TK_OP_BITXOR", 
         "TK_OP_COMPL", 
-        "TK_OP_XOR", 
         "TK_OP_NOT", 
         "TK_OP_AND", 
         "TK_OP_OR", 
         "TK_OP_EQ", 
         "TK_OP_NEQ", 
-        "TK_OP_ASSIGN", 
         "TK_OP_GT", 
         "TK_OP_LT", 
         "TK_OP_LTE", 
@@ -610,6 +625,17 @@ char* token_type_to_string(enum TokenType type) {
         "TK_OP_QST",
         "TK_OP_INCR",
         "TK_OP_DECR",
+        "TK_OP_ASSIGN", 
+        "TK_OP_ASSIGN_ADD",
+        "TK_OP_ASSIGN_SUB",
+        "TK_OP_ASSIGN_MULT",
+        "TK_OP_ASSIGN_DIV",
+        "TK_OP_ASSIGN_MOD",
+        "TK_OP_ASSIGN_RIGHTSHIFT",
+        "TK_OP_ASSIGN_LEFTSHIFT",
+        "TK_OP_ASSIGN_BITAND",
+        "TK_OP_ASSIGN_BITOR",
+        "TK_OP_ASSIGN_BITXOR",
         // Keywords
         "TK_KW_IF", 
         "TK_KW_ELSE", 

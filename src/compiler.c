@@ -5,17 +5,12 @@
 
 /*
 TODO:
-    Tomorrow:
-        AND and OR short circuiting
-        Proper expression evaluation
-
     Expressions:
-        Proper left-to-right evaluation, it doesn't work like that currently
-        Operator precedence (using Shunting Yard)
         Constant expressions (compile time expressions) (only really required for advanced switch cases)
         AND and OR short circuiting
 
     Functions, proper calling convention:
+        Function declarations
         Stack arguments, floating point arguments, floating point returns
 
     Types:
@@ -23,6 +18,13 @@ TODO:
             bool -> char -> short int -> int -> 
             unsigned int -> long -> unsigned -> 
             long long -> float -> double -> long double
+        Arrays
+
+    Preprocessor:
+        Includes
+        Defines
+        Pragma once
+    
 
 
 */
