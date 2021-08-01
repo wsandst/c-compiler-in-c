@@ -137,6 +137,9 @@ void tokens_trim(Tokens* tokens);
 
 void tokens_print(Tokens* tokens);
 
+// Insert the entire tokens2 into tokens1 at a specific index in tokens1
+Tokens* tokens_insert(Tokens* tokens1, Tokens* tokens2, int tokens1_index);
+
 // ========= Tokenization functions ===========
 
 Tokens tokenize(char* source);

@@ -3,7 +3,7 @@
 char* load_file_to_string(char* filename) {
     FILE *file = fopen(filename, "r");
 	if (file == NULL) {
-		printf("The specified source file does not exist\n");
+		printf("The specified source file \"%s\" does not appear to exist\n", filename);
         exit(1);
 	}
 
@@ -34,4 +34,9 @@ void write_string_to_file(char* filename, char *src) {
 void compile_asm(char *asm_src) {
     write_string_to_file("output.asm", asm_src);
     system("nasm -f elf64 output.asm && gcc -no-pie -o output output.o && rm output.o");
+}
+
+char* isolate_file_dir(char* filepath) {
+    int index = str_index_of_reverse(filepath, '/');
+    return str_substr(filepath, index+1);
 }

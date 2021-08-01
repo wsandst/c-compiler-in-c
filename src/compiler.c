@@ -45,8 +45,7 @@ int main(int argc, char *argv[]) {
     //char* src = load_file_to_string(src_path);
 
     // Step 1: Preprocessing + Tokenization
-    PreprocessorTable table = preprocessor_table_new();
-    Tokens tokens = preprocess(src_path, table);
+    Tokens tokens = preprocess_first(src_path);
     //tokens_print(&tokens);
 
     // Step 2: AST Parsing

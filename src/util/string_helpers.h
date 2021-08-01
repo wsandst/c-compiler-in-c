@@ -82,4 +82,6 @@ void str_fill(char* str, int length, char c);
 // Strip all whitespace from the start and the end of string
 char* str_strip(char* str);
 
+int str_index_of_reverse(char* str, char c);
+
 int max(int a, int b);

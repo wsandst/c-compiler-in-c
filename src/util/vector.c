@@ -15,6 +15,8 @@ void vec_free(Vec* vec) {
 
 void vec_realloc(Vec* vec, int new_max_size) {
     vec->elems = realloc(vec->elems, vec->elem_bytes*new_max_size);
+    // Zero new memory
+    memset(((char*)vec->elems)+vec->max_size*vec->elem_bytes, 0, vec->elem_bytes*(new_max_size-vec->max_size));
     vec->max_size = new_max_size;
 }
 

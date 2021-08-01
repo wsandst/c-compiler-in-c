@@ -92,6 +92,13 @@ void test_string_helper_funcs() {
     assert(!str_contains_word(test_str, "no"));
     assert(!str_contains_word(test_str, "word5"));
 
+    test_str = "hello/world/test";
+    int index = str_index_of_reverse(test_str, '/');
+    assert(test_str[index] == '/');
+    test_str = "hesdawlo/wodwadrld/";
+    index = str_index_of_reverse(test_str, '/');
+    assert(test_str[index] == '/');
+
     // str_strip()
     test_str = "   \t\n hello world   \t\n";
 

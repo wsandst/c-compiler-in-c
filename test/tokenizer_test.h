@@ -43,6 +43,29 @@ void test_tokenizer_helpers() {
     assert(strcmp(token_type_to_string(TK_OP_ASSIGN_BITOR), "TK_OP_ASSIGN_BITOR") == 0);
     assert(strcmp(token_type_to_string(TK_KW_VOID), "TK_KW_VOID") == 0);
     assert(strcmp(token_type_to_string(TK_LINT), "TK_LINT") == 0);
+
+    // Token insertion/concatenation
+    Tokens tokens1 = tokens_new(4);
+    tokens1.elems[0].type = 1;
+    tokens1.elems[1].type = 2;
+    tokens1.elems[2].type = 6;
+    tokens1.elems[3].type = 7;
+    Tokens tokens2 = tokens_new(3);
+    tokens2.elems[0].type = 3;
+    tokens2.elems[1].type = 4;
+    tokens2.elems[2].type = 5;
+    Tokens* combined_tokens = tokens_insert(&tokens1, &tokens2, 2);
+    tokens_print(combined_tokens);
+    assert(combined_tokens->size == 7);
+    assert(combined_tokens->elems[0].type == 1);
+    assert(combined_tokens->elems[1].type == 2);
+    assert(combined_tokens->elems[2].type == 3);
+    assert(combined_tokens->elems[3].type == 4);
+    assert(combined_tokens->elems[4].type == 5);
+    assert(combined_tokens->elems[5].type == 6);
+    assert(combined_tokens->elems[6].type == 7);
+    tokens_free(&tokens1);
+    tokens_free(&tokens2);
 }
 
 void test_tokenizer_preprocessor() {

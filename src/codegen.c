@@ -529,6 +529,7 @@ void gen_asm_binary_op_and(ASTNode* node, AsmContext ctx) {
     asm_add(1, "setne al");
     if (ctx.and_end_node) { // Add short circuit end jump label
         asm_add(2, ctx.and_short_circuit_label, ": ; Logical short circuit end label");
+        free(ctx.and_short_circuit_label);
     }
 }
 
@@ -540,6 +541,7 @@ void gen_asm_binary_op_or(ASTNode* node, AsmContext ctx) {
     asm_add(1, "setne al");
     if (ctx.or_end_node) { // Add short circuit end jump label
         asm_add(2, ctx.or_short_circuit_label, ": ; Logical short circuit end label");
+        free(ctx.or_short_circuit_label);
     }
 }
 

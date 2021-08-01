@@ -87,6 +87,20 @@ void tokens_trim(Tokens *tokens) {
     tokens->elems = new_token_array;
 }
 
+// Insert the entire tokens2 into tokens1 at a specific index in tokens1
+Tokens* tokens_insert(Tokens* tokens1, Tokens* tokens2, int tokens1_index) {
+    int new_size = tokens1->size + tokens2->size;
+    tokens1->elems = realloc(tokens1->elems, new_size*sizeof(Token));
+    // Shift the latter half of tokens1 to the end
+    int to_index = new_size-(tokens1->size - tokens1_index);
+    Token* from_address = tokens1->elems+tokens1_index;
+    memmove(&tokens1->elems[to_index], from_address, (tokens1->size - tokens1_index)*sizeof(Token));
+    // Copy in tokens2
+    memcpy(from_address, tokens2->elems, tokens2->size*sizeof(Token));
+    tokens1->size = new_size;
+    return tokens1;
+}
+
 void tokenize_preprocessor(Tokens *tokens, StrVector *str_split) {
     int src_pos = 0;
     for (size_t i = 0; i < str_split->size; i++) {

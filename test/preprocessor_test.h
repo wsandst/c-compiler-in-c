@@ -21,15 +21,15 @@ void test_preprocessor() {
 void test_preprocessor_table() {
     PreprocessorTable table = preprocessor_table_new();
     PreprocessorItem item;
-    item.type = PP_DEFINE;
+    item.type = 4;
     item.name = "item1";
     preprocessor_table_insert(&table, item);
-    item.type = PP_INCLUDED_FILE;
+    item.type = 3;
     item.name = "item2";
     preprocessor_table_insert(&table, item);
 
-    assert(preprocessor_table_lookup(&table, "item1")->type == PP_DEFINE);
-    assert(preprocessor_table_lookup(&table, "item2")->type == PP_INCLUDED_FILE);
+    assert(preprocessor_table_lookup(&table, "item1")->type == 4);
+    assert(preprocessor_table_lookup(&table, "item2")->type == 3);
 
     preprocessor_table_free(&table);
 }

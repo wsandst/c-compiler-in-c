@@ -258,6 +258,17 @@ char* str_strip(char* str) {
     return str_substr(start, end - start+1);
 }
 
+int str_index_of_reverse(char* str, char c) {
+    int str_length = strlen(str);
+    for (size_t i = 0; i < str_length; i++)
+    {
+        if (*(str+str_length-i) == c) {
+            return str_length-i;
+        }
+    }
+    return -1;
+}
+
 int max(int a, int b) {
     if (a > b)
         return a;

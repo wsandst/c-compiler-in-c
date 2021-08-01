@@ -11,6 +11,7 @@
 
 #pragma once
 #include <string.h>
+#include <stdio.h>
 
 #include "util/file_helpers.h"
 #include "util/vector.h"
@@ -36,10 +37,16 @@ struct PreprocessorItem {
     char* value;
 };
 
-// Turn a file into a list of tokens
-Tokens preprocess(char* filename, PreprocessorTable table);
+// Turn the first file into a list of tokens
+Tokens preprocess_first(char* filename);
 
-Tokens preprocess_directives(Tokens* tokens, PreprocessorTable table);
+// Turn a file into a list of tokens
+Tokens preprocess(char* filename, PreprocessorTable* table);
+
+Tokens preprocess_directives(Tokens* tokens, PreprocessorTable* table);
+
+void preprocess_token(Tokens* tokens, PreprocessorTable* table, int token_index);
+void preprocess_include(Tokens* tokens, PreprocessorTable* table, int token_index);
 
 // =============== Preprocessor Table ===================
 // Create a new PreprocessorTable
@@ -53,3 +60,5 @@ PreprocessorItem* preprocessor_table_lookup(PreprocessorTable* table, char* name
 
 // Insert an element into the PreprocessorTable
 void preprocessor_table_insert(PreprocessorTable* table, PreprocessorItem item);
+
+void preprocess_error(char* error_message);
