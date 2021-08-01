@@ -122,6 +122,20 @@ char* generate_assembly(AST* ast, SymbolTable* symbols) {
 }
 
 void gen_asm_symbols(SymbolTable* symbols) {
+    // Setup function globals
+    asm_add_com("; External or global functions");
+    for (size_t i = 0; i < symbols->func_count; i++) {
+        Function func = symbols->funcs[i];
+        if (func.is_defined) {
+            asm_add(2, "global ", func.name);
+        }
+        else {
+            // Undefined functions are set to extern for linker
+            asm_add(2, "extern ", func.name); 
+        }
+    }   
+    asm_add_newline();
+
     // The variables in this scope are always global
     if (symbols->var_count == 0) { // No need if there are no globals
         return;
@@ -130,8 +144,7 @@ void gen_asm_symbols(SymbolTable* symbols) {
     asm_add(1, "section .data");
     asm_set_indent(1);
     int undefined_count = 0;
-    for (size_t i = 0; i < symbols->var_count; i++)
-    {
+    for (size_t i = 0; i < symbols->var_count; i++) {
         Variable var = symbols->vars[i];
         if (!var.is_undefined) {
             asm_add(2, "global ", var.name);
@@ -147,8 +160,7 @@ void gen_asm_symbols(SymbolTable* symbols) {
         asm_add_newline();
         asm_add(1, "section .bss");
         asm_set_indent(1);
-        for (size_t i = 0; i < symbols->var_count; i++)
-        {
+        for (size_t i = 0; i < symbols->var_count; i++) {
             Variable var = symbols->vars[i];
             if (var.is_undefined) {
                 asm_add(2, "global ", var.name);
@@ -469,32 +481,30 @@ void gen_asm_binary_op_assign(ASTNode* node, AsmContext ctx) {
 
 // Short circuiting
 void gen_asm_setup_short_circuiting(ASTNode* node, AsmContext* ctx) {
-    // First AND node found
-    if (node->op_type != BOP_AND && ctx->and_end_node) {
+    // Identify first AND and OR nodes, give them labels for short circuiting
+    if (ctx->and_end_node) {
         ctx->and_end_node = false;
-        ctx->and_short_circuit_label = NULL;
     }
-    else if (node->op_type == BOP_AND) {
-        if (ctx->and_short_circuit_label == NULL ) {
+    if (node->op_type == BOP_AND) { // AND end node found
+        if (ctx->and_short_circuit_label == NULL) {
             ctx->and_short_circuit_label = get_next_label_str();
             ctx->and_end_node = true;
         }
-        else {
-            ctx->and_end_node = false;
-        }
     }
-    else if (node->op_type != BOP_OR && ctx->or_end_node) {
-        ctx->or_end_node = false;
+    else {
         ctx->and_short_circuit_label = NULL;
     }
-    else if (node->op_type == BOP_OR) {
-        if (ctx->or_short_circuit_label == NULL ) {
+    if (ctx->or_end_node) {
+        ctx->or_end_node = false;
+    }
+    if (node->op_type == BOP_OR) { // OR end node found
+        if (ctx->or_short_circuit_label == NULL) {
             ctx->or_short_circuit_label = get_next_label_str();
             ctx->or_end_node = true;
         }
-        else {
-            ctx->or_end_node = false;
-        }
+    }
+    else {
+        ctx->or_short_circuit_label = NULL;
     }
 }
 
@@ -575,7 +585,6 @@ void gen_asm_func(ASTNode* node, AsmContext ctx) {
     ctx.func_return_label = get_next_label_str();
     asm_set_indent(0);
     asm_add_newline();
-    asm_add(2, "global ", node->func.name); // Set function as global to allow linker to find it
     asm_add(2, node->func.name, ":");
     asm_set_indent(1);
     asm_add_com("; Setting up function stack pointer");

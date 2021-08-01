@@ -6,19 +6,21 @@
 /*
 TODO:
     Tomorrow:
-        AND and OR short circuiting
         Function declarations
         Simple pointers
         Preproccessor planning, architecture
 
     Expressions:
         Constant expressions (compile time expressions) (only really required for advanced switch cases)
-        AND and OR short circuiting
-
-    a && b && c. If a false,, skip to end of c.
 
     Functions, proper calling convention:
-        Function declarations
+        Function declarations:
+            If I encounter a function declaration, I add it to the symbol table
+            Same thing with a definition, got to make sure I overwrite the old function
+            A definition needs to tag the function to make the compiler know it exists
+            If a definition doesn't exist, we assume it is external and add an
+            extern xxx.
+            I can add printf and such this way by hardcoding it
         Stack arguments, floating point arguments, floating point returns
 
     Types:

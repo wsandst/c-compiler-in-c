@@ -171,6 +171,7 @@ void parse_func(ASTNode* node, SymbolTable* symbols) {
     char* ident = prev_token().value.string;
     func.name = ident;
     func.return_type = type;
+    func.is_defined = false;
 
     // Create new scope for function
     SymbolTable* func_symbols = symbol_table_create_child(symbols, 0);
@@ -192,9 +193,15 @@ void parse_func(ASTNode* node, SymbolTable* symbols) {
     func.params = func_symbols->vars;
     func.param_count = func_symbols->var_count;
 
+    if (!accept(TK_DL_OPENBRACE)) { // No function body, this is a declaration
+        node->type = AST_NULL_STMT; // Definitions are virtual
+        node->func = symbol_table_insert_func(symbols, func);
+        expect(TK_DL_SEMICOLON);
+        return;
+    }
+    // Function has body, is a definition
+    func.is_defined = true;
     node->func = symbol_table_insert_func(symbols, func);
-
-    expect(TK_DL_OPENBRACE);
     node->body = ast_node_new(AST_END, 1);
     parse_scope(node->body, func_symbols);
     node->next = ast_node_new(AST_END, 1);

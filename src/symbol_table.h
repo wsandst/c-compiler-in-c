@@ -57,11 +57,7 @@ struct Function {
     int param_count;
     Variable* params;
     int stack_space_used;
-
-    // How do I generate the entire program?
-    // I want to go over every function and add them as cod
-    // The uppermost AST Node is the AST_PROGRAM, which contains children functions
-    // We loop over these and add them as code.
+    bool is_defined; // Has this function been defined? Otherwise, declare as extern
 };
 
 struct ValueLabel { // Switch case labels
