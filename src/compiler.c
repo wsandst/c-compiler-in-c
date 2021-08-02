@@ -5,7 +5,6 @@
 /*
 TODO:
     Next time:
-        Preprocessor: Pragma once
         Start investigating type system
 
     Expressions:
@@ -24,15 +23,11 @@ TODO:
         Arrays
 
     Preprocessor:
-        I should refactor so that I process the files recursively, 
-        not iteratively like I do currently. This way I can start handling pragma once
-        and such correctly
-        Pragma once:
-            I'm keeping track of the filenames, just need to mark with pragma once and
-            only include if not seen before
-        Defines
+        Defines:
+            Simple defines, ifndef, ifdef. Goal is to support simple include headers
+            and simple constant defines.
         Includes:
-            STD headers. I should take from GCC and remove all the macros
+            Support STD headers. I should take from GCC and remove all the macros
 */
 
 int main(int argc, char *argv[]) {
@@ -46,8 +41,6 @@ int main(int argc, char *argv[]) {
     }
 
     printf("Compiling source file \"%s\"\n", src_path);
-
-    //char* src = load_file_to_string(src_path);
 
     // Step 1: Preprocessing + Tokenization
     Tokens tokens = preprocess_first(src_path);

@@ -126,6 +126,8 @@ void str_vec_print(StrVector* str_vec) {
 
 
 char* str_add(char* str1, char* str2) {
+    if (str1 == NULL) str1 = "";
+    if (str2 == NULL) str2 = "";
     int length = strlen(str1) + strlen(str2);
     char* added_str_start = calloc(length+1, sizeof(char));
     char* added_str = added_str_start;

@@ -26,6 +26,7 @@ struct PreprocessorTable {
     Vec* elems;
     int token_index;
     int current_file_index;
+    char* current_file_dir;
 };
 
 enum PreprocessorItemType {
@@ -61,6 +62,7 @@ void preprocessor_table_free(PreprocessorTable* table);
 // Lookup an element by name in the PreprocessorTable. Returns NULL if not found
 PreprocessorItem* preprocessor_table_lookup(PreprocessorTable* table, char* name);
 
+void preprocessor_table_update_current_dir(PreprocessorTable* table, char* filepath);
 PreprocessorItem* preprocessor_table_get_current_file(PreprocessorTable* table);
 
 // Insert an element into the PreprocessorTable

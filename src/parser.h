@@ -7,8 +7,8 @@ which is implemented here.
 */
 #pragma once
 #include <stdbool.h>
+#include <string.h>
 #include "tokens.h"
-#include "string.h"
 #include "symbol_table.h"
 
 typedef enum OpType OpType;

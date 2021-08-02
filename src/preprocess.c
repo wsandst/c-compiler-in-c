@@ -1,23 +1,24 @@
 #include "preprocess.h"
 
-
-char* first_file_dir;
-
 Tokens preprocess_first(char* filename) {
     PreprocessorTable table = preprocessor_table_new();
-    first_file_dir = isolate_file_dir(filename);
     Tokens tokens = preprocess(filename, &table);
     tokens_trim(&tokens);
     preprocessor_table_free(&table);
-    free(first_file_dir);
     return tokens;
 }
 
 Tokens preprocess(char* filename, PreprocessorTable* table) {
-    char* src = load_file_to_string(filename);
+    char* filename_with_dir = str_add(table->current_file_dir, filename);
+    char* src = load_file_to_string(filename_with_dir);
+    preprocessor_table_update_current_dir(table, filename);
+
     Tokens tokens = tokenize(src);
     preprocess_directives(&tokens, table);
+
     free(src);
+    free(table->current_file_dir);
+    free(filename_with_dir);
     return tokens;
 }
 
@@ -52,6 +53,9 @@ void preprocess_include(Tokens* tokens, PreprocessorTable* table) {
     // Isolate the include filename
     StrVector str_vec = str_split(token->string_repr, ' ');
     char* file_str = str_vec.elems[1];
+    if (file_str[0] != '\"') { // We do not support STL yet
+        return;
+    }
     file_str[0] = ' ';
     file_str[strlen(file_str) - 1] = ' ';
     file_str = str_strip(file_str);
@@ -63,8 +67,6 @@ void preprocess_include(Tokens* tokens, PreprocessorTable* table) {
         free(file_str);
         return;
     }
-
-    char* file_with_dir_str = str_add(first_file_dir, file_str);
     // Add it to the preprocessor table
     PreprocessorItem file_item;
     file_item.type = PP_INCLUDED_FILE;
@@ -79,15 +81,16 @@ void preprocess_include(Tokens* tokens, PreprocessorTable* table) {
     // Send the include file into the preprocessor
     PreprocessorTable next_table = *table;
     next_table.current_file_index = next_table.elems->size-1;
-    Tokens file_tokens = preprocess(file_with_dir_str, &next_table);
+
+    Tokens file_tokens = preprocess(file_str, &next_table);
     tokens_trim(&file_tokens);
     // Remove the EOF token
     file_tokens.elems[file_tokens.size-1].type = TK_NONE;
     // Insert the include file tokens at the preprocessor token location
     tokens = tokens_insert(tokens, &file_tokens, table->token_index);
+    // Free used memory
     str_vec_free(&str_vec);
     free(file_tokens.elems);
-    free(file_with_dir_str);
     table->token_index += file_tokens.size;
 }
 
@@ -97,6 +100,8 @@ PreprocessorTable preprocessor_table_new() {
     PreprocessorTable table;
     table.elems = vec_new_dyn(sizeof(PreprocessorItem));
     table.token_index = 0;
+    table.current_file_dir = NULL;
+    table.current_file_index = 0;
     return table;
 }
 
@@ -110,6 +115,15 @@ void preprocessor_table_free(PreprocessorTable* table) {
     }
     vec_free(table->elems);
     free(table->elems);
+}
+
+void preprocessor_table_update_current_dir(PreprocessorTable* table, char* filepath) {
+    if (table->current_file_dir == NULL) {
+        table->current_file_dir = "";
+    }
+    char* file_dir = isolate_file_dir(filepath);
+    table->current_file_dir = str_add(table->current_file_dir, file_dir);
+    free(file_dir);
 }
 
 PreprocessorItem* preprocessor_table_lookup(PreprocessorTable* table, char* name) {
