@@ -4,7 +4,7 @@
 #include "string_helpers_test.h"
 #include "tokenizer_test.h"
 #include "preprocessor_test.h"
-#include "test_symbol_table.h"
+#include "symbol_table_test.h"
 
 
 int main() {

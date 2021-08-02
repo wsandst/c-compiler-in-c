@@ -55,7 +55,6 @@ void test_tokenizer_helpers() {
     tokens2.elems[1].type = 4;
     tokens2.elems[2].type = 5;
     Tokens* combined_tokens = tokens_insert(&tokens1, &tokens2, 2);
-    tokens_print(combined_tokens);
     assert(combined_tokens->size == 7);
     assert(combined_tokens->elems[0].type == 1);
     assert(combined_tokens->elems[1].type == 2);

@@ -9,6 +9,12 @@ Vec vec_new(int bytes) {
     return vec;
 }
 
+Vec* vec_new_dyn(int bytes) {
+    Vec* vec = calloc(1, sizeof(Vec));
+    *vec = vec_new(bytes);
+    return vec;
+}
+
 void vec_free(Vec* vec) {
     free(vec->elems);
 }

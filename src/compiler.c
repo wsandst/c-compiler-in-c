@@ -4,12 +4,14 @@
 
 /*
 TODO:
-    Tomorrow:
-        Simple pointers
-        Preproccessor planning, architecture
+    Next time:
+        Preprocessor: Pragma once
+        Start investigating type system
 
     Expressions:
-        Constant expressions (compile time expressions) (only really required for advanced switch cases)
+        Constant expressions (compile time expressions) (only really required for advanced switch cases):
+            I can do this as a post-processing step on the parse tree, or perhaps in the binary/unary
+            op handling.
 
     Functions, proper calling convention:
         Stack arguments, floating point arguments, floating point returns
@@ -22,12 +24,15 @@ TODO:
         Arrays
 
     Preprocessor:
-        Includes:
-            Copy paste the content of another file into this location
-            This works recursively. I need some structure to keep track of the included files
-            and defines and such, to implement pragma once
+        I should refactor so that I process the files recursively, 
+        not iteratively like I do currently. This way I can start handling pragma once
+        and such correctly
+        Pragma once:
+            I'm keeping track of the filenames, just need to mark with pragma once and
+            only include if not seen before
         Defines
-        Pragma once
+        Includes:
+            STD headers. I should take from GCC and remove all the macros
 */
 
 int main(int argc, char *argv[]) {

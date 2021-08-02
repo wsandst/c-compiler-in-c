@@ -23,7 +23,9 @@ typedef struct PreprocessorItem PreprocessorItem;
 
 // Should probably be a hashmap
 struct PreprocessorTable {
-    Vec elems;
+    Vec* elems;
+    int token_index;
+    int current_file_index;
 };
 
 enum PreprocessorItemType {
@@ -35,6 +37,7 @@ struct PreprocessorItem {
     PreprocessorItemType type;
     char* name;
     char* value;
+    bool include_file_only_once;
 };
 
 // Turn the first file into a list of tokens
@@ -45,8 +48,8 @@ Tokens preprocess(char* filename, PreprocessorTable* table);
 
 Tokens preprocess_directives(Tokens* tokens, PreprocessorTable* table);
 
-void preprocess_token(Tokens* tokens, PreprocessorTable* table, int token_index);
-void preprocess_include(Tokens* tokens, PreprocessorTable* table, int token_index);
+void preprocess_token(Tokens* tokens, PreprocessorTable* table);
+void preprocess_include(Tokens* tokens, PreprocessorTable* table);
 
 // =============== Preprocessor Table ===================
 // Create a new PreprocessorTable
@@ -57,6 +60,8 @@ void preprocessor_table_free(PreprocessorTable* table);
 
 // Lookup an element by name in the PreprocessorTable. Returns NULL if not found
 PreprocessorItem* preprocessor_table_lookup(PreprocessorTable* table, char* name);
+
+PreprocessorItem* preprocessor_table_get_current_file(PreprocessorTable* table);
 
 // Insert an element into the PreprocessorTable
 void preprocessor_table_insert(PreprocessorTable* table, PreprocessorItem item);

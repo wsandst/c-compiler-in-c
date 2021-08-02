@@ -16,6 +16,8 @@ struct Vec {
 
 Vec vec_new(int bytes);
 
+Vec* vec_new_dyn(int bytes);
+
 void vec_realloc(Vec* vec, int new_max_size);
 
 void vec_push(Vec* vec, void* elem);
