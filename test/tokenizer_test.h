@@ -154,7 +154,7 @@ void test_tokenizer_keywords() {
 
 void test_tokenizer_ops() {
     // Operations
-    char* src = "|| && >> << == != >= <= + - * / % | & ~ ^ > < ! = ? ++ -- += -= *= /= %= <<= >>= &= |= ^=";
+    char* src = "|| && >> << == != >= <= + - * / % | & ~ ^ > < ! = ? ++ -- += -= *= /= %= <<= >>= &= |= ^= sizeof";
     Tokens tokens = tokenize(src);
     assert(tokens.elems[0].type  == TK_OP_OR);
     assert(tokens.elems[1].type  == TK_OP_AND);
@@ -190,6 +190,7 @@ void test_tokenizer_ops() {
     assert(tokens.elems[31].type == TK_OP_ASSIGN_BITAND);
     assert(tokens.elems[32].type == TK_OP_ASSIGN_BITOR);
     assert(tokens.elems[33].type == TK_OP_ASSIGN_BITXOR);
+    assert(tokens.elems[34].type == TK_OP_SIZEOF);
 
     tokens_free(&tokens);
 }

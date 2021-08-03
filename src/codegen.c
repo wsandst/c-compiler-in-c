@@ -334,6 +334,12 @@ void gen_asm_unary_op(ASTNode* node, AsmContext ctx) {
             asm_add(1, "dec rbx");
             asm_add(3, "mov ", var_sp, ", rbx");
             break;
+        case UOP_SIZEOF:
+            asm_add_com("; Op: sizeof");
+            char buf[64];
+            sprintf(buf, "%d", node->cast_type.bytes);
+            asm_add(2, "mov rax, ", buf);
+            break;
         default:
             codegen_error("Unsupported unary operation found!");
             break;
@@ -593,7 +599,7 @@ void gen_asm_func(ASTNode* node, AsmContext ctx) {
     asm_add(1, "push rbp");
     asm_add(1, "mov rbp, rsp");
     char stack_space_str[63];
-    sprintf(stack_space_str, "%d", node->func.stack_space_used);
+    sprintf(stack_space_str, "%d", func_get_aligned_stack_usage(node->func)); 
     asm_add(3, "sub rsp, ", stack_space_str, " ; Allocate the stack space used by the function");
     // Evaluate arguments
     asm_add_com("; Store passed function arguments");

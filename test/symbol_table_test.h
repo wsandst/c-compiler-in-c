@@ -52,29 +52,29 @@ void test_symbol_table_vars() {
     // Inserting
     Variable var;
     var.name = "var1";
-    var.size = 1;
+    var.type.bytes = 1;
     symbol_table_insert_var(table, var);
     assert(table->var_count == 1);
     var.name = "var2";
-    var.size = 2;
+    var.type.bytes = 2;
     symbol_table_insert_var(table, var);
     var.name = "var3";
-    var.size = 3;
+    var.type.bytes = 3;
     symbol_table_insert_var(table, var);
     assert(table->var_count == 3);
     assert(table->var_max_count == 4);
 
     // Lookup
-    assert(symbol_table_lookup_var(table, "var1").size == 1);
-    assert(symbol_table_lookup_var(table, "var2").size == 2);
-    assert(symbol_table_lookup_var(table, "var3").size == 3);
+    assert(symbol_table_lookup_var(table, "var1").type.bytes == 1);
+    assert(symbol_table_lookup_var(table, "var2").type.bytes == 2);
+    assert(symbol_table_lookup_var(table, "var3").type.bytes == 3);
 
     var.name = "var4";
-    var.size = 4;
+    var.type.bytes = 4;
     symbol_table_insert_var(child, var);
-    assert(symbol_table_lookup_var(child, "var4").size == 4);
+    assert(symbol_table_lookup_var(child, "var4").type.bytes == 4);
     // Check going up a scope
-    assert(symbol_table_lookup_var(child, "var1").size == 1);
+    assert(symbol_table_lookup_var(child, "var1").type.bytes == 1);
     // symbol_table_lookup_var(child, "novar"); // This will correctly error!
     symbol_table_free(table);
 }

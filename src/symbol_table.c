@@ -1,5 +1,6 @@
 #include "symbol_table.h"
 
+const int ALIGN_ON_STACK = true;
 
 SymbolTable* symbol_table_new() {
     SymbolTable* table = calloc(1, sizeof(SymbolTable));
@@ -100,7 +101,12 @@ Variable symbol_table_insert_var(SymbolTable* table, Variable var) {
         symbol_table_vars_realloc(table, table->var_max_count*2);
     }
     if (!table->is_global) {
-        table->cur_stack_offset += var.size;
+        if (ALIGN_ON_STACK) { // The cur_stack_offset needs to be a multiple of var.type.bytes
+            table->cur_stack_offset = ((table->cur_stack_offset / var.type.bytes) + 1) * var.type.bytes;
+        }
+        else {
+            table->cur_stack_offset += var.type.bytes;
+        }
         var.stack_offset = table->cur_stack_offset;
     }
     var.is_global = table->is_global;
@@ -171,6 +177,11 @@ Function symbol_table_insert_func(SymbolTable* table, Function func) {
 void symbol_table_funcs_realloc(SymbolTable* table, int new_size) {
     table->funcs = realloc(table->funcs, sizeof(Function)*new_size);
     table->func_max_count = new_size;
+}
+
+// System V ABI requires 16 byte alignment of stack
+int func_get_aligned_stack_usage(Function func) {
+    return ((func.stack_space_used/16) + 1) * 16;
 }
 
 // ================= Labels ====================

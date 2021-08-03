@@ -58,6 +58,7 @@ enum OpType {
     UOP_PRE_INCR,           // ++x
     UOP_POST_DECR,          // x--
     UOP_PRE_DECR,           // --x
+    UOP_CAST,
 };
 
 enum ASTNodeType {
@@ -89,7 +90,6 @@ enum ExprType {
     EXPR_LITERAL,
     EXPR_VAR,
     EXPR_FUNC_CALL,
-    EXPR_CAST, // Type cast
 };
 
 struct ASTNode {
@@ -104,6 +104,7 @@ struct ASTNode {
     // Expr
     ExprType expr_type;
     OpType op_type;
+    VarType cast_type;
     ASTNode* rhs;
     ASTNode* lhs;
     // Literal
@@ -230,28 +231,25 @@ Token prev_token();
 // Make sure the current token matches the sent in token, else
 // send an error message and exit the program
 void expect(TokenType type);
-void expect_var_type();
 
 // Return true or false whether the current token matches the sent in token
 bool accept(TokenType type);
 // Accept any token within this range
 bool accept_range(TokenType from_token, TokenType to_token);
-// Accept a variable Token type (Int, Float etc...)
-bool accept_var_type();
 // Accept a unary operator Token type
 bool accept_unop_type();
 // Accept postfix/suffix unary operator Token Type
 bool accept_post_unop();
 // Accept a binary operator Token type
 bool accept_binop_type();
+// Accept a variable/fd type
+bool accept_type();
 
 // Get precedence of binary operator
 int get_binary_operator_precedence(OpType type);
 // Assignment is right associative, needed for the precedence parsing
 bool is_binary_operation_assignment(OpType type);
 
-// Convert a TokenType variable type to the corresponding VarTypeEnum
-VarTypeEnum token_type_to_var_type(TokenType type);
 // Convert a TokenType unary operator type to the corresponding prefix UnaryOpType
 OpType token_type_to_pre_uop_type(TokenType type);
 // Convert a TokenType unary operator type to the corresponding postfix UnaryOpType

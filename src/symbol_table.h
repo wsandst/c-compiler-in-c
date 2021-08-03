@@ -15,6 +15,7 @@
 #include "util/string_helpers.h"
 
 typedef enum VarTypeEnum VarTypeEnum;
+typedef struct VarType VarType;
 typedef struct Variable Variable;
 typedef struct Function Function;
 typedef struct ValueLabel ValueLabel;
@@ -24,25 +25,25 @@ typedef struct SymbolTable SymbolTable;
 enum VarTypeEnum {
   TY_VOID,
   TY_BOOL,
-  TY_CHAR,
-  TY_SHORT,
   TY_INT,
-  TY_LONG,
   TY_FLOAT,
-  TY_DOUBLE,
   TY_ENUM,
-  TY_PTR,
   TY_STRUCT,
   //TY_UNION,
   //TY_ARRAY,
   //TY_FUNC,
 };
 
+struct VarType {
+    VarTypeEnum type;
+    int bytes;
+    bool is_ptr;
+};
+
 // Variable object
 struct Variable {
     char* name;
-    VarTypeEnum type;
-    int size;
+    VarType type;
     bool is_function_arg;
     int stack_offset;
     bool is_global;
@@ -53,7 +54,7 @@ struct Variable {
 // Function object
 struct Function {
     char* name;
-    VarTypeEnum return_type;
+    VarType return_type;
     int param_count;
     Variable* params;
     int stack_space_used;
@@ -152,6 +153,8 @@ Function symbol_table_insert_func(SymbolTable* table, Function func);
 
 void symbol_table_funcs_realloc(SymbolTable* table, int new_size);
 
+// System V ABI requires 16 byte alignment of stack
+int func_get_aligned_stack_usage(Function func);
 
 // ================= Labels ====================
 

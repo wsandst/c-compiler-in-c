@@ -55,6 +55,7 @@ void ast_free(AST* ast) {
 
 // Current token being parsed, global simplifies code a lot 
 Token* parse_token;
+VarType latest_parsed_var_type;
 
 AST parse(Tokens* tokens, SymbolTable* global_symbols) {
     parse_token = &tokens->elems[0];
@@ -83,8 +84,8 @@ void expect(enum TokenType type) {
     }
 }
 
-void expect_var_type() {
-    if (accept(TK_KW_INT) || accept(TK_KW_FLOAT) || accept(TK_KW_DOUBLE) || accept(TK_KW_CHAR)) {
+void expect_type() {
+    if (accept_type()) {
         return;
     }
     else {
@@ -113,12 +114,9 @@ bool accept_range(TokenType from_token, TokenType to_token) {
     return false;
 }
 
-bool accept_var_type() {
-    return (accept(TK_KW_INT) || accept(TK_KW_FLOAT) || accept(TK_KW_DOUBLE) || accept(TK_KW_CHAR));
-}
-
 bool accept_unop() {
-    return (accept(TK_OP_MINUS) || accept(TK_OP_NOT) || accept(TK_OP_COMPL) || accept(TK_OP_INCR) || accept(TK_OP_DECR));
+    return (accept(TK_OP_MINUS) || accept(TK_OP_NOT) || accept(TK_OP_COMPL) 
+        || accept(TK_OP_INCR) || accept(TK_OP_DECR) || accept(TK_OP_SIZEOF));
 }
 
 bool accept_post_unop() {
@@ -127,6 +125,51 @@ bool accept_post_unop() {
 
 bool accept_binop() {
     return accept_range(TK_OP_PLUS, TK_OP_ASSIGN_BITXOR);
+}
+
+// Accept variable/function type: float, double, char, short, int, long
+bool accept_type() {
+    if (accept(TK_KW_CHAR)) {
+        latest_parsed_var_type.type = TY_INT;
+        latest_parsed_var_type.bytes = 1;
+    }
+    else if (accept(TK_KW_SHORT)) {
+        latest_parsed_var_type.type = TY_INT;
+        latest_parsed_var_type.bytes = 2;
+        accept(TK_KW_INT);
+    }
+    else if (accept(TK_KW_INT)) {
+        latest_parsed_var_type.type = TY_INT;
+        latest_parsed_var_type.bytes = 8;
+    }
+    else if (accept(TK_KW_LONG)) {
+        latest_parsed_var_type.type = TY_INT;
+        latest_parsed_var_type.bytes = 8;
+        accept(TK_KW_LONG);
+        accept(TK_KW_INT);
+    }
+    else if (accept(TK_KW_FLOAT)) {
+        latest_parsed_var_type.type = TY_FLOAT;
+        latest_parsed_var_type.bytes = 4;
+    }
+    else if (accept(TK_KW_DOUBLE)) {
+        latest_parsed_var_type.type = TY_FLOAT;
+        latest_parsed_var_type.bytes = 8;
+    }
+    else if (accept(TK_KW_VOID)) {
+        latest_parsed_var_type.type = TY_VOID;
+        latest_parsed_var_type.bytes = 8;
+    }
+    // Add user defined types here as well
+    else {
+        return false;
+    }
+    // We found a type, check if pointer
+    if (accept(TK_OP_MULT)) {
+        latest_parsed_var_type.is_ptr = true;
+        latest_parsed_var_type.bytes = 8;
+    }
+    return true;
 }
 
 void parse_program(ASTNode* node, SymbolTable* symbols) {
@@ -147,7 +190,7 @@ void parse_program(ASTNode* node, SymbolTable* symbols) {
         parse_global(node, symbols);
     }
     else {
-        expect_var_type();
+        expect_type();
         expect(TK_IDENT);
         if (accept(TK_DL_OPENPAREN)) { // Function
             token_go_back(3);
@@ -165,12 +208,11 @@ void parse_program(ASTNode* node, SymbolTable* symbols) {
 void parse_func(ASTNode* node, SymbolTable* symbols) {
     node->type = AST_FUNC;
     Function func;
-    expect_var_type();
-    enum VarTypeEnum type = token_type_to_var_type(prev_token().type);
+    expect_type();
     expect(TK_IDENT);
     char* ident = prev_token().value.string;
     func.name = ident;
-    func.return_type = type;
+    func.return_type = latest_parsed_var_type;;
     func.is_defined = false;
 
     // Create new scope for function
@@ -180,11 +222,10 @@ void parse_func(ASTNode* node, SymbolTable* symbols) {
     // Parse function arguments
     while (!accept(TK_DL_CLOSEPAREN)) { // Add argument variables to symbol map
         Variable var; 
-        expect_var_type();
-        var.type = token_type_to_var_type(prev_token().type);
+        expect_type();
+        var.type = latest_parsed_var_type;
         expect(TK_IDENT);
         var.name = prev_token().string_repr;
-        var.size = 8;
         accept(TK_DL_COMMA);
         symbol_table_insert_var(func_symbols, var);
     }
@@ -214,17 +255,16 @@ void parse_single_statement(ASTNode* node, SymbolTable* symbols) {
         parse_single_statement(node, symbols);
         return;
     }
-    else if (accept_var_type()) { // Variable declaration
+    else if (accept_type()) { // Variable declaration
         // Declaration is just connected to the symbol table,
         // no actual node needed
 
         // Add to symbol table
         Variable var;
-        var.type = token_type_to_var_type(prev_token().type);
+        var.type = latest_parsed_var_type;
         expect(TK_IDENT);
         char* ident = prev_token().value.string;
         var.name = ident;
-        var.size = 8; // 64 bit
         symbol_table_insert_var(symbols, var);
 
         if (accept(TK_OP_ASSIGN)) { // Def and assignment
@@ -385,17 +425,41 @@ void parse_expression_atom(ASTNode* node,  SymbolTable* symbols) {
         }
     }
     else if (accept(TK_DL_OPENPAREN)) {
-        // () resets the precedence
-        parse_expression(node, symbols, 1);
-        expect(TK_DL_CLOSEPAREN);
+        if (!accept_type()) { // Just normal parenthesis
+            parse_expression(node, symbols, 1);
+            expect(TK_DL_CLOSEPAREN);
+        }
+        else { // This is a type cast unary operator
+            node->expr_type = EXPR_UNOP;
+            node->op_type = UOP_CAST;
+            node->cast_type = latest_parsed_var_type;
+            node->rhs = ast_node_new(AST_EXPR, 1);
+            expect(TK_DL_CLOSEPAREN);
+            parse_expression_atom(node->rhs, symbols);
+        }
     }
     // Unary op
     else if (accept_unop()) { // Unary operation
         node->expr_type = EXPR_UNOP;
         node->op_type = token_type_to_pre_uop_type(prev_token().type);
         node->rhs = ast_node_new(AST_EXPR, 1);
-        //parse_expression(node->lhs, symbols, 1);
-        parse_expression_atom(node->rhs, symbols);
+
+        if (node->op_type == UOP_SIZEOF) {
+            // This is either a type or an expression
+            // Expressions need to evaluated normally, then the topmost node
+            // will provide the most memory used. This needs to be passed up,
+            // will help with implicit conversions later as well. Should be in the op node
+            expect(TK_DL_OPENPAREN);
+            expect_type();
+            node->cast_type = latest_parsed_var_type;
+            expect(TK_DL_CLOSEPAREN);
+            node->rhs->type = AST_END;
+            // This is a weird unop, no operand. Should I make a normal var rhs here with nothing but
+            // the cast_type? Or ist AST_END fine?§3    
+        }
+        else {
+            parse_expression_atom(node->rhs, symbols);
+        }
     }
     else if (accept(TK_DL_CLOSEPAREN)) { 
         // Only scenario this triggers is with a null expression, ex
@@ -431,13 +495,12 @@ void parse_global(ASTNode* node, SymbolTable* symbols) {
         inserted_var->is_undefined = false;
     }
     else {
-        accept_var_type();
+        accept_type();
         Variable var;
-        var.type = token_type_to_var_type(prev_token().type);
+        var.type = latest_parsed_var_type;
         expect(TK_IDENT);
         char* ident = prev_token().value.string;
         var.name = ident;
-        var.size = 8; // 64 bit
         var.is_undefined = true;
         symbol_table_insert_var(symbols, var);
         if (accept(TK_OP_ASSIGN)) {
@@ -703,21 +766,6 @@ bool is_binary_operation_assignment(OpType type) {
     }
 }
 
-VarTypeEnum token_type_to_var_type(enum TokenType type) {
-    switch (type) {
-        case TK_KW_INT:
-            return TY_INT;
-        case TK_KW_FLOAT:
-            return TY_FLOAT;
-        case TK_KW_DOUBLE:
-            return TY_DOUBLE;
-        case TK_KW_CHAR:
-            return TY_CHAR;
-        default:
-            return 0;
-    }
-}
-
 OpType token_type_to_pre_uop_type(enum TokenType type) {
     switch (type) {
         case TK_OP_MINUS:
@@ -730,6 +778,8 @@ OpType token_type_to_pre_uop_type(enum TokenType type) {
             return UOP_PRE_INCR;
         case TK_OP_DECR:
             return UOP_PRE_DECR;
+        case TK_OP_SIZEOF:
+            return UOP_SIZEOF;
         default:
             parse_error("Unsupported prefix unary operation encountered while parsing");
             return 0;
