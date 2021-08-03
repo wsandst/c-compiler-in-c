@@ -100,9 +100,10 @@ Variable symbol_table_insert_var(SymbolTable* table, Variable var) {
     if (table->var_count > table->var_max_count) {
         symbol_table_vars_realloc(table, table->var_max_count*2);
     }
-    if (!table->is_global) {
+    if (!table->is_global) { // 0 -> 2. 1 -> 4, 2->4, 3->6
         if (ALIGN_ON_STACK) { // The cur_stack_offset needs to be a multiple of var.type.bytes
-            table->cur_stack_offset = ((table->cur_stack_offset / var.type.bytes) + 1) * var.type.bytes;
+            // Integer ceil divide. (int) ceil(x/y) = (x + y - 1) / y
+            table->cur_stack_offset = ((table->cur_stack_offset + var.type.bytes - 1)/var.type.bytes + 1) * var.type.bytes;
         }
         else {
             table->cur_stack_offset += var.type.bytes;
@@ -181,7 +182,8 @@ void symbol_table_funcs_realloc(SymbolTable* table, int new_size) {
 
 // System V ABI requires 16 byte alignment of stack
 int func_get_aligned_stack_usage(Function func) {
-    return ((func.stack_space_used/16) + 1) * 16;
+    // Integer ceil divison, (int) ceil(x/y) = (x + y - 1) / y
+    return (func.stack_space_used + 16 - 1)/16 * 16;
 }
 
 // ================= Labels ====================

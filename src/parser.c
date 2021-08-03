@@ -129,6 +129,13 @@ bool accept_binop() {
 
 // Accept variable/function type: float, double, char, short, int, long
 bool accept_type() {
+    if (accept(TK_KW_UNSIGNED)) {
+        latest_parsed_var_type.is_unsigned = true;
+    }
+    else {
+        accept(TK_KW_SIGNED);
+        latest_parsed_var_type.is_unsigned = false;
+    }
     if (accept(TK_KW_CHAR)) {
         latest_parsed_var_type.type = TY_INT;
         latest_parsed_var_type.bytes = 1;

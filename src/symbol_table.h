@@ -11,6 +11,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <math.h>
 
 #include "util/string_helpers.h"
 
@@ -38,6 +39,7 @@ struct VarType {
     VarTypeEnum type;
     int bytes;
     bool is_ptr;
+    bool is_unsigned;
 };
 
 // Variable object

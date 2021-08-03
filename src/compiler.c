@@ -22,24 +22,21 @@ TODO:
             long long -> float -> double -> long double
         Arrays
         sizeof:
-            I need some way of isolating casts. sizeof basically acts on a cast
-            Currently the system will just eat the parenthesis, find the type,
-            be confused. Lookahead after parenthesis maybe? I still need to handle
-            *type, but that is essentially also a type
-            Alright, so: Upon encountering a parenthesis in an expression, we 
-            perform lookahead for a type (value type, pointer type, struct etc)
-            If this is a type, this node is an unary node of type UOP_CAST, and the
-            type is stored somewhere. Make a accept_unop_cast() or something
-            The one exception to this is if we encounter a sizeof unary operator. We need
-            to manually look for a sizeof (TYPE) (with accept_unop_cast()), as it is a literal
-            of sorts now, not an unary op.
-            Supported byte sizes: 
-                Integers:
-                    char (1 byte), short int/short (2 bytes), int (4 bytes), long int/long (8 bytes)
-                Floats:
-                    float (4 bytes), double (8 bytes)
-                Pointers:
-                    Always 8 bytes, but increment is based on the representing type
+            long double not implemented
+        Casting: Implicit vs explicit casting
+        Explicit casting:
+        Implicit casting:
+            The binary operator keeps track of the largest type.
+            Before we perform the operation we then perform promotion of the lower type up to it
+        
+        Promotion: integers, essentially do nothing
+        Promote to float: Convert integer to float
+        Demote to int: Convert float to int
+
+        My operations are type specific as well.
+        To simplify compiler, all int operations will occur as 64-bit integers.
+        I still need float operations
+        sizeof(int x)
 
     Preprocessor:
         Defines:

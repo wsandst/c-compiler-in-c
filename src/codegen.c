@@ -60,21 +60,45 @@ void codegen_error(char* error_message) {
     exit(1); 
 }
 
-char* offset_to_stack_ptr(int offset) {
+char* offset_to_stack_ptr(int offset, char* prefix) {
     char buf[64];
-    snprintf(buf, 63, "qword[rbp-%i]", offset);
+    snprintf(buf, 63, "%s [rbp-%i]", prefix, offset);
     return str_copy(buf);
 }
 
 char* var_to_stack_ptr(Variable* var) {
     if (!var->is_global) {
-        return offset_to_stack_ptr(var->stack_offset);
+        switch (var->type.bytes) {
+            case 8:
+                return offset_to_stack_ptr(var->stack_offset, "qword");
+            case 4:
+                return offset_to_stack_ptr(var->stack_offset, "dword");
+            case 2:
+                return offset_to_stack_ptr(var->stack_offset, "word");
+            case 1:
+                return offset_to_stack_ptr(var->stack_offset, "byte");
+        }
+        
     }
     else { // Global variable
         char buf[64];
         snprintf(buf, 63, "[%s]", var->name);
         return str_copy(buf);
     }
+}
+
+char* byte_size_to_reg_str(int size) {
+    switch (size) {
+        case 8:
+            return str_copy("rax");
+        case 4:
+            return str_copy("eax");
+        case 2:
+            return str_copy("ax");
+        case 1:
+            return str_copy("al");
+    }
+    return NULL;
 }
 
 char* get_label_str(int label) {
@@ -242,7 +266,16 @@ void gen_asm_expr(ASTNode* node, AsmContext ctx) {
     }
     else if (node->expr_type == EXPR_VAR) {
         char* sp2 = var_to_stack_ptr(&node->var);
-        asm_add(2, "mov rax, ", sp2);
+        // Handle various variable type sizes
+        if (node->var.type.bytes == 1 || node->var.type.bytes == 2) {
+            asm_add(2, "movzx rax, ", sp2); // Zeroes the upper unused bits
+        }
+        else if (node->var.type.bytes == 4) {
+            asm_add(2, "mov eax, ", sp2); // Moving into eax automatically zeroes upper bits
+        }
+        else if (node->var.type.bytes == 8) {
+            asm_add(2, "mov rax, ", sp2);
+        }
         free(sp2);
     }
     else if (node->expr_type == EXPR_FUNC_CALL) { // Function call
@@ -250,8 +283,6 @@ void gen_asm_expr(ASTNode* node, AsmContext ctx) {
         if (node->top_level_expr) {
             gen_asm(node->next, ctx);
         }
-        //asm_add(1, "sub rsp, 16"); // Allocate space for parameters on stack
-        //asm_add(2, "call ", node->func.name);
     }
     else if (node->expr_type == EXPR_UNOP) {
         gen_asm_unary_op(node, ctx);
@@ -479,9 +510,11 @@ void gen_asm_binary_op_assign(ASTNode* node, AsmContext ctx) {
     if (node->lhs->expr_type != EXPR_VAR) {
             codegen_error("Only variables can be assigned to");
     } // a = a+1
+    char* reg_str = byte_size_to_reg_str(node->lhs->var.type.bytes);
     char* var_sp = var_to_stack_ptr(&node->lhs->var);
-    asm_add(3, "mov ", var_sp, ", rax");
+    asm_add(4, "mov ", var_sp, ", ", reg_str);
     free(var_sp);
+    free(reg_str);
 }
 
 

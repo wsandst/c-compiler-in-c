@@ -55,6 +55,8 @@ char* get_case_label_str(int label, char* value);
 // Get the next jump label and increment the global label counter
 char* get_next_label_str();
 
+char* byte_size_to_reg_str(int size);
+
 // Generate NASM assembly from the AST
 char* generate_assembly(AST* ast, SymbolTable* symbols);
 
