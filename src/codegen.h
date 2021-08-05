@@ -22,7 +22,13 @@ struct AsmContext {
     bool or_end_node;
 };
 
+enum RegisterEnum {
+    RAX, RBX, RCX, RDX, RSI, RDI,
+    R8, R9, R10, R11, R12, R13, R14, R15,
+};
+
 typedef struct AsmContext AsmContext;
+typedef enum RegisterEnum RegisterEnum;
 
 // Add assembly
 void asm_add_single(StrVector* asm_src, char* str);
@@ -55,7 +61,8 @@ char* get_case_label_str(int label, char* value);
 // Get the next jump label and increment the global label counter
 char* get_next_label_str();
 
-char* byte_size_to_reg_str(int size);
+// Get the corresponding byte size register, eg 2, RAX = AX
+char* get_reg_width_str(int size, RegisterEnum reg);
 
 // Generate NASM assembly from the AST
 char* generate_assembly(AST* ast, SymbolTable* symbols);
@@ -69,20 +76,32 @@ void gen_asm_symbols(SymbolTable* symbols);
 // Generate assembly for an expression node
 void gen_asm_expr(ASTNode* node, AsmContext ctx);
 
-// Generate assembly for a constant expression node (used mainly for globals currently)
-void gen_asm_const_expr(ASTNode* node, AsmContext ctx);
+// =============== Integer operations ===============
+// Generate assembly for an integer unary op expression node
+void gen_asm_unary_op_int(ASTNode* node, AsmContext ctx);
+// Generate assembly for an integer binary op expression node
+void gen_asm_binary_op_int(ASTNode* node, AsmContext ctx);
+// Generate assembly for an integer binary op assignment expression node
+void gen_asm_binary_op_assign_int(ASTNode* node, AsmContext ctx);
+// Generate assembly for an integer binary op AND node (with short circuiting)
+void gen_asm_binary_op_and_int(ASTNode* node, AsmContext ctx);
+// Generate assembly for an integer binary op OR node (with short circuiting)
+void gen_asm_binary_op_or_int(ASTNode* node, AsmContext ctx);
 
-// Generate assembly for a unary op expression node
-void gen_asm_unary_op(ASTNode* node, AsmContext ctx);
-
+// =============== Float operations ===============
+// Generate assembly for a float unary op expression node
+void gen_asm_unary_op_float(ASTNode* node, AsmContext ctx);
 // Generate assembly for a binary op expression node
-void gen_asm_binary_op(ASTNode* node, AsmContext ctx);
+void gen_asm_binary_op_float(ASTNode* node, AsmContext ctx);
 // Generate assembly for a binary op assignment expression node
-void gen_asm_binary_op_assign(ASTNode* node, AsmContext ctx);
-// Generate assembly for a binary op AND node (with short circuiting)
-void gen_asm_binary_op_and(ASTNode* node, AsmContext ctx);
-// Generate assembly for a binary op OR node (with short circuiting)
-void gen_asm_binary_op_or(ASTNode* node, AsmContext ctx);
+void gen_asm_binary_op_assign_float(ASTNode* node, AsmContext ctx);
+
+// =============== Pointer operations ===============
+// Generate assembly for a float unary op expression node
+void gen_asm_unary_op_ptr(ASTNode* node, AsmContext ctx);
+// Generate assembly for a binary op expression node
+void gen_asm_binary_op_ptr(ASTNode* node, AsmContext ctx);
+
 // Setup short circuiting labels for and and or
 void gen_asm_setup_short_circuiting(ASTNode* node, AsmContext* ctx);
 // Add short circuiting conditional jump after lhs evaluation for AND/OR

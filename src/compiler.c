@@ -33,10 +33,13 @@ TODO:
         Promote to float: Convert integer to float
         Demote to int: Convert float to int
 
-        My operations are type specific as well.
-        To simplify compiler, all int operations will occur as 64-bit integers.
-        I still need float operations
-        sizeof(int x)
+        Once a binary operation is defined (both lhs and rhs done),
+        I need to label the operation with whatever type is wider.
+        The casting unary operator also changes this
+
+        Operations:
+            Floating point
+            Pointer (+, -, ++, --)
 
     Preprocessor:
         Defines:

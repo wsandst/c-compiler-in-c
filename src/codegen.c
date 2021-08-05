@@ -8,6 +8,21 @@ char* asm_indent_str;
 int label_count = 1;
 int indent_level = 0;
 
+static char *rax_modifier_strs[4] = {"al", "ax", "eax", "rax"};
+static char *rbx_modifier_strs[4] = {"bl", "bx", "ebx", "rbx"};
+static char *rcx_modifier_strs[4] = {"cl", "cx", "ecx", "rcx"};
+static char *rdx_modifier_strs[4] = {"dl", "dx", "edx", "rdx"};
+static char *rsi_modifier_strs[4] = {"sil", "si", "esi", "rsi"};
+static char *rdi_modifier_strs[4] = {"dil", "di", "edi", "rdi"};
+static char *r8_modifier_strs[4] =  {"r8b", "r8w", "r8d", "r8"};
+static char *r9_modifier_strs[4] =  {"r9b", "r9w", "r9d", "r9"};
+
+static char** register_enum_to_modifier_strs[14] = {
+    rax_modifier_strs, rbx_modifier_strs, rcx_modifier_strs, rdx_modifier_strs,
+    rsi_modifier_strs, rdi_modifier_strs, r8_modifier_strs, r9_modifier_strs, 
+    NULL, NULL, NULL, NULL, NULL, NULL
+};
+
 void asm_add_single(StrVector* src, char* str) {
     str_vec_push(src, str);
 }
@@ -77,6 +92,8 @@ char* var_to_stack_ptr(Variable* var) {
                 return offset_to_stack_ptr(var->stack_offset, "word");
             case 1:
                 return offset_to_stack_ptr(var->stack_offset, "byte");
+            default:
+                return str_copy("error");
         }
         
     }
@@ -85,20 +102,19 @@ char* var_to_stack_ptr(Variable* var) {
         snprintf(buf, 63, "[%s]", var->name);
         return str_copy(buf);
     }
+    return str_copy("error");
 }
 
-char* byte_size_to_reg_str(int size) {
+char* get_reg_width_str(int size, RegisterEnum reg) {
+    int index;
     switch (size) {
         case 8:
-            return str_copy("rax");
-        case 4:
-            return str_copy("eax");
-        case 2:
-            return str_copy("ax");
-        case 1:
-            return str_copy("al");
+            index = 3;
+            break;
+        default:
+            index = size / 2;
     }
-    return NULL;
+    return register_enum_to_modifier_strs[reg][index];
 }
 
 char* get_label_str(int label) {
@@ -285,13 +301,13 @@ void gen_asm_expr(ASTNode* node, AsmContext ctx) {
         }
     }
     else if (node->expr_type == EXPR_UNOP) {
-        gen_asm_unary_op(node, ctx);
+        gen_asm_unary_op_int(node, ctx);
         if (node->top_level_expr) {
             gen_asm(node->next, ctx);
         }
     }
     else if (node->expr_type == EXPR_BINOP) {
-        gen_asm_binary_op(node, ctx);
+        gen_asm_binary_op_int(node, ctx);
         if (node->top_level_expr) {
             gen_asm(node->next, ctx);
         }
@@ -305,7 +321,9 @@ void gen_asm_const_expr(ASTNode* node, AsmContext ctx) {
     // Assignment when a variable is global inserts into the data section
 }
 
-void gen_asm_unary_op(ASTNode* node, AsmContext ctx) {
+// =============== Integer operations ===============
+
+void gen_asm_unary_op_int(ASTNode* node, AsmContext ctx) {
     gen_asm(node->rhs, ctx); // The value we are acting on is now in RAX
     char* var_sp = var_to_stack_ptr(&node->rhs->var);
     switch (node->op_type) {
@@ -328,10 +346,8 @@ void gen_asm_unary_op(ASTNode* node, AsmContext ctx) {
                 codegen_error("Only variables can be incremented to");
             }
             asm_add_com("; Op: ++ (pre)");
-            asm_add(2, "mov rax, ", var_sp);
             asm_add(1, "inc rax");
-            asm_add(3, "mov ", var_sp, ", rax");
-            // Value is now in RAX
+            gen_asm_binary_op_assign_int(node->rhs, ctx);
             break;
         case UOP_PRE_DECR: // --x
             // Decrement and return incremented value
@@ -339,9 +355,8 @@ void gen_asm_unary_op(ASTNode* node, AsmContext ctx) {
                 codegen_error("Only variables can be decremented to");
             }
             asm_add_com("; Op: -- (pre)");
-            asm_add(2, "mov rax, ", var_sp);
             asm_add(1, "dec rax");
-            asm_add(3, "mov ", var_sp, ", rax");
+            gen_asm_binary_op_assign_int(node->rhs, ctx);
             break;
         case UOP_POST_INCR: // x++
             // Increment and return previous value
@@ -349,21 +364,25 @@ void gen_asm_unary_op(ASTNode* node, AsmContext ctx) {
                 codegen_error("Only variables can be incremented to");
             }
             asm_add_com("; Op: ++ (post)");
-            asm_add(2, "mov rax, ", var_sp);
-            asm_add(1, "mov rbx, rax"); // Peform operation in rbx to keep rax value
-            asm_add(1, "inc rbx");
-            asm_add(3, "mov ", var_sp, ", rbx");
+            asm_add(1, "mov rbx, rax");
+            asm_add(1, "push rax");
+            asm_add(1, "mov rax, rbx");
+            asm_add(1, "inc rax");
+            gen_asm_binary_op_assign_int(node->rhs, ctx);
+            asm_add(1, "pop rax");
             break;
-        case UOP_POST_DECR: // x--
+        case UOP_POST_DECR: // x-- 
             // Decrement and return previous value
             if (node->rhs->expr_type != EXPR_VAR) {
                 codegen_error("Only variables can be decremented to");
             }
             asm_add_com("; Op: -- (post)");
-            asm_add(2, "mov rax, ", var_sp);
-            asm_add(1, "mov rbx, rax"); // Peform operation in rbx to keep rax value
-            asm_add(1, "dec rbx");
-            asm_add(3, "mov ", var_sp, ", rbx");
+            asm_add(1, "mov rbx, rax");
+            asm_add(1, "push rax");
+            asm_add(1, "mov rax, rbx");
+            asm_add(1, "dec rax");
+            gen_asm_binary_op_assign_int(node->rhs, ctx);
+            asm_add(1, "pop rax");
             break;
         case UOP_SIZEOF:
             asm_add_com("; Op: sizeof");
@@ -379,7 +398,7 @@ void gen_asm_unary_op(ASTNode* node, AsmContext ctx) {
 }
 
 // Maybe that is for later when I implement proper expression handling
-void gen_asm_binary_op(ASTNode* node, AsmContext ctx) {
+void gen_asm_binary_op_int(ASTNode* node, AsmContext ctx) {
     gen_asm_setup_short_circuiting(node, &ctx); // AND/OR Short circuiting related
 
     gen_asm(node->lhs, ctx); // LHS now in RAX
@@ -464,10 +483,10 @@ void gen_asm_binary_op(ASTNode* node, AsmContext ctx) {
             asm_add(1, "setge al");
             break;
         case BOP_AND: // Logical and
-            gen_asm_binary_op_and(node, ctx);
+            gen_asm_binary_op_and_int(node, ctx);
             break;
         case BOP_OR: // Logical or
-            gen_asm_binary_op_or(node, ctx);
+            gen_asm_binary_op_or_int(node, ctx);
             break;
         // Bitwise
         case BOP_ASSIGN_BITAND:
@@ -502,19 +521,18 @@ void gen_asm_binary_op(ASTNode* node, AsmContext ctx) {
             break;
     }
     if (is_binary_operation_assignment(node->op_type)) {
-        gen_asm_binary_op_assign(node, ctx);
+        gen_asm_binary_op_assign_int(node->lhs, ctx);
     }
 }
 
-void gen_asm_binary_op_assign(ASTNode* node, AsmContext ctx) {
-    if (node->lhs->expr_type != EXPR_VAR) {
+void gen_asm_binary_op_assign_int(ASTNode* node, AsmContext ctx) {
+    if (node->expr_type != EXPR_VAR) {
             codegen_error("Only variables can be assigned to");
     } // a = a+1
-    char* reg_str = byte_size_to_reg_str(node->lhs->var.type.bytes);
-    char* var_sp = var_to_stack_ptr(&node->lhs->var);
+    char* reg_str = get_reg_width_str(node->var.type.bytes, RAX);
+    char* var_sp = var_to_stack_ptr(&node->var);
     asm_add(4, "mov ", var_sp, ", ", reg_str);
     free(var_sp);
-    free(reg_str);
 }
 
 
@@ -560,7 +578,7 @@ void gen_asm_add_short_circuit_jumps(ASTNode* node, AsmContext ctx) {
     }
 }
 
-void gen_asm_binary_op_and(ASTNode* node, AsmContext ctx) {
+void gen_asm_binary_op_and_int(ASTNode* node, AsmContext ctx) {
     asm_add_com("; Op: && (AND)");
     asm_add(1, "and rax, rbx");
     asm_add(1, "cmp rax, 0");
@@ -572,7 +590,7 @@ void gen_asm_binary_op_and(ASTNode* node, AsmContext ctx) {
     }
 }
 
-void gen_asm_binary_op_or(ASTNode* node, AsmContext ctx) {
+void gen_asm_binary_op_or_int(ASTNode* node, AsmContext ctx) {
     asm_add_com("; Op: || (OR)");
     asm_add(1, "or rax, rbx");
     asm_add(1, "cmp rax, 0");
@@ -584,6 +602,7 @@ void gen_asm_binary_op_or(ASTNode* node, AsmContext ctx) {
     }
 }
 
+// =========== Float operations ===============
 
 // Generate assembly for a function call
 void gen_asm_func_call(ASTNode* node, AsmContext ctx) {
@@ -621,7 +640,7 @@ void gen_asm_func(ASTNode* node, AsmContext ctx) {
     Callee-saved RBX, RSP, RBP, and R12–R15
     Return: RAX 
     */
-    static char *reg_strs[6] = {"rdi", "rsi", "rdx", "rcx", "r8", "r9"};
+    static RegisterEnum arg_regs[6] = {RDI, RSI, RDX, RCX, R8, R9};
     Variable* param = node->func.params;
     ctx.func_return_label = get_next_label_str();
     asm_set_indent(0);
@@ -638,7 +657,8 @@ void gen_asm_func(ASTNode* node, AsmContext ctx) {
     asm_add_com("; Store passed function arguments");
     for (size_t i = 0; i < node->func.param_count; i++) {
         char* param_ptr = var_to_stack_ptr(param);
-        asm_add(4, "mov ", param_ptr, ", ", reg_strs[i]);
+        char* reg_str = get_reg_width_str(param->type.bytes, arg_regs[i]);
+        asm_add(4, "mov ", param_ptr, ", ", reg_str);
         param++;
         free(param_ptr);
     }

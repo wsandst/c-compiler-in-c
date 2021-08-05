@@ -250,6 +250,10 @@ int get_binary_operator_precedence(OpType type);
 // Assignment is right associative, needed for the precedence parsing
 bool is_binary_operation_assignment(OpType type);
 
+// Return the wider variable type.
+// char > short > int > long > float > double > long double
+VarType return_wider_type(VarType type1, VarType type2);
+
 // Convert a TokenType unary operator type to the corresponding prefix UnaryOpType
 OpType token_type_to_pre_uop_type(TokenType type);
 // Convert a TokenType unary operator type to the corresponding postfix UnaryOpType

@@ -147,7 +147,7 @@ bool accept_type() {
     }
     else if (accept(TK_KW_INT)) {
         latest_parsed_var_type.type = TY_INT;
-        latest_parsed_var_type.bytes = 8;
+        latest_parsed_var_type.bytes = 4;
     }
     else if (accept(TK_KW_LONG)) {
         latest_parsed_var_type.type = TY_INT;
@@ -407,6 +407,9 @@ void parse_expression(ASTNode* node, SymbolTable* symbols, int min_precedence) {
             node->op_type = op_type;
             int new_min_precedence = op_precedence + !is_binary_operation_assignment(op_type);
             parse_expression(node->rhs, symbols, new_min_precedence);
+            // LHS and RHS is now defined. Put the widest variable type in the op
+            // for possible implicit casts
+            node->cast_type = return_wider_type(node->rhs->cast_type, node->lhs->cast_type);
         }
         else {
             break;
@@ -417,8 +420,9 @@ void parse_expression(ASTNode* node, SymbolTable* symbols, int min_precedence) {
 void parse_expression_atom(ASTNode* node,  SymbolTable* symbols) {
     // Isolate atom
     if (accept(TK_LINT)) { // Literal
-         node->expr_type = EXPR_LITERAL;
+        node->expr_type = EXPR_LITERAL;
         node->literal = prev_token().string_repr;
+        node->cast_type.bytes = 0;
     }
     else if (accept(TK_IDENT)) { // Variable or function call
         char* ident = prev_token().string_repr;
@@ -429,6 +433,7 @@ void parse_expression_atom(ASTNode* node,  SymbolTable* symbols) {
         else { // Variable
             node->expr_type = EXPR_VAR;
             node->var = symbol_table_lookup_var(symbols, ident);
+            node->cast_type = node->var.type;
         }
     }
     else if (accept(TK_DL_OPENPAREN)) {
@@ -466,6 +471,7 @@ void parse_expression_atom(ASTNode* node,  SymbolTable* symbols) {
         }
         else {
             parse_expression_atom(node->rhs, symbols);
+            node->cast_type = node->rhs->cast_type;
         }
     }
     else if (accept(TK_DL_CLOSEPAREN)) { 
@@ -770,6 +776,23 @@ bool is_binary_operation_assignment(OpType type) {
                 return true;
             default:
                 return false;
+    }
+}
+
+VarType return_wider_type(VarType type1, VarType type2) {
+    int type1_width = type1.bytes;
+    int type2_width = type2.bytes;
+    if (type1.type == TY_FLOAT) {
+        type1_width += 8;
+    }
+    if (type2.type == TY_FLOAT) {
+        type2_width += 8;
+    }
+    if (type1_width > type2_width) {
+        return type1;
+    }
+    else {
+        return type2;
     }
 }
 
