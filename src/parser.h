@@ -15,6 +15,7 @@ typedef enum OpType OpType;
 typedef enum UnaryOpType UnaryOpType;
 typedef enum ASTNodeType ASTNodeType;
 typedef enum ExprType ExprType;
+typedef enum LiteralType LiteralType;
 typedef struct ASTNode ASTNode;
 typedef struct AST AST;
 
@@ -92,6 +93,13 @@ enum ExprType {
     EXPR_FUNC_CALL,
 };
 
+enum LiteralType {
+    LT_INT,
+    LT_FLOAT,
+    LT_STRING,
+    LT_CHAR,
+};
+
 struct ASTNode {
     ASTNodeType type;
     Variable var;
@@ -108,6 +116,7 @@ struct ASTNode {
     ASTNode* rhs;
     ASTNode* lhs;
     // Literal
+    LiteralType literal_type;
     char* literal;
     bool top_level_expr;
 
@@ -174,6 +183,7 @@ void parse_single_statement(ASTNode* node, SymbolTable* symbols);
 // Parse an expression, ex (a + b) + 3
 void parse_expression(ASTNode* node,  SymbolTable* symbols, int min_precedence);
 void parse_expression_atom(ASTNode* node,  SymbolTable* symbols);
+void parse_literal(ASTNode* node,  SymbolTable* symbols);
 // Used later for short circuiting
 void mark_first_and_or_nodes(ASTNode* node, OpType new_op);
 
@@ -244,6 +254,8 @@ bool accept_post_unop();
 bool accept_binop_type();
 // Accept a variable/fd type
 bool accept_type();
+// Accept a literal
+bool accept_literal();
 
 // Get precedence of binary operator
 int get_binary_operator_precedence(OpType type);

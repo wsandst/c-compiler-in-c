@@ -157,7 +157,7 @@ bool accept_type() {
     }
     else if (accept(TK_KW_FLOAT)) {
         latest_parsed_var_type.type = TY_FLOAT;
-        latest_parsed_var_type.bytes = 4;
+        latest_parsed_var_type.bytes = 8; // Temp fix for now
     }
     else if (accept(TK_KW_DOUBLE)) {
         latest_parsed_var_type.type = TY_FLOAT;
@@ -177,6 +177,10 @@ bool accept_type() {
         latest_parsed_var_type.bytes = 8;
     }
     return true;
+}
+
+bool accept_literal() {
+    return accept(TK_LINT) || accept(TK_LFLOAT) || accept(TK_LCHAR) || accept(TK_LSTRING);
 }
 
 void parse_program(ASTNode* node, SymbolTable* symbols) {
@@ -419,10 +423,9 @@ void parse_expression(ASTNode* node, SymbolTable* symbols, int min_precedence) {
 
 void parse_expression_atom(ASTNode* node,  SymbolTable* symbols) {
     // Isolate atom
-    if (accept(TK_LINT)) { // Literal
-        node->expr_type = EXPR_LITERAL;
-        node->literal = prev_token().string_repr;
-        node->cast_type.bytes = 0;
+    if (accept_literal()) { // Literal
+        token_go_back(1);
+        parse_literal(node, symbols);
     }
     else if (accept(TK_IDENT)) { // Variable or function call
         char* ident = prev_token().string_repr;
@@ -463,9 +466,11 @@ void parse_expression_atom(ASTNode* node,  SymbolTable* symbols) {
             // will help with implicit conversions later as well. Should be in the op node
             expect(TK_DL_OPENPAREN);
             expect_type();
-            node->cast_type = latest_parsed_var_type;
+            node->cast_type.type = TY_INT;
+            node->cast_type.bytes = 8;
             expect(TK_DL_CLOSEPAREN);
             node->rhs->type = AST_END;
+            node->rhs->cast_type = latest_parsed_var_type;
             // This is a weird unop, no operand. Should I make a normal var rhs here with nothing but
             // the cast_type? Or ist AST_END fine?§3    
         }
@@ -493,6 +498,26 @@ void parse_expression_atom(ASTNode* node,  SymbolTable* symbols) {
     }
 }
 
+
+void parse_literal(ASTNode* node,  SymbolTable* symbols) {
+    node->expr_type = EXPR_LITERAL;
+    node->literal = parse_token->string_repr;
+    node->cast_type.bytes = 0;
+    if (accept(TK_LINT)) {
+        node->cast_type.type = TY_INT;
+        node->literal_type = LT_INT;
+    }
+    else if (accept(TK_LFLOAT)) {
+        node->cast_type.type = TY_FLOAT;
+        node->literal_type = LT_FLOAT;
+    }
+    else if (accept(TK_LCHAR)) {
+        node->literal_type = LT_CHAR;
+    }
+    else if (accept(TK_LSTRING)) {
+        node->literal_type = LT_STRING;
+    }
+}
 
 void parse_global(ASTNode* node, SymbolTable* symbols) {
     if (accept(TK_IDENT)) { // Definition of already declared global variable
@@ -532,6 +557,7 @@ void parse_global(ASTNode* node, SymbolTable* symbols) {
 }
 
 void parse_func_call(ASTNode* node, SymbolTable* symbols) {
+    node->cast_type = latest_parsed_var_type; // Return type
     node->expr_type = EXPR_FUNC_CALL;
     char* ident = prev_token().string_repr;
     expect(TK_DL_OPENPAREN);

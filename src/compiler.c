@@ -41,6 +41,8 @@ TODO:
             Floating point
             Pointer (+, -, ++, --)
 
+        sizeof always returns an int, need to fix that in the cast_type
+
     Preprocessor:
         Defines:
             Simple defines, ifndef, ifdef. Goal is to support simple include headers

@@ -1,13 +1,13 @@
 // Casting
 
 int main() {
-    /*char x = 1;
-    long int y = (long) (int) (short) x;
-    char z = (char) (int) (short) y;
-    char w = (char) y;
-    return z + w + y; */
-    char x = 1;
-    short y = 2;
-    int z = 3;
-    long w = x + y + z;
+    char x1 = 1;
+    long int x2 = (long) (int) (short) x1;
+    char x3 = (char) (int) (short) x2;
+    char x4 = (char) x2;
+    char x5 = 1;
+    short x6 = 2;
+    int x7 = 3;
+    long x8 = x5 + x6 + x7;
+    return x8;
 }
