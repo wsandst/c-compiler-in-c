@@ -151,4 +151,4 @@ void gen_asm_setup_short_circuiting(ASTNode* node, AsmContext* ctx);
 void gen_asm_add_short_circuit_jumps(ASTNode* node, AsmContext ctx);
 
 // Casting between any types
-void gen_asm_unary_op_cast(ASTNode* node, AsmContext ctx);
+void gen_asm_unary_op_cast(VarType to_type, VarType from_type);

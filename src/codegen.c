@@ -491,6 +491,8 @@ void gen_asm_return(ASTNode* node, AsmContext ctx) {
     asm_add_newline();
     asm_add_com("; Evaluating return expr");
     gen_asm(node->ret, ctx); // Expr is now in RAX
+    // Cast to return type
+    gen_asm_unary_op_cast(node->cast_type, node->ret->cast_type);
     asm_add(3, "jmp ", ctx.func_return_label, " ; Function return");
     gen_asm(node->next, ctx);
 }

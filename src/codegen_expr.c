@@ -154,7 +154,7 @@ void gen_asm_unary_op_int(ASTNode* node, AsmContext ctx) {
             break;
         case UOP_CAST:
             asm_add_com("; Op: cast");
-            gen_asm_unary_op_cast(node, ctx);
+            gen_asm_unary_op_cast(node->cast_type, node->rhs->cast_type);
             break;
         default:
             codegen_error("Unsupported integer unary operation found!");
@@ -331,6 +331,13 @@ void gen_asm_unary_op_float(ASTNode* node, AsmContext ctx) {
     gen_asm(node->rhs, ctx); // The value we are acting on is now in RAX
     char* var_sp = var_to_stack_ptr(&node->rhs->var);
     switch (node->op_type) {
+        case UOP_NEG: // Negation
+            // Move into integer reg, flip first bit with xor
+            asm_add(1, "movq rbx, xmm0");
+            asm_add(1, "mov rax, 0x8000000000000000");
+            asm_add(1, "xor rax, rbx");
+            asm_add(1, "movq xmm0, rax");
+            break;
         case UOP_SIZEOF:
             asm_add_com("; Op: sizeof");
             char buf[64];
@@ -339,7 +346,7 @@ void gen_asm_unary_op_float(ASTNode* node, AsmContext ctx) {
             break;
         case UOP_CAST:
             asm_add_com("; Op: cast");
-            gen_asm_unary_op_cast(node, ctx);
+            gen_asm_unary_op_cast(node->cast_type, node->rhs->cast_type);
             break;
         default:
             codegen_error("Unsupported float unary operation found!");
@@ -352,11 +359,15 @@ void gen_asm_binary_op_float(ASTNode* node, AsmContext ctx) {
     gen_asm_setup_short_circuiting(node, &ctx); // AND/OR Short circuiting related
 
     gen_asm(node->lhs, ctx); // LHS now in RAX
+    // Check if we need to cast lhs (lhs is int)
+    gen_asm_unary_op_cast(node->cast_type, node->lhs->cast_type); 
 
     gen_asm_add_short_circuit_jumps(node, ctx); // AND/OR Short circuiting related
     asm_add(1, "movq rax, xmm0");
     asm_add(1, "push rax"); // Save RAX
     gen_asm(node->rhs, ctx);
+    // Check if we need to cast rhs (rhs is int)
+    gen_asm_unary_op_cast(node->cast_type, node->rhs->cast_type); 
     asm_add(1, "movq xmm1, xmm0"); // Move RHS to XMM1
     asm_add(1, "pop rax"); // LHS now in RAX
     asm_add(1, "movq xmm0, rax"); // LHS now in XMM0
@@ -365,6 +376,26 @@ void gen_asm_binary_op_float(ASTNode* node, AsmContext ctx) {
         case BOP_ASSIGN: 
             // Rest of assignment is handled after the switch
             asm_add(1, "movq xmm0, xmm1"); // We need the rhs value in rax
+            break;
+        case BOP_ASSIGN_ADD:
+        case BOP_ADD: // Addition
+            asm_add_com("; fOp: +");
+            asm_add(1, "addsd xmm0, xmm1");
+            break;
+        case BOP_ASSIGN_SUB:
+        case BOP_SUB: // Subtraction
+            asm_add_com("; fOp: -");
+            asm_add(1, "subsd xmm0, xmm1");
+            break;
+        case BOP_ASSIGN_MULT:
+        case BOP_MUL: // Multiplication
+            asm_add_com("; fOp: *");
+            asm_add(1, "mulsd xmm0, xmm1");
+            break;
+        case BOP_ASSIGN_DIV:
+        case BOP_DIV: // Division
+            asm_add_com("; fOp: / (Integer)");
+            asm_add(1, "divsd xmm0, xmm1");
             break;
         default:
             codegen_error("Unsupported float binary operation found!");
@@ -426,9 +457,7 @@ void gen_asm_add_short_circuit_jumps(ASTNode* node, AsmContext ctx) {
     }
 }
 
-void gen_asm_unary_op_cast(ASTNode* node, AsmContext ctx) {
-    VarType to_type = node->cast_type;
-    VarType from_type = node->rhs->cast_type;
+void gen_asm_unary_op_cast(VarType to_type, VarType from_type) {
     // We have value in rax or xmm0
     if (to_type.type == TY_INT && from_type.type == TY_FLOAT) {
         // Float to int

@@ -56,6 +56,7 @@ void ast_free(AST* ast) {
 // Current token being parsed, global simplifies code a lot 
 Token* parse_token;
 VarType latest_parsed_var_type;
+Function latest_func;
 
 AST parse(Tokens* tokens, SymbolTable* global_symbols) {
     parse_token = &tokens->elems[0];
@@ -253,6 +254,7 @@ void parse_func(ASTNode* node, SymbolTable* symbols) {
     }
     // Function has body, is a definition
     func.is_defined = true;
+    latest_func = func;
     node->func = symbol_table_insert_func(symbols, func);
     node->body = ast_node_new(AST_END, 1);
     parse_scope(node->body, func_symbols);
@@ -334,6 +336,7 @@ void parse_single_statement(ASTNode* node, SymbolTable* symbols) {
     else if (accept(TK_KW_RETURN)) { // Return statements
         node->type = AST_RETURN;
         node->ret = ast_node_new(AST_EXPR, 1);
+        node->cast_type = latest_func.return_type;
         parse_expression(node->ret, symbols, 1);
         expect(TK_DL_SEMICOLON);
     }
