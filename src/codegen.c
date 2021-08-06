@@ -82,6 +82,22 @@ char* offset_to_stack_ptr(int offset, char* prefix) {
     return str_copy(buf);
 }
 
+// Get the address size corresponding to bytes, ex 8->qword or 4->dword
+char* bytes_to_addr_size(VarType var_type) {
+    switch (var_type.bytes) {
+        case 8:
+            return str_copy("qword");
+        case 4:
+            return str_copy("dword");
+        case 2:
+            return str_copy("word");
+        case 1:
+            return str_copy("byte");
+        default:
+            return str_copy("error");
+    }
+}
+
 char* var_to_stack_ptr(Variable* var) {
     if (!var->is_global) {
         switch (var->type.bytes) {
@@ -106,16 +122,29 @@ char* var_to_stack_ptr(Variable* var) {
     return str_copy("error");
 }
 
-char* get_reg_width_str(int size, RegisterEnum reg) {
+char* get_reg_width_str(VarType var_type, RegisterEnum reg) {
     int index;
-    switch (size) {
+    switch (var_type.bytes) {
         case 8:
             index = 3;
             break;
         default:
-            index = size / 2;
+            index = var_type.bytes / 2;
     }
     return register_enum_to_modifier_strs[reg][index];
+}
+
+char* get_move_instr_for_var_type(VarType var_type) {
+    if (var_type.bytes == 8) {
+        return str_copy("mov rax");
+    }
+    else if (var_type.bytes == 4) {
+        return str_copy("mov eax"); // Moving into eax automatically zeroes upper bits
+    }
+    else if (var_type.bytes == 1 || var_type.bytes == 2) {
+        return str_copy("movzx rax"); // Zeroes the upper unused bits
+    }
+    return NULL;
 }
 
 char* get_label_str(int label) {
@@ -292,13 +321,16 @@ void gen_asm_func_call(ASTNode* node, AsmContext ctx) {
     ASTNode* current_arg = node->args;
     for (int i = 0; i <  node->func.param_count; i++) { // Current arg is somehow corrupted when the loop starts
         gen_asm(current_arg, ctx);
+        if (current_arg->cast_type.ptr_level == 0 && current_arg->cast_type.type == TY_FLOAT) {
+            asm_add(1, "movq rax, xmm0"); // We pass f64 here
+        }
         asm_add(3, "mov ", reg_strs[i], ", rax");
         asm_add(2, "push ", reg_strs[i]);
         current_arg = current_arg->next;
     }
     // Make everything ready for call
-    for (size_t i = 0; i < node->func.param_count; i++){
-        asm_add(2, "pop ", reg_strs[i]);
+    for (size_t i = node->func.param_count; i > 0; i--){
+        asm_add(2, "pop ", reg_strs[i-1]);
     }
     asm_add(2, "call ", node->func.name);
 }
@@ -329,7 +361,7 @@ void gen_asm_func(ASTNode* node, AsmContext ctx) {
     asm_add_com("; Store passed function arguments");
     for (size_t i = 0; i < node->func.param_count; i++) {
         char* param_ptr = var_to_stack_ptr(param);
-        char* reg_str = get_reg_width_str(param->type.bytes, arg_regs[i]);
+        char* reg_str = get_reg_width_str(param->type, arg_regs[i]);
         asm_add(4, "mov ", param_ptr, ", ", reg_str);
         param++;
         free(param_ptr);

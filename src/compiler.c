@@ -5,7 +5,10 @@
 /*
 TODO:
     Next time:
-        Start investigating type system
+        Implement pointers
+        Implement rest of float operators
+        Cleanup project, maybe remove some globals and test files?
+        Implement constant and static values
 
     Expressions:
         Constant expressions (compile time expressions) (only really required for advanced switch cases):
@@ -16,32 +19,10 @@ TODO:
         Stack arguments, floating point arguments, floating point returns
 
     Types:
-        Type conversion:
-            bool -> char -> short int -> int -> 
-            unsigned int -> long -> unsigned -> 
-            long long -> float -> double -> long double
-        Arrays
-        sizeof:
-            long double not implemented
-        Casting: Implicit vs explicit casting
-        Explicit casting:
-        Implicit casting:
-            The binary operator keeps track of the largest type.
-            Before we perform the operation we then perform promotion of the lower type up to it
-        
-        Promotion: integers, essentially do nothing
-        Promote to float: Convert integer to float
-        Demote to int: Convert float to int
-
-        Once a binary operation is defined (both lhs and rhs done),
-        I need to label the operation with whatever type is wider.
-        The casting unary operator also changes this
-
-        Operations:
-            Floating point
-            Pointer (+, -, ++, --)
-
-        sizeof always returns an int, need to fix that in the cast_type
+        Floating point:
+            Operators left: ++, --, logical
+        Pointers:
+            Operators left: (+, -, ++, --)
 
     Preprocessor:
         Defines:

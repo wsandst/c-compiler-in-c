@@ -66,9 +66,17 @@ char* get_case_label_str(int label, char* value);
 char* get_next_label_str();
 
 // Get the corresponding byte size register, eg 2, RAX = AX
-char* get_reg_width_str(int size, RegisterEnum reg);
+char* get_reg_width_str(VarType var_type, RegisterEnum reg);
 
+// Get the address size corresponding to bytes, ex 8->qword or 4->dword
+char* bytes_to_addr_size(VarType var_type);
+
+// Get stack adress of a variable, ex qword [rbp - 8]
 char* var_to_stack_ptr(Variable* var);
+
+// Get the corresponding move instr for a certain memory size, ex movzx for 2
+char* get_move_instr_for_var_type(VarType var_type);
+
 
 // ============= ASM Generation ================
 
@@ -118,6 +126,7 @@ void codegen_error(char* message);
 
 void gen_asm_unary_op(ASTNode* node, AsmContext ctx);
 void gen_asm_binary_op(ASTNode* node, AsmContext ctx);
+void gen_asm_unary_op_address(ASTNode* node, AsmContext ctx);
 
 // =============== Integer operations ===============
 // Generate assembly for an integer unary op expression node
@@ -144,6 +153,8 @@ void gen_asm_binary_op_assign_float(ASTNode* node, AsmContext ctx);
 void gen_asm_unary_op_ptr(ASTNode* node, AsmContext ctx);
 // Generate assembly for a binary op expression node
 void gen_asm_binary_op_ptr(ASTNode* node, AsmContext ctx);
+// Generate assembly for pointer dereferencing operator
+void gen_asm_unary_op_ptr_deref(ASTNode* node, AsmContext ctx);
 
 // Setup short circuiting labels for and and or
 void gen_asm_setup_short_circuiting(ASTNode* node, AsmContext* ctx);

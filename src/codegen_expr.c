@@ -17,16 +17,9 @@ void gen_asm_expr(ASTNode* node, AsmContext ctx) {
     else if (node->expr_type == EXPR_VAR) {
         char* sp2 = var_to_stack_ptr(&node->var);
         // Handle various variable type sizes
-        if (node->var.type.type == TY_INT) {
-            if (node->var.type.bytes == 1 || node->var.type.bytes == 2) {
-                asm_add(2, "movzx rax, ", sp2); // Zeroes the upper unused bits
-            }
-            else if (node->var.type.bytes == 4) {
-                asm_add(2, "mov eax, ", sp2); // Moving into eax automatically zeroes upper bits
-            }
-            else if (node->var.type.bytes == 8) {
-                asm_add(2, "mov rax, ", sp2);
-            }
+        if (node->var.type.type == TY_INT || node->var.type.ptr_level > 0) {
+            char* move_instr = get_move_instr_for_var_type(node->var.type);
+            asm_add(3, move_instr, ", ", sp2);
         }
         else if (node->var.type.type == TY_FLOAT) {
             asm_add(2, "movq xmm0, ", sp2);
@@ -60,7 +53,10 @@ void gen_asm_expr(ASTNode* node, AsmContext ctx) {
 }
 
 void gen_asm_unary_op(ASTNode* node, AsmContext ctx) {
-    if (node->cast_type.type == TY_INT) {
+    if (node->cast_type.ptr_level > 0) { // Pointer
+        gen_asm_unary_op_ptr(node, ctx);
+    }
+    else if (node->cast_type.type == TY_INT) {
         gen_asm_unary_op_int(node, ctx);
     }
     else if (node->cast_type.type == TY_FLOAT) {
@@ -71,16 +67,31 @@ void gen_asm_unary_op(ASTNode* node, AsmContext ctx) {
     }
 }
 void gen_asm_binary_op(ASTNode* node, AsmContext ctx) {
-    if (node->cast_type.type == TY_INT) {
+    if (node->cast_type.ptr_level > 0) { // Pointer
+        gen_asm_binary_op_ptr(node, ctx);
+    }
+    else if (node->cast_type.type == TY_INT) { // Int
         // We need to perform implicit casting here
         gen_asm_binary_op_int(node, ctx);
     }
-    else if (node->cast_type.type == TY_FLOAT) {
+    else if (node->cast_type.type == TY_FLOAT) { // Float
         gen_asm_binary_op_float(node, ctx);
     }
     else {
         codegen_error("Invalid cast-type encountered");
     }
+}
+
+// & address operator for
+void gen_asm_unary_op_address(ASTNode* node, AsmContext ctx) {
+    asm_add_com("; Op: & (address)");
+    if (node->expr_type != EXPR_VAR) {
+        codegen_error("Tried to take address of non-variable!");
+    }
+    char buf[64];
+    snprintf(buf, 63, "[rbp-%d]", node->var.stack_offset);
+    asm_add(1, "mov rax, 0");
+    asm_add(2, "lea rax, ", buf);
 }
 
 // =============== Integer operations ===============
@@ -156,6 +167,15 @@ void gen_asm_unary_op_int(ASTNode* node, AsmContext ctx) {
             asm_add_com("; Op: cast");
             gen_asm_unary_op_cast(node->cast_type, node->rhs->cast_type);
             break;
+        case UOP_DEREF: { // Deref from int pointer
+            asm_add_com("; Op: * (deref)");
+            char* addr_size = bytes_to_addr_size(node->cast_type);
+            char* move_instr = get_move_instr_for_var_type(node->cast_type);
+            asm_add(4, move_instr, ", ", addr_size, " [rax]");
+            free(addr_size);
+            free(move_instr);
+            break;
+        }
         default:
             codegen_error("Unsupported integer unary operation found!");
             break;
@@ -295,7 +315,7 @@ void gen_asm_binary_op_assign_int(ASTNode* node, AsmContext ctx) {
     if (node->expr_type != EXPR_VAR) {
             codegen_error("Only variables can be assigned to");
     } // a = a+1
-    char* reg_str = get_reg_width_str(node->var.type.bytes, RAX);
+    char* reg_str = get_reg_width_str(node->var.type, RAX);
     char* var_sp = var_to_stack_ptr(&node->var);
     asm_add(4, "mov ", var_sp, ", ", reg_str);
     free(var_sp);
@@ -348,6 +368,16 @@ void gen_asm_unary_op_float(ASTNode* node, AsmContext ctx) {
             asm_add_com("; Op: cast");
             gen_asm_unary_op_cast(node->cast_type, node->rhs->cast_type);
             break;
+        case UOP_DEREF: { // Deref from int pointer
+            asm_add_com("; fOp: * (deref)");
+            char* addr_size = bytes_to_addr_size(node->cast_type);
+            char* move_instr = get_move_instr_for_var_type(node->cast_type);
+            asm_add(4, move_instr, ", ", addr_size, " [rax]");
+            asm_add(1, "movq xmm0, rax");
+            free(addr_size);
+            free(move_instr);
+            break;
+        }
         default:
             codegen_error("Unsupported float unary operation found!");
             break;
@@ -413,6 +443,53 @@ void gen_asm_binary_op_assign_float(ASTNode* node, AsmContext ctx) {
     char* var_sp = var_to_stack_ptr(&node->var);
     asm_add(3, "movq ", var_sp, ", xmm0");
     free(var_sp);
+}
+
+// =============== Pointer operations ===============
+// Generate assembly for a float unary op expression node
+void gen_asm_unary_op_ptr(ASTNode* node, AsmContext ctx) {
+    gen_asm(node->rhs, ctx); // The value we are acting on is now in RAX
+    char* var_sp = var_to_stack_ptr(&node->rhs->var);
+    switch (node->op_type) {
+        case UOP_ADDR:
+            gen_asm_unary_op_address(node->rhs, ctx);
+            break;
+        case UOP_DEREF: // Deref from pointer to pointer
+            asm_add_com("; Op: * (deref)");
+            asm_add(1, "mov rax, qword [rax]");
+            break;
+        default:
+            codegen_error("Unsupported pointer unary operation encountered!");
+            break;
+    }
+    free(var_sp);
+}
+
+// Generate assembly for a binary op expression node
+void gen_asm_binary_op_ptr(ASTNode* node, AsmContext ctx) {
+    gen_asm_setup_short_circuiting(node, &ctx); // AND/OR Short circuiting related
+
+    gen_asm(node->lhs, ctx); // LHS now in RAX
+
+    gen_asm_add_short_circuit_jumps(node, ctx); // AND/OR Short circuiting related
+
+    asm_add(1, "push rax"); // Save RAX
+    gen_asm(node->rhs, ctx); // LHS now in RAX
+    asm_add(1, "mov rbx, rax"); // Move RHS to RBX
+    asm_add(1, "pop rax"); // LHS now in RAX
+    // We are now ready for the binary operation
+    switch (node->op_type) { // These are all integer operations
+        case BOP_ASSIGN: 
+            // Rest of assignment is handled after the switch
+            asm_add(1, "mov rax, rbx"); // We need the rhs value in rax
+            break;
+        default:
+            codegen_error("Unsupported pointer binary operation encountered!");
+            break;
+    }
+    if (is_binary_operation_assignment(node->op_type)) {
+        gen_asm_binary_op_assign_int(node->lhs, ctx);
+    }
 }
 
 // Short circuiting

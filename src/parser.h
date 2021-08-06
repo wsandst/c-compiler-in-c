@@ -183,6 +183,7 @@ void parse_single_statement(ASTNode* node, SymbolTable* symbols);
 // Parse an expression, ex (a + b) + 3
 void parse_expression(ASTNode* node,  SymbolTable* symbols, int min_precedence);
 void parse_expression_atom(ASTNode* node,  SymbolTable* symbols);
+void parse_unary_op(ASTNode* node, SymbolTable* symbols);
 void parse_literal(ASTNode* node,  SymbolTable* symbols);
 // Used later for short circuiting
 void mark_first_and_or_nodes(ASTNode* node, OpType new_op);

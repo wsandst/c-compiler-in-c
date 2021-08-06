@@ -117,7 +117,8 @@ bool accept_range(TokenType from_token, TokenType to_token) {
 
 bool accept_unop() {
     return (accept(TK_OP_MINUS) || accept(TK_OP_NOT) || accept(TK_OP_COMPL) 
-        || accept(TK_OP_INCR) || accept(TK_OP_DECR) || accept(TK_OP_SIZEOF));
+        || accept(TK_OP_INCR) || accept(TK_OP_DECR) || accept(TK_OP_SIZEOF)
+        || accept(TK_OP_BITAND) || accept(TK_OP_MULT));
 }
 
 bool accept_post_unop() {
@@ -130,6 +131,7 @@ bool accept_binop() {
 
 // Accept variable/function type: float, double, char, short, int, long
 bool accept_type() {
+    latest_parsed_var_type.ptr_level = 0;
     if (accept(TK_KW_UNSIGNED)) {
         latest_parsed_var_type.is_unsigned = true;
     }
@@ -173,8 +175,9 @@ bool accept_type() {
         return false;
     }
     // We found a type, check if pointer
-    if (accept(TK_OP_MULT)) {
-        latest_parsed_var_type.is_ptr = true;
+    while (accept(TK_OP_MULT)) {
+        latest_parsed_var_type.ptr_level += 1;
+        latest_parsed_var_type.ptr_value_bytes = latest_parsed_var_type.bytes;
         latest_parsed_var_type.bytes = 8;
     }
     return true;
@@ -458,29 +461,7 @@ void parse_expression_atom(ASTNode* node,  SymbolTable* symbols) {
     }
     // Unary op
     else if (accept_unop()) { // Unary operation
-        node->expr_type = EXPR_UNOP;
-        node->op_type = token_type_to_pre_uop_type(prev_token().type);
-        node->rhs = ast_node_new(AST_EXPR, 1);
-
-        if (node->op_type == UOP_SIZEOF) {
-            // This is either a type or an expression
-            // Expressions need to evaluated normally, then the topmost node
-            // will provide the most memory used. This needs to be passed up,
-            // will help with implicit conversions later as well. Should be in the op node
-            expect(TK_DL_OPENPAREN);
-            expect_type();
-            node->cast_type.type = TY_INT;
-            node->cast_type.bytes = 8;
-            expect(TK_DL_CLOSEPAREN);
-            node->rhs->type = AST_END;
-            node->rhs->cast_type = latest_parsed_var_type;
-            // This is a weird unop, no operand. Should I make a normal var rhs here with nothing but
-            // the cast_type? Or ist AST_END fine?§3    
-        }
-        else {
-            parse_expression_atom(node->rhs, symbols);
-            node->cast_type = node->rhs->cast_type;
-        }
+        parse_unary_op(node, symbols);
     }
     else if (accept(TK_DL_CLOSEPAREN)) { 
         // Only scenario this triggers is with a null expression, ex
@@ -501,6 +482,46 @@ void parse_expression_atom(ASTNode* node,  SymbolTable* symbols) {
     }
 }
 
+void parse_unary_op(ASTNode* node, SymbolTable* symbols) {
+    node->expr_type = EXPR_UNOP;
+    node->op_type = token_type_to_pre_uop_type(prev_token().type);
+    node->rhs = ast_node_new(AST_EXPR, 1);
+
+    if (node->op_type == UOP_SIZEOF) {
+        // This is either a type or an expression
+        // Expressions need to evaluated normally, then the topmost node
+        // will provide the most memory used. This needs to be passed up,
+        // will help with implicit conversions later as well. Should be in the op node
+        expect(TK_DL_OPENPAREN);
+        expect_type();
+        node->cast_type.type = TY_INT;
+        node->cast_type.bytes = 8;
+        expect(TK_DL_CLOSEPAREN);
+        node->rhs->type = AST_END;
+        node->rhs->cast_type = latest_parsed_var_type;
+        // This is a weird unop, no operand. Should I make a normal var rhs here with nothing but
+        // the cast_type? Or ist AST_END fine?§3    
+    }
+    else {
+        parse_expression_atom(node->rhs, symbols);
+        node->cast_type = node->rhs->cast_type;
+        if (node->op_type == UOP_ADDR) { // This changes cast_type
+            if (node->cast_type.ptr_level == 1) {
+                node->cast_type.ptr_value_bytes = node->cast_type.bytes;
+            } 
+            node->cast_type.ptr_level += 1;
+        }
+        else if(node->op_type == UOP_DEREF) {
+            if (node->cast_type.ptr_level == 0) {
+                parse_error("Attempting to dereference non-pointer type!");
+            } 
+            else if(node->cast_type.ptr_level == 1) {
+                node->cast_type.bytes = node->cast_type.ptr_value_bytes;
+            }
+            node->cast_type.ptr_level -= 1;
+        }
+    }
+}
 
 void parse_literal(ASTNode* node,  SymbolTable* symbols) {
     node->expr_type = EXPR_LITERAL;
@@ -560,12 +581,12 @@ void parse_global(ASTNode* node, SymbolTable* symbols) {
 }
 
 void parse_func_call(ASTNode* node, SymbolTable* symbols) {
-    node->cast_type = latest_parsed_var_type; // Return type
     node->expr_type = EXPR_FUNC_CALL;
     char* ident = prev_token().string_repr;
     expect(TK_DL_OPENPAREN);
     node->func = symbol_table_lookup_func(symbols, ident);
     node->args = ast_node_new(AST_EXPR, 1);
+    node->cast_type = node->func.return_type; // Return type
     ASTNode* arg_node = node->args;
     while (!(accept(TK_DL_CLOSEPAREN) || prev_token().type == TK_DL_CLOSEPAREN)) { // Go through argument expressions
         parse_expression(arg_node, symbols, 1);
@@ -839,6 +860,10 @@ OpType token_type_to_pre_uop_type(enum TokenType type) {
             return UOP_PRE_DECR;
         case TK_OP_SIZEOF:
             return UOP_SIZEOF;
+        case TK_OP_BITAND:
+            return UOP_ADDR;
+        case TK_OP_MULT:
+            return UOP_DEREF;
         default:
             parse_error("Unsupported prefix unary operation encountered while parsing");
             return 0;

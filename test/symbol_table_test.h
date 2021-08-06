@@ -53,6 +53,7 @@ void test_symbol_table_vars() {
     Variable var;
     var.name = "var1";
     var.type.bytes = 1;
+    var.type.ptr_level = 0;
     symbol_table_insert_var(table, var);
     assert(table->var_count == 1);
     var.name = "var2";
