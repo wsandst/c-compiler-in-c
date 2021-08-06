@@ -4,9 +4,11 @@
 
 const bool INCLUDE_COMMENTS = true;
 
-StrVector asm_src;
+StrVector asm_text_src;
+StrVector asm_data_src;
 char* asm_indent_str;
 int label_count = 1;
+int static_cstring_count = 1;
 int indent_level = 0;
 
 static char *rax_modifier_strs[4] = {"al", "ax", "eax", "rax"};
@@ -29,29 +31,42 @@ void asm_add_single(StrVector* src, char* str) {
 }
 
 void asm_add(int n, ...) {
-    asm_add_newline();
+    asm_add_newline(&asm_text_src);
     char* str;
     va_list vl;
     va_start(vl, n);
     for (int i = 0; i < n; i++)
     {
         str = va_arg(vl, char*);
-        asm_add_single(&asm_src, str);
+        asm_add_single(&asm_text_src, str);
+    }
+    va_end(vl);
+}
+
+void asm_add_to_data_section(int n, ...) {
+    asm_add_newline(&asm_data_src);
+    char* str;
+    va_list vl;
+    va_start(vl, n);
+    for (int i = 0; i < n; i++)
+    {
+        str = va_arg(vl, char*);
+        asm_add_single(&asm_data_src, str);
     }
     va_end(vl);
 }
 
 void asm_add_com(char* comment) {
     if (INCLUDE_COMMENTS) {
-        asm_add_newline();
-        asm_add_single(&asm_src, comment);
+        asm_add_newline(&asm_text_src);
+        asm_add_single(&asm_text_src, comment);
     }
 }
 
-void asm_add_newline() {
+void asm_add_newline(StrVector* asm_src) {
     char buf[64];
     snprintf(buf, 63, "\n%s", asm_indent_str);
-    asm_add_single(&asm_src, buf);
+    asm_add_single(asm_src, buf);
 }
 
 void asm_update_indent() {
@@ -164,8 +179,16 @@ char* get_next_label_str() {
     return get_label_str(label_count);
 }
 
+char* get_next_cstring_label_str() {
+    char result[64];
+    sprintf(result, "STR%d", static_cstring_count);
+    static_cstring_count += 1;
+    return str_copy(result);
+}
+
 char* generate_assembly(AST* ast, SymbolTable* symbols) {
-    asm_src = str_vec_new(16);
+    asm_text_src = str_vec_new(16);
+    asm_data_src = str_vec_new(16);
     asm_indent_str = calloc(1, sizeof(char));
 
     // Setup globals/functions
@@ -183,42 +206,48 @@ char* generate_assembly(AST* ast, SymbolTable* symbols) {
     ctx.or_end_node = false;
 
     gen_asm(ast->program, ctx);
-    asm_add_newline();
+    asm_add_newline(&asm_text_src);
+    asm_add_newline(&asm_data_src);
 
-    char* asm_src_str = str_vec_join(&asm_src);
-    str_vec_free(&asm_src);
+    char* asm_data_str = str_vec_join(&asm_data_src);
+    char* asm_text_str = str_vec_join(&asm_text_src);
+    // Join the different sections
+    char* asm_src_str = str_add(asm_data_str, asm_text_str);
+    str_vec_free(&asm_text_src);
     free(asm_indent_str);
+    free(asm_data_str);
+    free(asm_text_str);
     return asm_src_str;
 }
 
 void gen_asm_symbols(SymbolTable* symbols) {
     // Setup function globals
-    asm_add_com("; External or global functions");
+    asm_add_to_data_section(1, "; External or global functions");
     for (size_t i = 0; i < symbols->func_count; i++) {
         Function func = symbols->funcs[i];
         if (func.is_defined) {
-            asm_add(2, "global ", func.name);
+            asm_add_to_data_section(2, "global ", func.name);
         }
         else {
             // Undefined functions are set to extern for linker
-            asm_add(2, "extern ", func.name); 
+            asm_add_to_data_section(2, "extern ", func.name); 
         }
     }   
-    asm_add_newline();
+    asm_add_newline(&asm_data_src);
 
     // The variables in this scope are always global
     if (symbols->var_count == 0) { // No need if there are no globals
         return;
     }
     // .data section, globals with constants
-    asm_add(1, "section .data");
+    asm_add_to_data_section(1, "section .data");
     asm_set_indent(1);
     int undefined_count = 0;
     for (size_t i = 0; i < symbols->var_count; i++) {
         Variable var = symbols->vars[i];
         if (!var.is_undefined) {
-            asm_add(2, "global ", var.name);
-            asm_add(3, var.name, ": dq ", var.const_expr);
+            asm_add_to_data_section(2, "global ", var.name);
+            asm_add_to_data_section(3, var.name, ": dq ", var.const_expr);
         }
         else {
             undefined_count++;
@@ -227,7 +256,7 @@ void gen_asm_symbols(SymbolTable* symbols) {
     // .bss section, uninitialized globals
     if (undefined_count) { // Only add .bss if necessary
         asm_set_indent(0);
-        asm_add_newline();
+        asm_add_newline(&asm_text_src);
         asm_add(1, "section .bss");
         asm_set_indent(1);
         for (size_t i = 0; i < symbols->var_count; i++) {
@@ -239,7 +268,7 @@ void gen_asm_symbols(SymbolTable* symbols) {
         }   
     }
     asm_set_indent(0);
-    asm_add_newline();
+    asm_add_newline(&asm_text_src);
 }
 
 void gen_asm(ASTNode* node, AsmContext ctx) {
@@ -348,7 +377,7 @@ void gen_asm_func(ASTNode* node, AsmContext ctx) {
     Variable* param = node->func.params;
     ctx.func_return_label = get_next_label_str();
     asm_set_indent(0);
-    asm_add_newline();
+    asm_add_newline(&asm_text_src);
     asm_add(2, node->func.name, ":");
     asm_set_indent(1);
     asm_add_com("; Setting up function stack pointer");
@@ -369,7 +398,7 @@ void gen_asm_func(ASTNode* node, AsmContext ctx) {
     asm_add_com("; Function code start");
     // Do I need to allocate more stack space here?
     gen_asm(node->body, ctx);
-    asm_add_newline();
+    asm_add_newline(&asm_text_src);
     // Add return
     asm_add(1, "mov rax, 0 ; Default function return is 0");
     asm_add(2, ctx.func_return_label, ": ; Function return label");
@@ -385,7 +414,7 @@ void gen_asm_if(ASTNode* node, AsmContext ctx) {
     // Calculate conditional
     char* after_label;
     char* else_label;
-    asm_add_newline();
+    asm_add_newline(&asm_text_src);
     asm_add_com("; Calculating if statement conditional");
     gen_asm(node->cond, ctx); // Value now in RAX
     asm_add(1, "cmp rax, 0");
@@ -398,14 +427,14 @@ void gen_asm_if(ASTNode* node, AsmContext ctx) {
         asm_add_com("; Label: Else statement");
         asm_add(3, else_label, ":", " ; Else statement");
         gen_asm(node->els, ctx); // Else body
-        asm_add_newline();
+        asm_add_newline(&asm_text_src);
         free(else_label);
     }
     else { // No else statement
         after_label = get_next_label_str();
         asm_add(2, "je ", after_label, "; Conditional false => Jump to end of if block");
         gen_asm(node->body, ctx); // If body
-        asm_add_newline();
+        asm_add_newline(&asm_text_src);
     }
     // Jump label after if
     asm_add(2, after_label, ":", " ;  End of if/else");
@@ -425,7 +454,7 @@ void gen_asm_loop(ASTNode* node, AsmContext ctx) {
         ctx.last_start_label = get_next_label_str();
     }
     // Add asm
-    asm_add_newline();
+    asm_add_newline(&asm_text_src);
     asm_add(2, loop_start_label, ":");
     asm_add_com("; Calculating loop statement conditional");
     gen_asm(node->cond, ctx); // Value now in RAX
@@ -449,7 +478,7 @@ void gen_asm_loop(ASTNode* node, AsmContext ctx) {
 void gen_asm_do_loop(ASTNode* node, AsmContext ctx) {
     char* while_start_label = get_next_label_str();
     ctx.last_start_label = while_start_label;
-    asm_add_newline();
+    asm_add_newline(&asm_text_src);
     asm_add(2, while_start_label, ":");
     asm_add_com("; Evaluate do while body");
     gen_asm(node->body, ctx);
@@ -464,7 +493,7 @@ void gen_asm_do_loop(ASTNode* node, AsmContext ctx) {
 // Generate assembly for a switch statement
 void gen_asm_switch(ASTNode* node, AsmContext ctx) {
     AsmContext start_context = ctx;
-    asm_add_newline();
+    asm_add_newline(&asm_text_src);
     asm_add_com("; Switch statement");
 
     // Get switch value into rax
@@ -520,7 +549,7 @@ void gen_asm_case(ASTNode* node, AsmContext ctx) {
 
 // Generate assembly for a return statement node
 void gen_asm_return(ASTNode* node, AsmContext ctx) {
-    asm_add_newline();
+    asm_add_newline(&asm_text_src);
     asm_add_com("; Evaluating return expr");
     gen_asm(node->ret, ctx); // Expr is now in RAX
     // Cast to return type

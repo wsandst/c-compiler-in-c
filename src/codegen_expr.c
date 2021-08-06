@@ -10,6 +10,14 @@ void gen_asm_expr(ASTNode* node, AsmContext ctx) {
             asm_add(3, "mov rax, __float64__(", node->literal, ")");
             asm_add(1, "movq xmm0, rax");
         }
+        else if (node->literal_type == LT_STRING) {
+            char* label_name = get_next_cstring_label_str();
+            asm_set_indent(0);
+            asm_add_to_data_section(4, label_name, ": db `", node->literal, "`, 0");
+            asm_set_indent(1);
+            asm_add(3, "lea rax, [", label_name, "]");
+            free(label_name);
+        }
         else {
             codegen_error("Unsupported literal encountered");
         }
@@ -20,6 +28,7 @@ void gen_asm_expr(ASTNode* node, AsmContext ctx) {
         if (node->var.type.type == TY_INT || node->var.type.ptr_level > 0) {
             char* move_instr = get_move_instr_for_var_type(node->var.type);
             asm_add(3, move_instr, ", ", sp2);
+            free(move_instr);
         }
         else if (node->var.type.type == TY_FLOAT) {
             asm_add(2, "movq xmm0, ", sp2);

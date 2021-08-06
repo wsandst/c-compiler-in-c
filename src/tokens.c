@@ -353,7 +353,7 @@ void tokenize_idents(Tokens *tokens, StrVector *str_split) {
                 }
             }
             else {
-                if (!isalnum(*str)) { // Found end of identifier
+                if (!(isalnum(*str)) && *str != '_') { // Found end of identifier
                     int length = str - ident_start;
                     tokens->elems[src_pos-length].type = TK_IDENT;
                     tokens->elems[src_pos-length].value.string = str_substr(ident_start, length);

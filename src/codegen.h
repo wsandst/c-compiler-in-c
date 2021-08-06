@@ -41,11 +41,13 @@ void asm_add_single(StrVector* asm_src, char* str);
 void asm_add_com(char* str);
 
 // Add a newline with proper indentation
-void asm_add_newline();
+void asm_add_newline(StrVector* asm_src);
 
 // Add assembly, variable amount of strings which are combined
 // A newline and proper indentation is added beforehand
 void asm_add(int n, ...);
+// Add to a specific assembly src part, like the .data section
+void asm_add_to_data_section(int n, ...);
 
 // Set the indendentation level and update
 void asm_set_indent(int indent);
@@ -64,6 +66,8 @@ char* get_case_label_str(int label, char* value);
 
 // Get the next jump label and increment the global label counter
 char* get_next_label_str();
+// Get the next label for constant c-strings, used for string literals
+char* get_next_cstring_label_str();
 
 // Get the corresponding byte size register, eg 2, RAX = AX
 char* get_reg_width_str(VarType var_type, RegisterEnum reg);

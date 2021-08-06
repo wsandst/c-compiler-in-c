@@ -205,14 +205,15 @@ void parse_program(ASTNode* node, SymbolTable* symbols) {
         parse_global(node, symbols);
     }
     else {
+        Token* cur_parse_token = parse_token;
         expect_type();
         expect(TK_IDENT);
         if (accept(TK_DL_OPENPAREN)) { // Function
-            token_go_back(3);
+            parse_token = cur_parse_token;
             parse_func(node, symbols);
         }
         else if (accept(TK_DL_SEMICOLON) || accept(TK_OP_ASSIGN)) { // Global declaration
-            token_go_back(3);
+            parse_token = cur_parse_token;
             parse_global(node, symbols);
         }
     }

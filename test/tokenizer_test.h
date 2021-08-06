@@ -197,7 +197,7 @@ void test_tokenizer_ops() {
 
 void test_tokenizer_idents() {
     // Identifiers
-    char* src = "int x = 5; \n abc \n a \n _a \n 1a \n _ \na";
+    char* src = "int x = 5; \n abc \n a \n _a \n 1a \n _ \na\nabc_efg";
     Tokens tokens = tokenize(src);
     assert(tokens.elems[0].type == TK_KW_INT);
     assert(tokens.elems[1].type == TK_IDENT);
@@ -211,6 +211,8 @@ void test_tokenizer_idents() {
     assert(tokens.elems[8].type == TK_IDENT);
     assert(strcmp(tokens.elems[8].value.string, "_") == 0);
     assert(tokens.elems[9].type == TK_IDENT);
+    assert(strcmp(tokens.elems[10].value.string, "abc_efg") == 0);
+    assert(tokens.elems[10].type == TK_IDENT);
     tokens_free(&tokens);
 }
 
