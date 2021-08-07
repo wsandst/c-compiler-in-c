@@ -23,7 +23,8 @@ TODO:
         Floating point:
             Operators left: ++, --, logical
         Pointers:
-            Void pointers, casting etc. Make malloc work
+            Issues: The way I'm handling deref is bad. Function calls will break it
+            Derefs need to use the correct memory, eg DWORD [rax], rax
         Arrays:
             Array variable type, make space on stack etc
             Initializer lists would be nice to have

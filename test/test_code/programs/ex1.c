@@ -1,4 +1,4 @@
-// Fibonnaci program from internet
+// Fibonnaci program
 
 int fib() {
     int n = 11;

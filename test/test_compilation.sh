@@ -11,10 +11,10 @@ CLEAR='\033[0m'
 failed_test=false
 
 echo "[TEST] Running automated compilation tests..."
-#for i in test/test_code/binops/ex11.c
 for i in test/test_code/*/*.c
+#for i in test/test_code/programs/ex2.c
 do
-    gcc -w $i     #compile with gcc
+    gcc -w -g $i     #compile with gcc
     ./a.out       #run it
     expected=$?   #get exit code
     #compile with ccompiler, optionally use valgrind to check for mem issues

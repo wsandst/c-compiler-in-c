@@ -419,7 +419,8 @@ void parse_expression(ASTNode* node, SymbolTable* symbols, int min_precedence) {
             parse_expression(node->rhs, symbols, new_min_precedence);
             // LHS and RHS is now defined. Put the widest variable type in the op
             // for possible implicit casts
-            node->cast_type = return_wider_type(node->rhs->cast_type, node->lhs->cast_type);
+            bool is_logical_op = is_binary_operation_logical(op_type);
+            node->cast_type = return_wider_type(node->rhs->cast_type, node->lhs->cast_type, is_logical_op);
         }
         else {
             break;
@@ -832,7 +833,29 @@ bool is_binary_operation_assignment(OpType type) {
     }
 }
 
-VarType return_wider_type(VarType type1, VarType type2) {
+// Return whether the binary operation is of a logical type (&&, ||, > etc)
+bool is_binary_operation_logical(OpType type) {
+    switch (type) {
+        case BOP_EQ: // Equals
+        case BOP_NEQ: // Not equals
+        case BOP_LT: // Less than
+        case BOP_LTE: // Less than equals
+        case BOP_GT: // Greater than
+        case BOP_GTE: // Greater than equals
+            return true;
+        default:
+            return false;
+    }
+}
+
+VarType return_wider_type(VarType type1, VarType type2, bool is_logical_op) {
+    if (is_logical_op) { // Logical operations always return bools/ints
+        VarType int_type;
+        int_type.type = TY_INT;
+        int_type.ptr_level = 0;
+        int_type.bytes = 8;
+        return int_type;
+    }
     int type1_width = type1.bytes;
     int type2_width = type2.bytes;
     if (type1.type == TY_FLOAT) {

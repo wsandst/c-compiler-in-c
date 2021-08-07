@@ -1,5 +1,7 @@
 #include "file_helpers.h"
 
+static const bool ASSEMBLE_DEBUG = false;
+
 char* load_file_to_string(char* filename) {
     FILE *file = fopen(filename, "r");
 	if (file == NULL) {
@@ -34,7 +36,12 @@ void write_string_to_file(char* filename, char *src) {
 void compile_asm(char *asm_src) {
     write_string_to_file("output.asm", asm_src);
     // Includes debug symbols
-    system("nasm -f elf64 -F dwarf -g output.asm && gcc -g -no-pie -o output output.o && rm output.o");
+    if (ASSEMBLE_DEBUG) {
+        system("nasm -f elf64 -F dwarf -g output.asm && gcc -g -no-pie -o output output.o && rm output.o");
+    }
+    else {
+        system("nasm -f elf64 output.asm && gcc -no-pie -o output output.o && rm output.o");
+    }
 }
 
 char* isolate_file_dir(char* filepath) {

@@ -262,10 +262,12 @@ bool accept_literal();
 int get_binary_operator_precedence(OpType type);
 // Assignment is right associative, needed for the precedence parsing
 bool is_binary_operation_assignment(OpType type);
+// Return whether the binary operation is of a logical type (&&, ||, > etc)
+bool is_binary_operation_logical(OpType type);
 
 // Return the wider variable type.
 // char > short > int > long > float > double > long double
-VarType return_wider_type(VarType type1, VarType type2);
+VarType return_wider_type(VarType type1, VarType type2, bool is_logical_op);
 
 // Convert a TokenType unary operator type to the corresponding prefix UnaryOpType
 OpType token_type_to_pre_uop_type(TokenType type);

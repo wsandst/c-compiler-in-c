@@ -23,6 +23,7 @@ struct AsmContext {
     char* or_short_circuit_label;
     bool and_end_node;
     bool or_end_node;
+    int* deref_pushes;
 };
 
 enum RegisterEnum {

@@ -11,6 +11,7 @@ int main() {
         *ptr = i;
         ptr++;
     }
+    *ptr = *(ptr-5);
     free(fptr);
-    return *(ptr - 5);
+    return *ptr;
 }
