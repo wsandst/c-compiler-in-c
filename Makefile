@@ -1,5 +1,5 @@
 SRC_DIR := src
-TEST_DIR := test
+TEST_DIR := test/unit
 OBJ_DIR := build/obj
 TEST_OBJ_DIR := build/test_obj
 BIN_DIR := build
@@ -20,7 +20,7 @@ RELEASE_CFLAGS := -Wall -O2
 LDFLAGS  := -Llib
 LDLIBS   := -lm -Isrc
 
-.PHONY: all clean testexe test
+.PHONY: all clean testexe test test-full
 
 # Compile program
 all: $(EXE)
@@ -46,7 +46,7 @@ $(TEST_OBJ_DIR)/%.o: $(TEST_DIR)/%.c | $(TEST_OBJ_DIR)
 clean:
 	@$(RM) -rv $(BIN_DIR) $(OBJ_DIR) $(TEST_OBJ_DIR)
 
-# Run unit tests and valgrind tests
+# Run unit tests with valgrind and compilation tests without valgrind
 test: testexe $(EXE)
 	@echo [TEST] Running unit tests...
 	./build/ccompiler-test
@@ -54,6 +54,17 @@ test: testexe $(EXE)
 	@echo Running memory leak test...
 	valgrind --leak-check=full --error-exitcode=1 --log-fd=2 ./build/ccompiler-test 1>/dev/null
 	@echo "[TEST] \e[0;32mPassed memory leak test!\e[0m"
-	./test/test_compilation.sh
+	bash ./test/compilation/test_compilation.sh
 	
+# Run full tests. This includes running valgrind on every compile, which
+# is very slow
+test-full: testexe $(EXE)
+	@echo [TEST] Running unit tests...
+	./build/ccompiler-test
+	@echo "[TEST] \e[0;32mPassed unit tests!\e[0m"
+	@echo Running memory leak test...
+	valgrind --leak-check=full --error-exitcode=1 --log-fd=2 ./build/ccompiler-test 1>/dev/null
+	@echo "[TEST] \e[0;32mPassed memory leak test!\e[0m"
+	bash ./test/compilation/test_compilation.sh --full
+
 -include $(OBJ:.o=.d)
