@@ -5,7 +5,6 @@
 /*
 TODO:
     Current:
-        Implement pointer operators
         Cleanup project, maybe remove some globals and test files?
         Implement constant and static values
 
@@ -23,8 +22,7 @@ TODO:
         Floating point:
             Operators left: ++, --, logical
         Pointers:
-            Issues: The way I'm handling deref is bad. Function calls will break it
-            Derefs need to use the correct memory, eg DWORD [rax], rax
+            Cleanup lhs deref r12 pushing
         Arrays:
             Array variable type, make space on stack etc
             Initializer lists would be nice to have
@@ -38,8 +36,6 @@ TODO:
     
     Tokenizer:
         Fix nested strings within comments, comments within strings, escape characters etc
-
-    I need to check for whitespace with the keywords. Or at least no _, num or alphabetical around
 */
 
 int main(int argc, char *argv[]) {

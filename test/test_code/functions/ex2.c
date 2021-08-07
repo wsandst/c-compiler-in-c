@@ -1,9 +1,14 @@
 // Test simple function
 
-int test() {
+void test2() {
+    return;
+}
+
+int test1() {
     return 1;
 }
 
 int main() {
-    return test();
+    test2();
+    return test1();
 }

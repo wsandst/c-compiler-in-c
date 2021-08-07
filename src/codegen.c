@@ -204,8 +204,6 @@ char* generate_assembly(AST* ast, SymbolTable* symbols) {
     ctx.or_short_circuit_label = NULL;
     ctx.and_end_node = false;
     ctx.or_end_node = false;
-    int deref_pushes = 0;
-    ctx.deref_pushes = &deref_pushes;
 
     gen_asm(ast->program, ctx);
     asm_add_newline(&asm_text_src);

@@ -713,6 +713,9 @@ void gen_asm_unary_op_cast(VarType to_type, VarType from_type) {
     else if (to_type.type == TY_FLOAT && from_type.type == TY_FLOAT) {
         return; // No need to do anything
     }
+    else if (to_type.type == TY_VOID) {
+        return;
+    }
     else {
         codegen_error("Unsupported cast attempted!");
     }

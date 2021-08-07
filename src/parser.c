@@ -95,7 +95,10 @@ void expect_type() {
 
 bool accept(TokenType type) {
     if (parse_token->type == type) {
-        //printf("%s\n", token_type_to_string(parse_token->type));
+        /*if (parse_token->string_repr != NULL) {
+            printf("%s\n", parse_token->string_repr);
+        } */
+        //printf("%s (%s)\n", token_type_to_string(parse_token->type), parse_token->string_repr);
         parse_token++;
         return true;
     }
@@ -464,10 +467,11 @@ void parse_expression_atom(ASTNode* node,  SymbolTable* symbols) {
     else if (accept_unop()) { // Unary operation
         parse_unary_op(node, symbols);
     }
-    else if (accept(TK_DL_CLOSEPAREN)) { 
+    else if (accept(TK_DL_CLOSEPAREN) || accept(TK_DL_SEMICOLON)) { 
         // Only scenario this triggers is with a null expression, ex
         // () or ;.
         node->type = AST_NULL_STMT;
+        node->next = ast_node_new(AST_END, 1);
         token_go_back(1);
     }
     else {
