@@ -4,12 +4,12 @@
 
 const bool INCLUDE_COMMENTS = true;
 
-StrVector asm_text_src;
-StrVector asm_data_src;
-char* asm_indent_str;
-int label_count = 1;
-int static_cstring_count = 1;
-int indent_level = 0;
+static StrVector asm_text_src;
+static StrVector asm_data_src;
+static char* asm_indent_str;
+static int label_count = 1;
+static int static_cstring_count = 1;
+static int indent_level = 0;
 
 static char *rax_modifier_strs[4] = {"al", "ax", "eax", "rax"};
 static char *rbx_modifier_strs[4] = {"bl", "bx", "ebx", "rbx"};

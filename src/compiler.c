@@ -4,9 +4,8 @@
 
 /*
 TODO:
-    Next time:
-        Implement pointers
-        Implement rest of float operators
+    Current:
+        Implement pointer operators
         Cleanup project, maybe remove some globals and test files?
         Implement constant and static values
 
@@ -17,22 +16,30 @@ TODO:
 
     Functions, proper calling convention:
         Stack arguments, floating point arguments, floating point returns
+        Initial support of variable keyword arguments. Just enough to make calling printf work properly
+        Static functions
 
     Types:
         Floating point:
             Operators left: ++, --, logical
         Pointers:
             Operators left: (+, -, ++, --)
+            Void pointers, casting etc. Make malloc work
+        Arrays:
+            Array variable type, make space on stack etc
+            Initializer lists would be nice to have
 
     Preprocessor:
         Defines:
             Simple defines, ifndef, ifdef. Goal is to support simple include headers
             and simple constant defines.
         Includes:
-            Support STD headers. I should take from GCC and remove all the macros
+            Support useful STD headers. I should take from GCC and remove all the macros
     
     Tokenizer:
         Fix nested strings within comments, comments within strings, escape characters etc
+
+    I need to check for whitespace with the keywords. Or at least no _, num or alphabetical around
 */
 
 int main(int argc, char *argv[]) {

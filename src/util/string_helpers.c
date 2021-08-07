@@ -210,21 +210,28 @@ int str_contains(char* str, char* match) {
 }
 
 // Does the string contain the string word provided?
-// A word has to end with either whitespace or ({[:.
+// A word has to end or begin with either whitespace or ({[:.
 int str_contains_word(char* str, char* match) {
     char* cur_match_char = match;
     char* match_end = match;
     char* str_start = str;
+    bool prev_whitespace = true;
     while(*match_end != '\0') match_end++;
     while (*str != '\0') {
-        if (*cur_match_char == *str) {
+        if ((!isalnum(*str) && *str != '_') || (prev_whitespace && *cur_match_char == *str)) {
+            prev_whitespace = true;
+        }
+        else {
+            prev_whitespace = false;
+        }
+        if (prev_whitespace && *cur_match_char == *str) {
             cur_match_char++;
             if (cur_match_char == match_end) {
                 // Check if the last char matches
                 str++;
                 int index = str - str_start - (match_end - match) + 1;
                 char* before_word = str_start + index - 2;
-                if (!isalnum(*str) && (before_word < str_start || !isalnum(*before_word))) {
+                if (!isalnum(*str) && *str != '_' && (before_word < str_start || !isalnum(*before_word))) {
                     return index;
                 }
                 else {

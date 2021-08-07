@@ -120,7 +120,7 @@ void test_tokenizer_keywords() {
     // Keywords
     char* src = "unsigned.if else while do for break continue return switch case\ndefault " 
           "goto label typedef struct union const long short signed "
-          "int float double char void";
+          "int float double char void hello_int int_hello _int";
     Tokens tokens = tokenize(src);
     assert(tokens.elems[0].type == TK_KW_UNSIGNED);
     assert(tokens.elems[1].type == TK_DL_DOT);
@@ -149,6 +149,10 @@ void test_tokenizer_keywords() {
     assert(tokens.elems[24].type == TK_KW_DOUBLE);
     assert(tokens.elems[25].type == TK_KW_CHAR);
     assert(tokens.elems[26].type == TK_KW_VOID);
+    assert(tokens.elems[27].type == TK_IDENT);
+    assert(tokens.elems[28].type == TK_IDENT);
+    assert(tokens.elems[29].type == TK_IDENT);
+    assert(tokens.elems[30].type == TK_EOF);
     tokens_free(&tokens);
 }
 

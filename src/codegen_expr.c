@@ -3,24 +3,7 @@
 // Generate assembly for an expression node
 void gen_asm_expr(ASTNode* node, AsmContext ctx) {
     if (node->expr_type == EXPR_LITERAL) {
-        if (node->literal_type == LT_INT) {
-            asm_add(2, "mov rax, ", node->literal);
-        }
-        else if (node->literal_type == LT_FLOAT) {
-            asm_add(3, "mov rax, __float64__(", node->literal, ")");
-            asm_add(1, "movq xmm0, rax");
-        }
-        else if (node->literal_type == LT_STRING) {
-            char* label_name = get_next_cstring_label_str();
-            asm_set_indent(0);
-            asm_add_to_data_section(4, label_name, ": db `", node->literal, "`, 0");
-            asm_set_indent(1);
-            asm_add(3, "lea rax, [", label_name, "]");
-            free(label_name);
-        }
-        else {
-            codegen_error("Unsupported literal encountered");
-        }
+        gen_asm_literal(node, ctx);
     }
     else if (node->expr_type == EXPR_VAR) {
         char* sp2 = var_to_stack_ptr(&node->var);
@@ -58,6 +41,30 @@ void gen_asm_expr(ASTNode* node, AsmContext ctx) {
     }
     else {
         codegen_error("Non-supported expression type encountered!");
+    }
+}
+
+void gen_asm_literal(ASTNode* node, AsmContext ctx) {
+    if (node->literal_type == LT_INT) {
+        asm_add(2, "mov rax, ", node->literal);
+    }
+    else if (node->literal_type == LT_FLOAT) {
+        asm_add(3, "mov rax, __float64__(", node->literal, ")");
+        asm_add(1, "movq xmm0, rax");
+    }
+    else if (node->literal_type == LT_STRING) {
+        char* label_name = get_next_cstring_label_str();
+        asm_set_indent(0);
+        asm_add_to_data_section(4, label_name, ": db `", node->literal, "`, 0");
+        asm_set_indent(1);
+        asm_add(3, "lea rax, [", label_name, "]");
+        free(label_name);
+    }
+    else if (node->literal_type == LT_CHAR) {
+        asm_add(3, "mov rax, '", node->literal, "'");
+    }
+    else {
+        codegen_error("Unsupported literal encountered");
     }
 }
 
@@ -467,6 +474,48 @@ void gen_asm_unary_op_ptr(ASTNode* node, AsmContext ctx) {
             asm_add_com("; Op: * (deref)");
             asm_add(1, "mov rax, qword [rax]");
             break;
+        case UOP_CAST:
+            asm_add_com("; Op: cast");
+            gen_asm_unary_op_cast(node->cast_type, node->rhs->cast_type);
+            break;
+        // Increment, decrement
+        // This is kind of a form of assignment
+        case UOP_PRE_INCR: // ++x
+            asm_add_com("; pOp: ++ (pre)");
+            asm_add(1, "mov rbx, 1");
+            gen_asm_binary_op_load_ptr_size(node, ctx);
+            asm_add(1, "add rax, rbx");
+            gen_asm_binary_op_assign_int(node->rhs, ctx);
+            break;
+        case UOP_PRE_DECR: // --x
+            asm_add_com("; pOp: -- (pre)");
+            asm_add(1, "mov rbx, 1");
+            gen_asm_binary_op_load_ptr_size(node, ctx);
+            asm_add(1, "sub rax, rbx");
+            gen_asm_binary_op_assign_int(node->rhs, ctx);
+            break;
+        case UOP_POST_INCR: // x++
+            asm_add_com("; pOp: -- (post)");
+            asm_add(1, "mov rbx, rax");
+            asm_add(1, "push rax");
+            asm_add(1, "mov rax, rbx");
+            asm_add(1, "mov rbx, 1");
+            gen_asm_binary_op_load_ptr_size(node, ctx);
+            asm_add(1, "add rax, rbx");
+            gen_asm_binary_op_assign_int(node->rhs, ctx);
+            asm_add(1, "pop rax");
+            break;
+        case UOP_POST_DECR: // x-- 
+            asm_add_com("; pOp: -- (post)");
+            asm_add(1, "mov rbx, rax");
+            asm_add(1, "push rax");
+            asm_add(1, "mov rax, rbx");
+            asm_add(1, "mov rbx, 1");
+            gen_asm_binary_op_load_ptr_size(node, ctx);
+            asm_add(1, "sub rax, rbx");
+            gen_asm_binary_op_assign_int(node->rhs, ctx);
+            asm_add(1, "pop rax");
+            break;
         default:
             codegen_error("Unsupported pointer unary operation encountered!");
             break;
@@ -492,6 +541,18 @@ void gen_asm_binary_op_ptr(ASTNode* node, AsmContext ctx) {
             // Rest of assignment is handled after the switch
             asm_add(1, "mov rax, rbx"); // We need the rhs value in rax
             break;
+        case BOP_ASSIGN_ADD:
+        case BOP_ADD: // Addition
+            asm_add_com("; pOp: +");
+            gen_asm_binary_op_load_ptr_size(node, ctx);
+            asm_add(1, "add rax, rbx");
+            break;
+        case BOP_ASSIGN_SUB: // Assignment subtraction
+        case BOP_SUB: // Subtraction
+            asm_add_com("; pOp: -");
+            gen_asm_binary_op_load_ptr_size(node, ctx);
+            asm_add(1, "sub rax, rbx");
+            break;
         default:
             codegen_error("Unsupported pointer binary operation encountered!");
             break;
@@ -499,6 +560,14 @@ void gen_asm_binary_op_ptr(ASTNode* node, AsmContext ctx) {
     if (is_binary_operation_assignment(node->op_type)) {
         gen_asm_binary_op_assign_int(node->lhs, ctx);
     }
+}
+
+void gen_asm_binary_op_load_ptr_size(ASTNode* node, AsmContext ctx) {
+    // Multiply rbx with pointer size
+    // We need to check for type here. Only multiply if int
+    char buf[64];
+    sprintf(buf, "%d", node->cast_type.ptr_value_bytes);
+    asm_add(2, "imul rbx, ", buf);
 }
 
 // Short circuiting
@@ -545,7 +614,10 @@ void gen_asm_add_short_circuit_jumps(ASTNode* node, AsmContext ctx) {
 
 void gen_asm_unary_op_cast(VarType to_type, VarType from_type) {
     // We have value in rax or xmm0
-    if (to_type.type == TY_INT && from_type.type == TY_FLOAT) {
+    if (to_type.ptr_level > 0 && from_type.ptr_level > 0) { // Pointer to pointer
+        return; // No need to do anything
+    }
+    else if (to_type.type == TY_INT && from_type.type == TY_FLOAT) {
         // Float to int
         asm_add_com("; Float to int cast");
         asm_add(1, "cvttsd2si rax, xmm0");
@@ -554,6 +626,15 @@ void gen_asm_unary_op_cast(VarType to_type, VarType from_type) {
         // Int to float
         asm_add_com("; Int to float cast");
         asm_add(1, "cvtsi2sd xmm0, rax");
+    }
+    else if (to_type.type == TY_INT && from_type.type == TY_INT) {
+        return; // No need to do anything
+    }
+    else if (to_type.type == TY_FLOAT && from_type.type == TY_FLOAT) {
+        return; // No need to do anything
+    }
+    else {
+        codegen_error("Unsupported cast attempted!");
     }
     // Int to int, float to float is ignored for now
 }

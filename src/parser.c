@@ -6,8 +6,8 @@
 
 
 // Linked list used for freeing memory correctly
-ASTNode *ast_node_mem_end = NULL;
-ASTNode *ast_node_mem_start;
+static ASTNode *ast_node_mem_end = NULL;
+static ASTNode *ast_node_mem_start;
 
 ASTNode *ast_node_new(ASTNodeType type, int count) {
     ASTNode* node = calloc(count, sizeof(ASTNode));
@@ -48,15 +48,14 @@ void ast_node_copy(ASTNode* node1, ASTNode* node2) {
     memcpy(node1, node2, sizeof(ASTNode));
 }
 
-
 void ast_free(AST* ast) {
     ast_node_free(ast_node_mem_start);
 }
 
 // Current token being parsed, global simplifies code a lot 
-Token* parse_token;
-VarType latest_parsed_var_type;
-Function latest_func;
+static Token* parse_token;
+static VarType latest_parsed_var_type;
+static Function latest_func;
 
 AST parse(Tokens* tokens, SymbolTable* global_symbols) {
     parse_token = &tokens->elems[0];
@@ -299,7 +298,7 @@ void parse_single_statement(ASTNode* node, SymbolTable* symbols) {
             return;
         }
     }
-    else if (accept(TK_IDENT)) { // I need to handle literals here too
+    else if (accept(TK_IDENT) || accept_unop()) { // I need to handle literals here too
         if (accept(TK_DL_COLON)) { // Goto label
             node->type = AST_LABEL;
             token_go_back(1);

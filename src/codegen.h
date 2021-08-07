@@ -93,9 +93,6 @@ void gen_asm(ASTNode* node, AsmContext ctx);
 // Generate globals in the data and bss section
 void gen_asm_symbols(SymbolTable* symbols);
 
-// Generate assembly for an expression node
-void gen_asm_expr(ASTNode* node, AsmContext ctx);
-
 // Generate assembly for a function definition
 void gen_asm_func(ASTNode* node, AsmContext ctx);
 
@@ -128,8 +125,15 @@ void codegen_error(char* message);
 
 // =============== Codegen expressions ===================
 
+// Generate assembly for an expression node
+void gen_asm_expr(ASTNode* node, AsmContext ctx);
+// Generate assembly for a literal (int, float, string, char)
+void gen_asm_literal(ASTNode* node, AsmContext ctx);
+// Generate assembly for a unary op on any type
 void gen_asm_unary_op(ASTNode* node, AsmContext ctx);
+// Generate assembly for a binary op on any types
 void gen_asm_binary_op(ASTNode* node, AsmContext ctx);
+// Generate assembly for the unary op '&' on any type
 void gen_asm_unary_op_address(ASTNode* node, AsmContext ctx);
 
 // =============== Integer operations ===============
@@ -159,6 +163,8 @@ void gen_asm_unary_op_ptr(ASTNode* node, AsmContext ctx);
 void gen_asm_binary_op_ptr(ASTNode* node, AsmContext ctx);
 // Generate assembly for pointer dereferencing operator
 void gen_asm_unary_op_ptr_deref(ASTNode* node, AsmContext ctx);
+// Multiply int RBX value with size of pointer, used for adding and subtracting
+void gen_asm_binary_op_load_ptr_size(ASTNode* node, AsmContext ctx);
 
 // Setup short circuiting labels for and and or
 void gen_asm_setup_short_circuiting(ASTNode* node, AsmContext* ctx);
