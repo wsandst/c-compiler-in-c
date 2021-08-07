@@ -23,7 +23,6 @@ TODO:
         Floating point:
             Operators left: ++, --, logical
         Pointers:
-            Operators left: (+, -, ++, --)
             Void pointers, casting etc. Make malloc work
         Arrays:
             Array variable type, make space on stack etc

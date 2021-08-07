@@ -187,8 +187,9 @@ void gen_asm_unary_op_int(ASTNode* node, AsmContext ctx) {
             asm_add_com("; Op: * (deref)");
             char* addr_size = bytes_to_addr_size(node->cast_type);
             char* move_instr = get_move_instr_for_var_type(node->cast_type);
-            asm_add(4, move_instr, ", ", addr_size, " [rax]");
-            free(addr_size);
+            asm_add(1, "mov rdx, rax"); // Save in RDX incase we need to perform deref assignment
+            asm_add(4, move_instr, ", ", addr_size, " [rax]"); 
+            free(addr_size); 
             free(move_instr);
             break;
         }
@@ -198,6 +199,11 @@ void gen_asm_unary_op_int(ASTNode* node, AsmContext ctx) {
     }
     free(var_sp);
 }
+
+// If we perform assignment, and lhs is a deref op, we want to assign to the var, not the.
+// In the parser, when we encounter a deref, we need to copy the variable up a step
+
+// Current
 
 // Maybe that is for later when I implement proper expression handling
 void gen_asm_binary_op_int(ASTNode* node, AsmContext ctx) {
@@ -328,13 +334,19 @@ void gen_asm_binary_op_int(ASTNode* node, AsmContext ctx) {
 }
 
 void gen_asm_binary_op_assign_int(ASTNode* node, AsmContext ctx) {
-    if (node->expr_type != EXPR_VAR) {
-            codegen_error("Only variables can be assigned to");
-    } // a = a+1
-    char* reg_str = get_reg_width_str(node->var.type, RAX);
-    char* var_sp = var_to_stack_ptr(&node->var);
-    asm_add(4, "mov ", var_sp, ", ", reg_str);
-    free(var_sp);
+    if (node->expr_type == EXPR_VAR) {
+        char* reg_str = get_reg_width_str(node->var.type, RAX);
+        char* var_sp = var_to_stack_ptr(&node->var);
+        asm_add(4, "mov ", var_sp, ", ", reg_str);
+        free(var_sp);
+    }
+    else if (node->expr_type == EXPR_UNOP && node->op_type == UOP_DEREF) {
+        asm_add(1, "mov [rdx], rax");
+    }
+    else {
+        codegen_error("Only variables can be assigned to");
+    }
+
 }
 
 void gen_asm_binary_op_and_int(ASTNode* node, AsmContext ctx) {
@@ -388,6 +400,7 @@ void gen_asm_unary_op_float(ASTNode* node, AsmContext ctx) {
             asm_add_com("; fOp: * (deref)");
             char* addr_size = bytes_to_addr_size(node->cast_type);
             char* move_instr = get_move_instr_for_var_type(node->cast_type);
+            asm_add(1, "mov rdx, rax"); // Save rax for potential deref assignment
             asm_add(4, move_instr, ", ", addr_size, " [rax]");
             asm_add(1, "movq xmm0, rax");
             free(addr_size);
@@ -453,12 +466,17 @@ void gen_asm_binary_op_float(ASTNode* node, AsmContext ctx) {
 }
 // Generate assembly for a binary op assignment expression node
 void gen_asm_binary_op_assign_float(ASTNode* node, AsmContext ctx) {
-    if (node->expr_type != EXPR_VAR) {
-            codegen_error("Only variables can be assigned to");
+    if (node->expr_type == EXPR_VAR) {
+        char* var_sp = var_to_stack_ptr(&node->var);
+        asm_add(3, "movq ", var_sp, ", xmm0");
+        free(var_sp);
     }
-    char* var_sp = var_to_stack_ptr(&node->var);
-    asm_add(3, "movq ", var_sp, ", xmm0");
-    free(var_sp);
+    else if (node->expr_type == EXPR_UNOP && node->op_type == UOP_DEREF) {
+        asm_add(1, "movq [rdx], xmm0");
+    }
+    else {
+        codegen_error("Only variables can be assigned to");
+    }
 }
 
 // =============== Pointer operations ===============

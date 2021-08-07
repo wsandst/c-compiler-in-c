@@ -167,7 +167,7 @@ bool accept_type() {
     }
     else if (accept(TK_KW_VOID)) {
         latest_parsed_var_type.type = TY_VOID;
-        latest_parsed_var_type.bytes = 8;
+        latest_parsed_var_type.bytes = 1;
     }
     // Add user defined types here as well
     else {
@@ -486,6 +486,7 @@ void parse_unary_op(ASTNode* node, SymbolTable* symbols) {
     node->expr_type = EXPR_UNOP;
     node->op_type = token_type_to_pre_uop_type(prev_token().type);
     node->rhs = ast_node_new(AST_EXPR, 1);
+    node->next = ast_node_new(AST_END, 1);
 
     if (node->op_type == UOP_SIZEOF) {
         // This is either a type or an expression
@@ -517,6 +518,8 @@ void parse_unary_op(ASTNode* node, SymbolTable* symbols) {
             } 
             else if(node->cast_type.ptr_level == 1) {
                 node->cast_type.bytes = node->cast_type.ptr_value_bytes;
+                node->var = node->rhs->var;
+                node->var.is_dereferenced_ptr = true;
             }
             node->cast_type.ptr_level -= 1;
         }

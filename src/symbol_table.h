@@ -51,6 +51,7 @@ struct Variable {
     int stack_offset;
     bool is_global;
     bool is_undefined;
+    bool is_dereferenced_ptr;
     char* const_expr;
 };
 
