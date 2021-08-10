@@ -33,14 +33,23 @@ void write_string_to_file(char* filename, char *src) {
 }
 
 // Compile Intel-syntax ASM using NASM and link with gcc
-void compile_asm(char *asm_src) {
+void compile_asm(char *asm_src, char* executable_name) {
     write_string_to_file("output.asm", asm_src);
     // Includes debug symbols
+    char cmd_str[256];
     if (ASSEMBLE_DEBUG) {
-        system("nasm -f elf64 -F dwarf -g output.asm && gcc -g -no-pie -o output output.o && rm output.o");
+        snprintf(cmd_str, 255, 
+            "nasm -f elf64 -F dwarf -g %1$s.asm && gcc -g -no-pie -o %1$s %1$s.o && rm %1$s.o", 
+            executable_name
+        );
+        system(cmd_str);
     }
     else {
-        system("nasm -f elf64 output.asm && gcc -no-pie -o output output.o && rm output.o");
+        snprintf(cmd_str, 255, 
+            "nasm -f elf64 %1$s.asm && gcc -no-pie -o %1$s %1$s.o && rm %1$s.o", 
+            executable_name
+        );
+        system(cmd_str);
     }
 }
 

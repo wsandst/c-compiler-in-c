@@ -544,9 +544,12 @@ void parse_literal(ASTNode* node,  SymbolTable* symbols) {
         node->literal_type = LT_FLOAT;
     }
     else if (accept(TK_LCHAR)) {
+        node->cast_type.type = TY_INT;
+        node->cast_type.ptr_level = 1;
         node->literal_type = LT_CHAR;
     }
     else if (accept(TK_LSTRING)) {
+        node->cast_type.type = TY_INT;
         node->literal_type = LT_STRING;
     }
 }
@@ -599,9 +602,11 @@ void parse_func_call(ASTNode* node, SymbolTable* symbols) {
     while (!(accept(TK_DL_CLOSEPAREN) || prev_token().type == TK_DL_CLOSEPAREN)) { // Go through argument expressions
         parse_expression(arg_node, symbols, 1);
         arg_node->next = ast_node_new(AST_END, 1);
+        arg_node->next->prev = arg_node;
         arg_node = arg_node->next;
         accept(TK_DL_COMMA);
     }
+    node->args_end = arg_node;
 }
 
 void parse_if(ASTNode* node, SymbolTable* symbols) {

@@ -5,12 +5,18 @@
 /*
 TODO:
     Current:
-        Function stack arguments, floating point args
+        Improve function arg handling
         Variable keyword arguments function calling, fixes printf
         Implement simple stdlib
-        Implement constant and static values
-        Cleanup project, maybe remove some globals and test files?
+        Implement static values
         Floating point logical operators
+
+    Refactoring:
+        Refactor parser
+        Refactor add_asm to use printf syntax:
+            This should make the code much nicer to look at.
+            However, can I pass the variable arguments into printf? Yes, using vprintf
+        Cleanup pointer lhs deref r12 pushing
 
     Expressions:
         Constant expressions (compile time expressions) (only really required for advanced switch cases):
@@ -18,18 +24,27 @@ TODO:
             op handling.
 
     Functions, proper calling convention:
-        Stack arguments, floating point arguments, floating point returns
+        The function argument handling needs to be improved:
+            Keep track of function argument types in the function object, for call arg casting
+            Improve handling of calling convention, currently can't handle certain edge cases
+            This restructuring will be necessary for easier struct implemention
         Initial support of variable keyword arguments. Just enough to make calling printf work properly
-        Static functions
 
     Types:
         Floating point:
             Operators left: ++, --, logical
-        Pointers:
-            Cleanup lhs deref r12 pushing
         Arrays:
             Array variable type, make space on stack etc
             Initializer lists would be nice to have
+        Constants:
+            Just ignore the keyword for now
+        Static:
+            If a variable is static, treat it basically identically to global,
+            except no extern. The only difference is in scoping. It behaves
+            like a normal scope
+            Maybe I should refactor how I treat globals. Keep the declarations in the tree perhaps?
+            That way I can create globals/statics as they are encountered, not by analyzing
+            the symbol tree
 
     Preprocessor:
         Defines:
@@ -40,6 +55,9 @@ TODO:
     
     Tokenizer:
         Fix nested strings within comments, comments within strings, escape characters etc
+
+    Known incorrect behaviour:
+
 */
 
 int main(int argc, char *argv[]) {
@@ -65,7 +83,8 @@ int main(int argc, char *argv[]) {
     // Step 3: ASM Code Generation
     char* asm_src = generate_assembly(&ast, symbols);
 
-    compile_asm(asm_src);
+    // Save ASM src to file and compile with NASM
+    compile_asm(asm_src, "output");
 
     // Free memory
     symbol_table_free(symbols);

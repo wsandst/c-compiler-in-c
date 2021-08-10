@@ -81,6 +81,13 @@ char* offset_to_stack_ptr(int offset, char* prefix) {
     return str_copy(buf);
 }
 
+char* offset_to_plus_stack_ptr(int offset, char* prefix) {
+    char buf[64];
+    snprintf(buf, 63, "%s [rbp+%i]", prefix, offset);
+    return str_copy(buf);
+}
+
+
 // Get the address size corresponding to bytes, ex 8->qword or 4->dword
 char* bytes_to_addr_size(VarType var_type) {
     switch (var_type.bytes) {
@@ -368,23 +375,67 @@ void gen_asm_func_call(ASTNode* node, AsmContext ctx) {
     Return: RAX 
     */
     static char *reg_strs[6] = {"rdi", "rsi", "rdx", "rcx", "r8", "r9"};
+    static char *freg_strs[4] = {"xmm0", "xmm1", "xmm2", "xmm3"};
     asm_add_com(&ctx, "; Expression function call");
-    // Evaluate arguments
-    ASTNode* current_arg = node->args;
-    for (int i = 0; i <  node->func.param_count; i++) { // Current arg is somehow corrupted when the loop starts
+
+    // Limitation: This way of doing it breaks with 
+    // the combination of ints>6 and floats>0 
+    // or floats>4 and ints>0
+    // This can be fixed by storing every argument temporarily as stack variables,
+    // then putting that into the registers at the end
+    ASTNode* current_arg = node->args_end->prev;
+    for (int i = node->func.param_count; i > 0; i--) {
+        // Integer/pointer argument
         gen_asm(current_arg, ctx);
-        if (current_arg->cast_type.ptr_level == 0 && current_arg->cast_type.type == TY_FLOAT) {
-            asm_add(&ctx, 1, "movq rax, xmm0"); // We pass f64 here
+        if (current_arg->cast_type.ptr_level > 0 || current_arg->cast_type.type == TY_INT) {
+            asm_add(&ctx, 1, "push rax");
         }
-        asm_add(&ctx, 3, "mov ", reg_strs[i], ", rax");
-        asm_add(&ctx, 2, "push ", reg_strs[i]);
+        // Floating point argument
+        else if (current_arg->cast_type.type == TY_FLOAT) {
+            asm_add(&ctx, 1, "movq rax, xmm0");
+            asm_add(&ctx, 1, "push rax");
+        }
+        else { // Struct etc
+            codegen_error("Unsupported function argument type encountered!");
+        }
+        current_arg = current_arg->prev;
+    }
+    int int_arg_count = 0;
+    int float_arg_count = 0;
+    current_arg = node->args;
+    for (int i = 0; i < node->func.param_count; i++) {
+        // Integer/pointer argument
+        if (current_arg->cast_type.ptr_level > 0 || current_arg->cast_type.type == TY_INT) {
+            if (int_arg_count < 6) { // Pass by register
+                asm_add(&ctx, 1, "pop rax");
+                asm_add(&ctx, 3, "mov ", reg_strs[int_arg_count], ", rax");
+            }
+            int_arg_count++;
+        }
+        // Floating point argument
+        else if (current_arg->cast_type.type == TY_FLOAT) {
+            if (float_arg_count < 4) { // Pass by register
+                asm_add(&ctx, 1, "pop rax");
+                asm_add(&ctx, 3, "movq ", freg_strs[float_arg_count], ", rax");
+            }
+            // Otherwise, we pass by stack, which is already 
+            float_arg_count++;
+        }
+        else { // Struct etc
+            codegen_error("Unsupported function argument type encountered!");
+        }
+        if ((float_arg_count > 4 && int_arg_count) || (float_arg_count && int_arg_count > 6)) {
+            codegen_error("Unsupported combination of floats and integer function arguments!");
+        }
         current_arg = current_arg->next;
     }
-    // Make everything ready for call
-    for (size_t i = node->func.param_count; i > 0; i--){
-        asm_add(&ctx, 2, "pop ", reg_strs[i-1]);
-    }
+    int pop_count = max(int_arg_count - 6, 0) + max(float_arg_count - 4, 0);
+    
     asm_add(&ctx, 2, "call ", node->func.name);
+
+    for (int i = 0; i < pop_count; i++) {
+        asm_add(&ctx, 1, "add rsp, 8");
+    }
 }
 
 void gen_asm_func(ASTNode* node, AsmContext ctx) {
@@ -397,6 +448,7 @@ void gen_asm_func(ASTNode* node, AsmContext ctx) {
     Return: RAX 
     */
     static RegisterEnum arg_regs[6] = {RDI, RSI, RDX, RCX, R8, R9};
+    static char *float_reg_strs[4] = {"xmm0", "xmm1", "xmm2", "xmm3"};
     Variable* param = node->func.params;
     ctx.func_return_label = get_next_label_str(&ctx);
     asm_set_indent(&ctx, 0);
@@ -411,12 +463,42 @@ void gen_asm_func(ASTNode* node, AsmContext ctx) {
     asm_add(&ctx, 3, "sub rsp, ", stack_space_str, " ; Allocate the stack space used by the function");
     // Evaluate arguments
     asm_add_com(&ctx, "; Store passed function arguments");
-    for (size_t i = 0; i < node->func.param_count; i++) {
+    int int_arg_count = 0;
+    int float_arg_count = 0;
+    for (int i = 0; i < node->func.param_count; i++) {
         char* param_ptr = var_to_stack_ptr(param);
-        char* reg_str = get_reg_width_str(param->type, arg_regs[i]);
-        asm_add(&ctx, 4, "mov ", param_ptr, ", ", reg_str);
-        param++;
+        if (param->type.type == TY_INT || param->type.ptr_level > 0) {
+            if (int_arg_count < 6) { // Pass by register
+                char* reg_str = get_reg_width_str(param->type, arg_regs[int_arg_count]);
+                asm_add(&ctx, 4, "mov ", param_ptr, ", ", reg_str);
+            }
+            else { // Pass by stack
+                char* arg_ptr = offset_to_plus_stack_ptr(8*(int_arg_count-6+2), "qword");
+                asm_add(&ctx, 2, "mov rax, ", arg_ptr);
+                char* reg_str = get_reg_width_str(param->type, RAX);
+                asm_add(&ctx, 4, "mov ", param_ptr, ", ", reg_str);
+                free(arg_ptr);
+            }
+            int_arg_count++;
+        }
+        else if (param->type.type == TY_FLOAT) {
+            if (float_arg_count < 4) {
+                asm_add(&ctx, 4, "movq ", param_ptr, ", ",  float_reg_strs[float_arg_count]);
+            }
+            else {
+                char* arg_ptr = offset_to_plus_stack_ptr(8*(float_arg_count-4+2), "qword");
+                asm_add(&ctx, 2, "mov rax, ", arg_ptr);
+                char* reg_str = get_reg_width_str(param->type, RAX);
+                asm_add(&ctx, 4, "mov ", param_ptr, ", ", reg_str);
+                free(arg_ptr);
+            }
+            float_arg_count++;
+        }
+        else {
+            codegen_error("Unsupported function argument type in function definition");
+        }
         free(param_ptr);
+        param++;
     }
     asm_add_com(&ctx, "; Function code start");
     // Do I need to allocate more stack space here?

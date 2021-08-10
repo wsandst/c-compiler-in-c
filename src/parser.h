@@ -107,6 +107,7 @@ struct ASTNode {
     ValueLabel label;
 
     ASTNode* next;
+    ASTNode* prev; // Only used for function args
     ASTNode* body;
 
     // Expr
@@ -129,6 +130,7 @@ struct ASTNode {
 
     // Function
     ASTNode* args;
+    ASTNode* args_end;
     VarTypeEnum ret_type;
     ASTNode* ret; // necessary?
 
