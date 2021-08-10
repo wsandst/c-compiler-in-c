@@ -35,6 +35,7 @@ $(BIN_DIR) $(OBJ_DIR) $(TEST_OBJ_DIR):
 	mkdir -p $@
 	mkdir -p $@/util
 
+# Compile unit test executable
 testexe: clean $(TEST_EXE)
 
 $(TEST_EXE): $(TEST_OBJ) $(OBJ_NO_MAIN) | $(BIN_DIR)

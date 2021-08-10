@@ -14,6 +14,14 @@ and operations, and codegen.c file does everything else
 
 // Contains various context data required
 struct AsmContext {
+    // Global state
+    StrVector* asm_rodata_src;
+    StrVector* asm_data_src;
+    StrVector* asm_bss_src;
+    StrVector* asm_text_src;
+    char** asm_indent_str;
+    int* label_count;
+    int* cstring_label_count;
     // Used by break and continue
     char* last_start_label; // Latest start label for loops
     char* last_end_label; // Latest end label for loops and switch
@@ -38,25 +46,26 @@ typedef enum RegisterEnum RegisterEnum;
 void asm_add_single(StrVector* asm_src, char* str);
 
 // Add assembly comment
-void asm_add_com(char* str);
+void asm_add_com(AsmContext* ctx, char* str);
 
 // Add a newline with proper indentation
-void asm_add_newline(StrVector* asm_src);
+void asm_add_newline(AsmContext* ctx, StrVector* asm_src);
 
 // Add assembly, variable amount of strings which are combined
 // A newline and proper indentation is added beforehand
-void asm_add(int n, ...);
+void asm_add(AsmContext* ctx, int n, ...);
 // Add to a specific assembly src part, like the .data section
-void asm_add_to_data_section(int n, ...);
+void asm_add_to_section(AsmContext* ctx, StrVector* section, int n, ...);
 
-// Set the indendentation level and update
-void asm_set_indent(int indent);
+// Set the indendentation level and update the indentation string
+void asm_set_indent(AsmContext* ctx, int indent);
 
-// Update indentation level based on global indent_level
-void asm_update_indent();
-
-// Add to the indent level and update
-void asm_add_indent(int amount);
+// Create a new AsmContext object
+AsmContext asm_context_new();
+// Free memory used by an AsmContext object
+void asm_context_free(AsmContext* ctx);
+// Join the four assembly sections into a single string
+char* asm_context_join_srcs(AsmContext* ctx);
 
 // Get a C string representing a jump label
 char* get_label_str(int label);
@@ -65,9 +74,9 @@ char* get_label_str(int label);
 char* get_case_label_str(int label, char* value);
 
 // Get the next jump label and increment the global label counter
-char* get_next_label_str();
+char* get_next_label_str(AsmContext* ctx);
 // Get the next label for constant c-strings, used for string literals
-char* get_next_cstring_label_str();
+char* get_next_cstring_label_str(AsmContext* ctx);
 
 // Get the corresponding byte size register, eg 2, RAX = AX
 char* get_reg_width_str(VarType var_type, RegisterEnum reg);
@@ -81,7 +90,6 @@ char* var_to_stack_ptr(Variable* var);
 // Get the corresponding move instr for a certain memory size, ex movzx for 2
 char* get_move_instr_for_var_type(VarType var_type);
 
-
 // ============= ASM Generation ================
 
 // Generate NASM assembly from the AST
@@ -91,7 +99,7 @@ char* generate_assembly(AST* ast, SymbolTable* symbols);
 void gen_asm(ASTNode* node, AsmContext ctx);
 
 // Generate globals in the data and bss section
-void gen_asm_symbols(SymbolTable* symbols);
+void gen_asm_symbols(SymbolTable* symbols, AsmContext ctx);
 
 // Generate assembly for a function definition
 void gen_asm_func(ASTNode* node, AsmContext ctx);
@@ -172,4 +180,4 @@ void gen_asm_setup_short_circuiting(ASTNode* node, AsmContext* ctx);
 void gen_asm_add_short_circuit_jumps(ASTNode* node, AsmContext ctx);
 
 // Casting between any types
-void gen_asm_unary_op_cast(VarType to_type, VarType from_type);
+void gen_asm_unary_op_cast(AsmContext ctx, VarType to_type, VarType from_type);

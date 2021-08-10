@@ -4,11 +4,19 @@
 
 // Create a new string vector
 StrVector str_vec_new(int initial_size) {
-    StrVector tokens;
-    tokens.size = 0;
-    tokens.max_size = initial_size;
-    tokens.elems = malloc(initial_size*sizeof(char*));
-    return tokens;
+    StrVector vec;
+    vec.size = 0;
+    vec.elems = malloc(initial_size*sizeof(char*));
+    vec.max_size = initial_size;
+    return vec;
+}
+
+StrVector* str_vec_new_ptr(int initial_size) {
+    StrVector* vec = malloc(sizeof(StrVector));
+    vec->size = 0;
+    vec->elems = malloc(initial_size*sizeof(char*));
+    vec->max_size = initial_size;
+    return vec;
 }
 
 char* str_copy(char *str) {

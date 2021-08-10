@@ -10,11 +10,11 @@ void gen_asm_expr(ASTNode* node, AsmContext ctx) {
         // Handle various variable type sizes
         if (node->var.type.type == TY_INT || node->var.type.ptr_level > 0) {
             char* move_instr = get_move_instr_for_var_type(node->var.type);
-            asm_add(3, move_instr, ", ", sp2);
+            asm_add(&ctx, 3, move_instr, ", ", sp2);
             free(move_instr);
         }
         else if (node->var.type.type == TY_FLOAT) {
-            asm_add(2, "movq xmm0, ", sp2);
+            asm_add(&ctx, 2, "movq xmm0, ", sp2);
         }
         else {
             codegen_error("Unsupported variable type encountered");
@@ -46,22 +46,22 @@ void gen_asm_expr(ASTNode* node, AsmContext ctx) {
 
 void gen_asm_literal(ASTNode* node, AsmContext ctx) {
     if (node->literal_type == LT_INT) {
-        asm_add(2, "mov rax, ", node->literal);
+        asm_add(&ctx, 2, "mov rax, ", node->literal);
     }
     else if (node->literal_type == LT_FLOAT) {
-        asm_add(3, "mov rax, __float64__(", node->literal, ")");
-        asm_add(1, "movq xmm0, rax");
+        asm_add(&ctx, 3, "mov rax, __float64__(", node->literal, ")");
+        asm_add(&ctx, 1, "movq xmm0, rax");
     }
     else if (node->literal_type == LT_STRING) {
-        char* label_name = get_next_cstring_label_str();
-        asm_set_indent(0);
-        asm_add_to_data_section(4, label_name, ": db `", node->literal, "`, 0");
-        asm_set_indent(1);
-        asm_add(3, "lea rax, [", label_name, "]");
+        char* label_name = get_next_cstring_label_str(&ctx);
+        asm_set_indent(&ctx, 0);
+        asm_add_to_section(&ctx, ctx.asm_rodata_src, 4, label_name, ": db `", node->literal, "`, 0");
+        asm_set_indent(&ctx, 1);
+        asm_add(&ctx, 3, "lea rax, [", label_name, "]");
         free(label_name);
     }
     else if (node->literal_type == LT_CHAR) {
-        asm_add(3, "mov rax, '", node->literal, "'");
+        asm_add(&ctx, 3, "mov rax, '", node->literal, "'");
     }
     else {
         codegen_error("Unsupported literal encountered");
@@ -100,14 +100,14 @@ void gen_asm_binary_op(ASTNode* node, AsmContext ctx) {
 
 // & address operator for
 void gen_asm_unary_op_address(ASTNode* node, AsmContext ctx) {
-    asm_add_com("; Op: & (address)");
+    asm_add_com(&ctx, "; Op: & (address)");
     if (node->expr_type != EXPR_VAR) {
         codegen_error("Tried to take address of non-variable!");
     }
     char buf[64];
     snprintf(buf, 63, "[rbp-%d]", node->var.stack_offset);
-    asm_add(1, "mov rax, 0");
-    asm_add(2, "lea rax, ", buf);
+    asm_add(&ctx, 1, "mov rax, 0");
+    asm_add(&ctx, 2, "lea rax, ", buf);
 }
 
 // =============== Integer operations ===============
@@ -117,15 +117,15 @@ void gen_asm_unary_op_int(ASTNode* node, AsmContext ctx) {
     char* var_sp = var_to_stack_ptr(&node->rhs->var);
     switch (node->op_type) {
         case UOP_NEG: // Negation
-            asm_add(1, "neg rax");
+            asm_add(&ctx, 1, "neg rax");
             break;
         case UOP_COMPL: // Complement
-            asm_add(1, "not rax");
+            asm_add(&ctx, 1, "not rax");
             break;
         case UOP_NOT: // Logical not
-            asm_add(1, "cmp rax, 0");
-            asm_add(1, "mov rax, 0");
-            asm_add(1, "sete al");
+            asm_add(&ctx, 1, "cmp rax, 0");
+            asm_add(&ctx, 1, "mov rax, 0");
+            asm_add(&ctx, 1, "sete al");
             break;
         // Increment, decrement
         // This is kind of a form of assignment
@@ -134,8 +134,8 @@ void gen_asm_unary_op_int(ASTNode* node, AsmContext ctx) {
             if (node->rhs->expr_type != EXPR_VAR) {
                 codegen_error("Only variables can be incremented to");
             }
-            asm_add_com("; Op: ++ (pre)");
-            asm_add(1, "inc rax");
+            asm_add_com(&ctx, "; Op: ++ (pre)");
+            asm_add(&ctx, 1, "inc rax");
             gen_asm_binary_op_assign_int(node->rhs, ctx);
             break;
         case UOP_PRE_DECR: // --x
@@ -143,8 +143,8 @@ void gen_asm_unary_op_int(ASTNode* node, AsmContext ctx) {
             if (node->rhs->expr_type != EXPR_VAR) {
                 codegen_error("Only variables can be decremented to");
             }
-            asm_add_com("; Op: -- (pre)");
-            asm_add(1, "dec rax");
+            asm_add_com(&ctx, "; Op: -- (pre)");
+            asm_add(&ctx, 1, "dec rax");
             gen_asm_binary_op_assign_int(node->rhs, ctx);
             break;
         case UOP_POST_INCR: // x++
@@ -152,43 +152,43 @@ void gen_asm_unary_op_int(ASTNode* node, AsmContext ctx) {
             if (node->rhs->expr_type != EXPR_VAR) {
                 codegen_error("Only variables can be incremented to");
             }
-            asm_add_com("; Op: ++ (post)");
-            asm_add(1, "mov rbx, rax");
-            asm_add(1, "push rax");
-            asm_add(1, "mov rax, rbx");
-            asm_add(1, "inc rax");
+            asm_add_com(&ctx, "; Op: ++ (post)");
+            asm_add(&ctx, 1, "mov rbx, rax");
+            asm_add(&ctx, 1, "push rax");
+            asm_add(&ctx, 1, "mov rax, rbx");
+            asm_add(&ctx, 1, "inc rax");
             gen_asm_binary_op_assign_int(node->rhs, ctx);
-            asm_add(1, "pop rax");
+            asm_add(&ctx, 1, "pop rax");
             break;
         case UOP_POST_DECR: // x-- 
             // Decrement and return previous value
             if (node->rhs->expr_type != EXPR_VAR) {
                 codegen_error("Only variables can be decremented to");
             }
-            asm_add_com("; Op: -- (post)");
-            asm_add(1, "mov rbx, rax");
-            asm_add(1, "push rax");
-            asm_add(1, "mov rax, rbx");
-            asm_add(1, "dec rax");
+            asm_add_com(&ctx, "; Op: -- (post)");
+            asm_add(&ctx, 1, "mov rbx, rax");
+            asm_add(&ctx, 1, "push rax");
+            asm_add(&ctx, 1, "mov rax, rbx");
+            asm_add(&ctx, 1, "dec rax");
             gen_asm_binary_op_assign_int(node->rhs, ctx);
-            asm_add(1, "pop rax");
+            asm_add(&ctx, 1, "pop rax");
             break;
         case UOP_SIZEOF:
-            asm_add_com("; Op: sizeof");
+            asm_add_com(&ctx, "; Op: sizeof");
             char buf[64];
             sprintf(buf, "%d", node->rhs->cast_type.bytes);
-            asm_add(2, "mov rax, ", buf);
+            asm_add(&ctx, 2, "mov rax, ", buf);
             break;
         case UOP_CAST:
-            asm_add_com("; Op: cast");
-            gen_asm_unary_op_cast(node->cast_type, node->rhs->cast_type);
+            asm_add_com(&ctx, "; Op: cast");
+            gen_asm_unary_op_cast(ctx, node->cast_type, node->rhs->cast_type);
             break;
         case UOP_DEREF: { // Deref from int pointer
-            asm_add_com("; Op: * (deref)");
+            asm_add_com(&ctx, "; Op: * (deref)");
             char* addr_size = bytes_to_addr_size(node->cast_type);
             char* move_instr = get_move_instr_for_var_type(node->cast_type);
-            asm_add(1, "mov r12, rax"); // Save rax for potential deref assignment
-            asm_add(4, move_instr, ", ", addr_size, " [rax]"); 
+            asm_add(&ctx, 1, "mov r12, rax"); // Save rax for potential deref assignment
+            asm_add(&ctx, 4, move_instr, ", ", addr_size, " [rax]"); 
             free(addr_size); 
             free(move_instr);
             break;
@@ -211,88 +211,88 @@ void gen_asm_binary_op_int(ASTNode* node, AsmContext ctx) {
 
     gen_asm(node->lhs, ctx); // LHS now in RAX
     if (node->lhs->op_type == UOP_DEREF) {
-        asm_add(1, "push r12"); // Deref address is in r12, we need to save it incase rhs is deref
+        asm_add(&ctx, 1, "push r12"); // Deref address is in r12, we need to save it incase rhs is deref
     }
 
     gen_asm_add_short_circuit_jumps(node, ctx); // AND/OR Short circuiting related
 
-    asm_add(1, "push rax"); // Save RAX
+    asm_add(&ctx, 1, "push rax"); // Save RAX
     gen_asm(node->rhs, ctx); // LHS now in RAX
-    asm_add(1, "mov rbx, rax"); // Move RHS to RBX
-    asm_add(1, "pop rax"); // LHS now in RAX
+    asm_add(&ctx, 1, "mov rbx, rax"); // Move RHS to RBX
+    asm_add(&ctx, 1, "pop rax"); // LHS now in RAX
     // We are now ready for the binary operation
     switch (node->op_type) { // These are all integer operations
         case BOP_ASSIGN: 
             // Rest of assignment is handled after the switch
-            asm_add_com("; Op: =");
-            asm_add(1, "mov rax, rbx"); // We need the rhs value in rax
+            asm_add_com(&ctx, "; Op: =");
+            asm_add(&ctx, 1, "mov rax, rbx"); // We need the rhs value in rax
             break;
         case BOP_ASSIGN_ADD:
         case BOP_ADD: // Addition
-            asm_add_com("; Op: +");
-            asm_add(1, "add rax, rbx");
+            asm_add_com(&ctx, "; Op: +");
+            asm_add(&ctx, 1, "add rax, rbx");
             break;
         case BOP_ASSIGN_SUB: // Assignment subtraction
         case BOP_SUB: // Subtraction
-            asm_add_com("; Op: -");
-            asm_add(1, "sub rax, rbx");
+            asm_add_com(&ctx, "; Op: -");
+            asm_add(&ctx, 1, "sub rax, rbx");
             break;
         case BOP_ASSIGN_MULT:
         case BOP_MUL: // Multiplication
-            asm_add_com("; Op: *");
-            asm_add(1, "imul rax, rbx");
+            asm_add_com(&ctx, "; Op: *");
+            asm_add(&ctx, 1, "imul rax, rbx");
             break;
         case BOP_ASSIGN_DIV:
         case BOP_DIV: // Integer division
-            asm_add_com("; Op: / (Integer)");
-            asm_add(1, "push rdx");
-            asm_add(1, "mov rdx, 0"); // Need to reset rdx, won't work otherwise
-            asm_add(1, "idiv rbx");
-            asm_add(1, "pop rdx");
+            asm_add_com(&ctx, "; Op: / (Integer)");
+            asm_add(&ctx, 1, "push rdx");
+            asm_add(&ctx, 1, "mov rdx, 0"); // Need to reset rdx, won't work otherwise
+            asm_add(&ctx, 1, "idiv rbx");
+            asm_add(&ctx, 1, "pop rdx");
             break;
         case BOP_ASSIGN_MOD:
         case BOP_MOD: // Modulo
-            asm_add_com("; Op: %");
-            asm_add(1, "mov rdx, 0");
-            asm_add(1, "idiv rbx");
-            asm_add(1, "mov rax, rdx"); // Remainder from div is put in rdx
+            asm_add_com(&ctx, "; Op: %");
+            asm_add(&ctx, 1, "mov rdx, 0");
+            asm_add(&ctx, 1, "idiv rbx");
+            asm_add(&ctx, 1, "mov rax, rdx"); // Remainder from div is put in rdx
             break;
         // Logical
         case BOP_EQ: // Equals
-            asm_add_com("; Op: ==");
-            asm_add(1, "cmp rax, rbx");
-            asm_add(1, "mov rax, 0");
-            asm_add(1, "sete al");
+            asm_add_com(&ctx, "; Op: ==");
+            asm_add(&ctx, 1, "cmp rax, rbx");
+            asm_add(&ctx, 1, "mov rax, 0");
+            asm_add(&ctx, 1, "sete al");
             break;
         case BOP_NEQ: // Not equals
-            asm_add_com("; Op: !=");
-            asm_add(1, "cmp rax, rbx");
-            asm_add(1, "mov rax, 0");
-            asm_add(1, "setne al");
+            asm_add_com(&ctx, "; Op: !=");
+            asm_add(&ctx, 1, "cmp rax, rbx");
+            asm_add(&ctx, 1, "mov rax, 0");
+            asm_add(&ctx, 1, "setne al");
             break;
         case BOP_LT: // Less than
-            asm_add_com("; Op: <");
-            asm_add(1, "cmp rax, rbx");
-            asm_add(1, "mov rax, 0");
-            asm_add(1, "setl al");
+            asm_add_com(&ctx, "; Op: <");
+            asm_add(&ctx, 1, "cmp rax, rbx");
+            asm_add(&ctx, 1, "mov rax, 0");
+            asm_add(&ctx, 1, "setl al");
             break;
         case BOP_LTE: // Less than equals
-            asm_add_com("; Op: <=");
-            asm_add(1, "cmp rax, rbx");
-            asm_add(1, "mov rax, 0");
-            asm_add(1, "setle al");
+            asm_add_com(&ctx, "; Op: <=");
+            asm_add(&ctx, 1, "cmp rax, rbx");
+            asm_add(&ctx, 1, "mov rax, 0");
+            asm_add(&ctx, 1, "setle al");
             break;
         case BOP_GT: // Greater than
-            asm_add_com("; Op: >");
-            asm_add(1, "cmp rax, rbx");
-            asm_add(1, "mov rax, 0");
-            asm_add(1, "setg al");
+            asm_add_com(&ctx, "; Op: >");
+            asm_add(&ctx, 1, "cmp rax, rbx");
+            asm_add(&ctx, 1, "mov rax, 0");
+            asm_add(&ctx, 1, "setg al");
             break;
         case BOP_GTE: // Greater than equals
-            asm_add_com("; Op, >=");
-            asm_add(1, "cmp rax, rbx");
-            asm_add(1, "mov rax, 0");
-            asm_add(1, "setge al");
+            asm_add_com(&ctx, "; Op, >=");
+            asm_add(&ctx, 1, "cmp rax, rbx");
+            asm_add(&ctx, 1, "mov rax, 0");
+            asm_add(&ctx, 1, "setge al");
             break;
         case BOP_AND: // Logical and
             gen_asm_binary_op_and_int(node, ctx);
@@ -303,37 +303,37 @@ void gen_asm_binary_op_int(ASTNode* node, AsmContext ctx) {
         // Bitwise
         case BOP_ASSIGN_BITAND:
         case BOP_BITAND: // Bitwise and
-            asm_add_com("; Op: & (BITWISE AND)");
-            asm_add(1, "and rax, rbx");
+            asm_add_com(&ctx, "; Op: & (BITWISE AND)");
+            asm_add(&ctx, 1, "and rax, rbx");
             break;
         case BOP_ASSIGN_BITOR:
         case BOP_BITOR: // Bitwise or
-            asm_add_com("; Op: & (BITWISE OR)");
-            asm_add(1, "or rax, rbx");
+            asm_add_com(&ctx, "; Op: & (BITWISE OR)");
+            asm_add(&ctx, 1, "or rax, rbx");
             break;
         case BOP_ASSIGN_BITXOR:
         case BOP_BITXOR: // Bitwise xor
-            asm_add_com("; Op: & (BITWISE XOR)");
-            asm_add(1, "xor rax, rbx");
+            asm_add_com(&ctx, "; Op: & (BITWISE XOR)");
+            asm_add(&ctx, 1, "xor rax, rbx");
             break;
         case BOP_ASSIGN_LEFTSHIFT:
         case BOP_LEFTSHIFT: // Bitwise leftshift
-            asm_add_com("; Op: << (BITWISE LEFTSHIFT)");
-            asm_add(1, "mov rcx, rbx");
-            asm_add(1, "sal rax, cl");
+            asm_add_com(&ctx, "; Op: << (BITWISE LEFTSHIFT)");
+            asm_add(&ctx, 1, "mov rcx, rbx");
+            asm_add(&ctx, 1, "sal rax, cl");
             break;
         case BOP_ASSIGN_RIGHTSHIFT:
         case BOP_RIGHTSHIFT: // Bitwise rightshift
-            asm_add_com("; Op: >> (BITWISE RIGHTSHIFT)");
-            asm_add(1, "mov rcx, rbx");
-            asm_add(1, "sar rax, cl");
+            asm_add_com(&ctx, "; Op: >> (BITWISE RIGHTSHIFT)");
+            asm_add(&ctx, 1, "mov rcx, rbx");
+            asm_add(&ctx, 1, "sar rax, cl");
             break;
         default:
             codegen_error("Unsupported integer binary operation found!");
             break;
     }
     if (node->lhs->op_type == UOP_DEREF) {
-        asm_add(1, "pop r12");
+        asm_add(&ctx, 1, "pop r12");
     }
     if (is_binary_operation_assignment(node->op_type)) {
         gen_asm_binary_op_assign_int(node->lhs, ctx);
@@ -344,14 +344,14 @@ void gen_asm_binary_op_assign_int(ASTNode* node, AsmContext ctx) {
     if (node->expr_type == EXPR_VAR) {
         char* reg_str = get_reg_width_str(node->var.type, RAX);
         char* var_sp = var_to_stack_ptr(&node->var);
-        asm_add(4, "mov ", var_sp, ", ", reg_str);
+        asm_add(&ctx, 4, "mov ", var_sp, ", ", reg_str);
         free(var_sp);
     }
     else if (node->expr_type == EXPR_UNOP && node->op_type == UOP_DEREF) {
         node->var.type.bytes = node->var.type.ptr_value_bytes;
         char* reg_str = get_reg_width_str(node->var.type, RAX);
         char* addr_size_str = bytes_to_addr_size(node->var.type);
-        asm_add(4, "mov ", addr_size_str, " [r12], ", reg_str);
+        asm_add(&ctx, 4, "mov ", addr_size_str, " [r12], ", reg_str);
         free(addr_size_str);
     }
     else {
@@ -361,25 +361,25 @@ void gen_asm_binary_op_assign_int(ASTNode* node, AsmContext ctx) {
 }
 
 void gen_asm_binary_op_and_int(ASTNode* node, AsmContext ctx) {
-    asm_add_com("; Op: && (AND)");
-    asm_add(1, "and rax, rbx");
-    asm_add(1, "cmp rax, 0");
-    asm_add(1, "mov rax, 0");
-    asm_add(1, "setne al");
+    asm_add_com(&ctx, "; Op: && (AND)");
+    asm_add(&ctx, 1, "and rax, rbx");
+    asm_add(&ctx, 1, "cmp rax, 0");
+    asm_add(&ctx, 1, "mov rax, 0");
+    asm_add(&ctx, 1, "setne al");
     if (ctx.and_end_node) { // Add short circuit end jump label
-        asm_add(2, ctx.and_short_circuit_label, ": ; Logical short circuit end label");
+        asm_add(&ctx, 2, ctx.and_short_circuit_label, ": ; Logical short circuit end label");
         free(ctx.and_short_circuit_label);
     }
 }
 
 void gen_asm_binary_op_or_int(ASTNode* node, AsmContext ctx) {
-    asm_add_com("; Op: || (OR)");
-    asm_add(1, "or rax, rbx");
-    asm_add(1, "cmp rax, 0");
-    asm_add(1, "mov rax, 0");
-    asm_add(1, "setne al");
+    asm_add_com(&ctx, "; Op: || (OR)");
+    asm_add(&ctx, 1, "or rax, rbx");
+    asm_add(&ctx, 1, "cmp rax, 0");
+    asm_add(&ctx, 1, "mov rax, 0");
+    asm_add(&ctx, 1, "setne al");
     if (ctx.or_end_node) { // Add short circuit end jump label
-        asm_add(2, ctx.or_short_circuit_label, ": ; Logical short circuit end label");
+        asm_add(&ctx, 2, ctx.or_short_circuit_label, ": ; Logical short circuit end label");
         free(ctx.or_short_circuit_label);
     }
 }
@@ -392,28 +392,28 @@ void gen_asm_unary_op_float(ASTNode* node, AsmContext ctx) {
     switch (node->op_type) {
         case UOP_NEG: // Negation
             // Move into integer reg, flip first bit with xor
-            asm_add(1, "movq rbx, xmm0");
-            asm_add(1, "mov rax, 0x8000000000000000");
-            asm_add(1, "xor rax, rbx");
-            asm_add(1, "movq xmm0, rax");
+            asm_add(&ctx, 1, "movq rbx, xmm0");
+            asm_add(&ctx, 1, "mov rax, 0x8000000000000000");
+            asm_add(&ctx, 1, "xor rax, rbx");
+            asm_add(&ctx, 1, "movq xmm0, rax");
             break;
         case UOP_SIZEOF:
-            asm_add_com("; Op: sizeof");
+            asm_add_com(&ctx, "; Op: sizeof");
             char buf[64];
             sprintf(buf, "%d", node->rhs->cast_type.bytes);
-            asm_add(2, "mov rax, ", buf);
+            asm_add(&ctx, 2, "mov rax, ", buf);
             break;
         case UOP_CAST:
-            asm_add_com("; Op: cast");
-            gen_asm_unary_op_cast(node->cast_type, node->rhs->cast_type);
+            asm_add_com(&ctx, "; Op: cast");
+            gen_asm_unary_op_cast(ctx, node->cast_type, node->rhs->cast_type);
             break;
         case UOP_DEREF: { // Deref from int pointer
-            asm_add_com("; fOp: * (deref)");
+            asm_add_com(&ctx, "; fOp: * (deref)");
             char* addr_size = bytes_to_addr_size(node->cast_type);
             char* move_instr = get_move_instr_for_var_type(node->cast_type);
-            asm_add(1, "mov r12, rax"); // Save rax for potential deref assignment
-            asm_add(4, move_instr, ", ", addr_size, " [rax]");
-            asm_add(1, "movq xmm0, rax");
+            asm_add(&ctx, 1, "mov r12, rax"); // Save rax for potential deref assignment
+            asm_add(&ctx, 4, move_instr, ", ", addr_size, " [rax]");
+            asm_add(&ctx, 1, "movq xmm0, rax");
             free(addr_size);
             free(move_instr);
             break;
@@ -430,53 +430,53 @@ void gen_asm_binary_op_float(ASTNode* node, AsmContext ctx) {
 
     gen_asm(node->lhs, ctx); // LHS now in RAX
     if (node->lhs->op_type == UOP_DEREF) {
-        asm_add(1, "push r12"); // Deref address is in r12, we need to save it incase rhs is deref
+        asm_add(&ctx, 1, "push r12"); // Deref address is in r12, we need to save it incase rhs is deref
     }
     // Check if we need to cast lhs (lhs is int)
-    gen_asm_unary_op_cast(node->cast_type, node->lhs->cast_type); 
+    gen_asm_unary_op_cast(ctx, node->cast_type, node->lhs->cast_type); 
 
     gen_asm_add_short_circuit_jumps(node, ctx); // AND/OR Short circuiting related
-    asm_add(1, "movq rax, xmm0");
-    asm_add(1, "push rax"); // Save RAX
+    asm_add(&ctx, 1, "movq rax, xmm0");
+    asm_add(&ctx, 1, "push rax"); // Save RAX
     gen_asm(node->rhs, ctx);
     // Check if we need to cast rhs (rhs is int)
-    gen_asm_unary_op_cast(node->cast_type, node->rhs->cast_type); 
-    asm_add(1, "movq xmm1, xmm0"); // Move RHS to XMM1
-    asm_add(1, "pop rax"); // LHS now in RAX
-    asm_add(1, "movq xmm0, rax"); // LHS now in XMM0
+    gen_asm_unary_op_cast(ctx, node->cast_type, node->rhs->cast_type); 
+    asm_add(&ctx, 1, "movq xmm1, xmm0"); // Move RHS to XMM1
+    asm_add(&ctx, 1, "pop rax"); // LHS now in RAX
+    asm_add(&ctx, 1, "movq xmm0, rax"); // LHS now in XMM0
     // We are now ready for the binary operation
     switch (node->op_type) { // These are all integer operations
         case BOP_ASSIGN: 
             // Rest of assignment is handled after the switch
-            asm_add_com("; fOp: =");
-            asm_add(1, "movq xmm0, xmm1"); // We need the rhs value in rax
+            asm_add_com(&ctx, "; fOp: =");
+            asm_add(&ctx, 1, "movq xmm0, xmm1"); // We need the rhs value in rax
             break;
         case BOP_ASSIGN_ADD:
         case BOP_ADD: // Addition
-            asm_add_com("; fOp: +");
-            asm_add(1, "addsd xmm0, xmm1");
+            asm_add_com(&ctx, "; fOp: +");
+            asm_add(&ctx, 1, "addsd xmm0, xmm1");
             break;
         case BOP_ASSIGN_SUB:
         case BOP_SUB: // Subtraction
-            asm_add_com("; fOp: -");
-            asm_add(1, "subsd xmm0, xmm1");
+            asm_add_com(&ctx, "; fOp: -");
+            asm_add(&ctx, 1, "subsd xmm0, xmm1");
             break;
         case BOP_ASSIGN_MULT:
         case BOP_MUL: // Multiplication
-            asm_add_com("; fOp: *");
-            asm_add(1, "mulsd xmm0, xmm1");
+            asm_add_com(&ctx, "; fOp: *");
+            asm_add(&ctx, 1, "mulsd xmm0, xmm1");
             break;
         case BOP_ASSIGN_DIV:
         case BOP_DIV: // Division
-            asm_add_com("; fOp: / (Integer)");
-            asm_add(1, "divsd xmm0, xmm1");
+            asm_add_com(&ctx, "; fOp: / (Integer)");
+            asm_add(&ctx, 1, "divsd xmm0, xmm1");
             break;
         default:
             codegen_error("Unsupported float binary operation found!");
             break;
     }
     if (node->lhs->op_type == UOP_DEREF) {
-        asm_add(1, "pop r12");
+        asm_add(&ctx, 1, "pop r12");
     }
     if (is_binary_operation_assignment(node->op_type)) {
         gen_asm_binary_op_assign_float(node->lhs, ctx);
@@ -486,11 +486,11 @@ void gen_asm_binary_op_float(ASTNode* node, AsmContext ctx) {
 void gen_asm_binary_op_assign_float(ASTNode* node, AsmContext ctx) {
     if (node->expr_type == EXPR_VAR) {
         char* var_sp = var_to_stack_ptr(&node->var);
-        asm_add(3, "movq ", var_sp, ", xmm0");
+        asm_add(&ctx, 3, "movq ", var_sp, ", xmm0");
         free(var_sp);
     }
     else if (node->expr_type == EXPR_UNOP && node->op_type == UOP_DEREF) {
-        asm_add(1, "movq [r12], xmm0");
+        asm_add(&ctx, 1, "movq [r12], xmm0");
     }
     else {
         codegen_error("Only variables can be assigned to");
@@ -507,50 +507,50 @@ void gen_asm_unary_op_ptr(ASTNode* node, AsmContext ctx) {
             gen_asm_unary_op_address(node->rhs, ctx);
             break;
         case UOP_DEREF: // Deref from pointer to pointer
-            asm_add_com("; Op: * (deref)");
-            asm_add(1, "mov rax, qword [rax]");
+            asm_add_com(&ctx, "; Op: * (deref)");
+            asm_add(&ctx, 1, "mov rax, qword [rax]");
             break;
         case UOP_CAST:
-            asm_add_com("; Op: cast");
-            gen_asm_unary_op_cast(node->cast_type, node->rhs->cast_type);
+            asm_add_com(&ctx, "; Op: cast");
+            gen_asm_unary_op_cast(ctx, node->cast_type, node->rhs->cast_type);
             break;
         // Increment, decrement
         // This is kind of a form of assignment
         case UOP_PRE_INCR: // ++x
-            asm_add_com("; pOp: ++ (pre)");
-            asm_add(1, "mov rbx, 1");
+            asm_add_com(&ctx, "; pOp: ++ (pre)");
+            asm_add(&ctx, 1, "mov rbx, 1");
             gen_asm_binary_op_load_ptr_size(node, ctx);
-            asm_add(1, "add rax, rbx");
+            asm_add(&ctx, 1, "add rax, rbx");
             gen_asm_binary_op_assign_int(node->rhs, ctx);
             break;
         case UOP_PRE_DECR: // --x
-            asm_add_com("; pOp: -- (pre)");
-            asm_add(1, "mov rbx, 1");
+            asm_add_com(&ctx, "; pOp: -- (pre)");
+            asm_add(&ctx, 1, "mov rbx, 1");
             gen_asm_binary_op_load_ptr_size(node, ctx);
-            asm_add(1, "sub rax, rbx");
+            asm_add(&ctx, 1, "sub rax, rbx");
             gen_asm_binary_op_assign_int(node->rhs, ctx);
             break;
         case UOP_POST_INCR: // x++
-            asm_add_com("; pOp: ++ (post)");
-            asm_add(1, "mov rbx, rax");
-            asm_add(1, "push rax");
-            asm_add(1, "mov rax, rbx");
-            asm_add(1, "mov rbx, 1");
+            asm_add_com(&ctx, "; pOp: ++ (post)");
+            asm_add(&ctx, 1, "mov rbx, rax");
+            asm_add(&ctx, 1, "push rax");
+            asm_add(&ctx, 1, "mov rax, rbx");
+            asm_add(&ctx, 1, "mov rbx, 1");
             gen_asm_binary_op_load_ptr_size(node, ctx);
-            asm_add(1, "add rax, rbx");
+            asm_add(&ctx, 1, "add rax, rbx");
             gen_asm_binary_op_assign_int(node->rhs, ctx);
-            asm_add(1, "pop rax");
+            asm_add(&ctx, 1, "pop rax");
             break;
         case UOP_POST_DECR: // x-- 
-            asm_add_com("; pOp: -- (post)");
-            asm_add(1, "mov rbx, rax");
-            asm_add(1, "push rax");
-            asm_add(1, "mov rax, rbx");
-            asm_add(1, "mov rbx, 1");
+            asm_add_com(&ctx, "; pOp: -- (post)");
+            asm_add(&ctx, 1, "mov rbx, rax");
+            asm_add(&ctx, 1, "push rax");
+            asm_add(&ctx, 1, "mov rax, rbx");
+            asm_add(&ctx, 1, "mov rbx, 1");
             gen_asm_binary_op_load_ptr_size(node, ctx);
-            asm_add(1, "sub rax, rbx");
+            asm_add(&ctx, 1, "sub rax, rbx");
             gen_asm_binary_op_assign_int(node->rhs, ctx);
-            asm_add(1, "pop rax");
+            asm_add(&ctx, 1, "pop rax");
             break;
         default:
             codegen_error("Unsupported pointer unary operation encountered!");
@@ -565,77 +565,77 @@ void gen_asm_binary_op_ptr(ASTNode* node, AsmContext ctx) {
 
     gen_asm(node->lhs, ctx); // LHS now in RAX
     if (node->lhs->op_type == UOP_DEREF) {
-        asm_add(1, "push r12"); // Deref address is in r12, we need to save it incase rhs is deref
+        asm_add(&ctx, 1, "push r12"); // Deref address is in r12, we need to save it incase rhs is deref
     }
 
     gen_asm_add_short_circuit_jumps(node, ctx); // AND/OR Short circuiting related
 
-    asm_add(1, "push rax"); // Save RAX
+    asm_add(&ctx, 1, "push rax"); // Save RAX
     gen_asm(node->rhs, ctx); // LHS now in RAX
-    asm_add(1, "mov rbx, rax"); // Move RHS to RBX
-    asm_add(1, "pop rax"); // LHS now in RAX
+    asm_add(&ctx, 1, "mov rbx, rax"); // Move RHS to RBX
+    asm_add(&ctx, 1, "pop rax"); // LHS now in RAX
     // We are now ready for the binary operation
     switch (node->op_type) { // These are all integer operations
         case BOP_ASSIGN: 
             // Rest of assignment is handled after the switch
-            asm_add_com("; pOp: =");
-            asm_add(1, "mov rax, rbx"); // We need the rhs value in rax
+            asm_add_com(&ctx, "; pOp: =");
+            asm_add(&ctx, 1, "mov rax, rbx"); // We need the rhs value in rax
             break;
         case BOP_ASSIGN_ADD:
         case BOP_ADD: // Addition
-            asm_add_com("; pOp: +");
+            asm_add_com(&ctx, "; pOp: +");
             gen_asm_binary_op_load_ptr_size(node, ctx);
-            asm_add(1, "add rax, rbx");
+            asm_add(&ctx, 1, "add rax, rbx");
             break;
         case BOP_ASSIGN_SUB: // Assignment subtraction
         case BOP_SUB: // Subtraction
-            asm_add_com("; pOp: -");
+            asm_add_com(&ctx, "; pOp: -");
             gen_asm_binary_op_load_ptr_size(node, ctx);
-            asm_add(1, "sub rax, rbx");
+            asm_add(&ctx, 1, "sub rax, rbx");
             break;
         // Logical
         case BOP_EQ: // Equals
-            asm_add_com("; Op: ==");
-            asm_add(1, "cmp rax, rbx");
-            asm_add(1, "mov rax, 0");
-            asm_add(1, "sete al");
+            asm_add_com(&ctx, "; Op: ==");
+            asm_add(&ctx, 1, "cmp rax, rbx");
+            asm_add(&ctx, 1, "mov rax, 0");
+            asm_add(&ctx, 1, "sete al");
             break;
         case BOP_NEQ: // Not equals
-            asm_add_com("; Op: !=");
-            asm_add(1, "cmp rax, rbx");
-            asm_add(1, "mov rax, 0");
-            asm_add(1, "setne al");
+            asm_add_com(&ctx, "; Op: !=");
+            asm_add(&ctx, 1, "cmp rax, rbx");
+            asm_add(&ctx, 1, "mov rax, 0");
+            asm_add(&ctx, 1, "setne al");
             break;
         case BOP_LT: // Less than
-            asm_add_com("; Op: <");
-            asm_add(1, "cmp rax, rbx");
-            asm_add(1, "mov rax, 0");
-            asm_add(1, "setl al");
+            asm_add_com(&ctx, "; Op: <");
+            asm_add(&ctx, 1, "cmp rax, rbx");
+            asm_add(&ctx, 1, "mov rax, 0");
+            asm_add(&ctx, 1, "setl al");
             break;
         case BOP_LTE: // Less than equals
-            asm_add_com("; Op: <=");
-            asm_add(1, "cmp rax, rbx");
-            asm_add(1, "mov rax, 0");
-            asm_add(1, "setle al");
+            asm_add_com(&ctx, "; Op: <=");
+            asm_add(&ctx, 1, "cmp rax, rbx");
+            asm_add(&ctx, 1, "mov rax, 0");
+            asm_add(&ctx, 1, "setle al");
             break;
         case BOP_GT: // Greater than
-            asm_add_com("; Op: >");
-            asm_add(1, "cmp rax, rbx");
-            asm_add(1, "mov rax, 0");
-            asm_add(1, "setg al");
+            asm_add_com(&ctx, "; Op: >");
+            asm_add(&ctx, 1, "cmp rax, rbx");
+            asm_add(&ctx, 1, "mov rax, 0");
+            asm_add(&ctx, 1, "setg al");
             break;
         case BOP_GTE: // Greater than equals
-            asm_add_com("; Op, >=");
-            asm_add(1, "cmp rax, rbx");
-            asm_add(1, "mov rax, 0");
-            asm_add(1, "setge al");
+            asm_add_com(&ctx, "; Op, >=");
+            asm_add(&ctx, 1, "cmp rax, rbx");
+            asm_add(&ctx, 1, "mov rax, 0");
+            asm_add(&ctx, 1, "setge al");
             break;
         default:
             codegen_error("Unsupported pointer binary operation encountered!");
             break;
     }
     if (node->lhs->op_type == UOP_DEREF) {
-        asm_add(1, "pop r12");
+        asm_add(&ctx, 1, "pop r12");
     }
     if (is_binary_operation_assignment(node->op_type)) {
         gen_asm_binary_op_assign_int(node->lhs, ctx);
@@ -647,7 +647,7 @@ void gen_asm_binary_op_load_ptr_size(ASTNode* node, AsmContext ctx) {
     // We need to check for type here. Only multiply if int
     char buf[64];
     sprintf(buf, "%d", node->cast_type.ptr_value_bytes);
-    asm_add(2, "imul rbx, ", buf);
+    asm_add(&ctx, 2, "imul rbx, ", buf);
 }
 
 // Short circuiting
@@ -658,7 +658,7 @@ void gen_asm_setup_short_circuiting(ASTNode* node, AsmContext* ctx) {
     }
     if (node->op_type == BOP_AND) { // AND end node found
         if (ctx->and_short_circuit_label == NULL) {
-            ctx->and_short_circuit_label = get_next_label_str();
+            ctx->and_short_circuit_label = get_next_label_str(ctx);
             ctx->and_end_node = true;
         }
     }
@@ -670,7 +670,7 @@ void gen_asm_setup_short_circuiting(ASTNode* node, AsmContext* ctx) {
     }
     if (node->op_type == BOP_OR) { // OR end node found
         if (ctx->or_short_circuit_label == NULL) {
-            ctx->or_short_circuit_label = get_next_label_str();
+            ctx->or_short_circuit_label = get_next_label_str(ctx);
             ctx->or_end_node = true;
         }
     }
@@ -682,30 +682,30 @@ void gen_asm_setup_short_circuiting(ASTNode* node, AsmContext* ctx) {
 void gen_asm_add_short_circuit_jumps(ASTNode* node, AsmContext ctx) {
     if (node->op_type == BOP_AND) {
         // Does this ruin rax?
-        asm_add(1, "cmp rax, 0");
-        asm_add(3, "je ", ctx.and_short_circuit_label, " ; Short circuit AND jump");
+        asm_add(&ctx, 1, "cmp rax, 0");
+        asm_add(&ctx, 3, "je ", ctx.and_short_circuit_label, " ; Short circuit AND jump");
     }
     if (node->op_type == BOP_OR) {
         // Does this ruin rax?
-        asm_add(1, "cmp rax, 1");
-        asm_add(3, "je ", ctx.or_short_circuit_label, " ; Short circuit OR jump");
+        asm_add(&ctx, 1, "cmp rax, 1");
+        asm_add(&ctx, 3, "je ", ctx.or_short_circuit_label, " ; Short circuit OR jump");
     }
 }
 
-void gen_asm_unary_op_cast(VarType to_type, VarType from_type) {
+void gen_asm_unary_op_cast(AsmContext ctx, VarType to_type, VarType from_type) {
     // We have value in rax or xmm0
     if (to_type.ptr_level > 0 && from_type.ptr_level > 0) { // Pointer to pointer
         return; // No need to do anything
     }
     else if (to_type.type == TY_INT && from_type.type == TY_FLOAT) {
         // Float to int
-        asm_add_com("; Float to int cast");
-        asm_add(1, "cvttsd2si rax, xmm0");
+        asm_add_com(&ctx, "; Float to int cast");
+        asm_add(&ctx, 1, "cvttsd2si rax, xmm0");
     }
     else if (to_type.type == TY_FLOAT && from_type.type == TY_INT) {
         // Int to float
-        asm_add_com("; Int to float cast");
-        asm_add(1, "cvtsi2sd xmm0, rax");
+        asm_add_com(&ctx, "; Int to float cast");
+        asm_add(&ctx, 1, "cvtsi2sd xmm0, rax");
     }
     else if (to_type.type == TY_INT && from_type.type == TY_INT) {
         return; // No need to do anything

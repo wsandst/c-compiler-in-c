@@ -23,6 +23,7 @@ typedef struct StrVector StrVector;
 
 // Create a new StrVector
 StrVector str_vec_new(int initial_size);
+StrVector* str_vec_new_ptr(int initial_size);
 
 // Add an element, a C string, to the end of the vector
 void str_vec_push(StrVector* str_vec, char* str);

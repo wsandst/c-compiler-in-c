@@ -5,8 +5,12 @@
 /*
 TODO:
     Current:
-        Cleanup project, maybe remove some globals and test files?
+        Function stack arguments, floating point args
+        Variable keyword arguments function calling, fixes printf
+        Implement simple stdlib
         Implement constant and static values
+        Cleanup project, maybe remove some globals and test files?
+        Floating point logical operators
 
     Expressions:
         Constant expressions (compile time expressions) (only really required for advanced switch cases):
