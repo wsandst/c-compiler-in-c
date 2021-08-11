@@ -41,22 +41,19 @@ enum RegisterEnum {
 typedef struct AsmContext AsmContext;
 typedef enum RegisterEnum RegisterEnum;
 
-// ============= ASM writing related ==============
-// Add assembly
-void asm_add_single(StrVector* asm_src, char* str);
-
+// ============= ASM writing related =============
+// Add a str to the assembly src
+void asm_add(StrVector* src, char* str);
+// Add to a specific assembly src section, like the .data section
+void asm_add_section(AsmContext* ctx, StrVector* section, int n, ...);
+// Add assembly using a format string, also adds newline and indentation
+void asm_addf(AsmContext* ctx, char* format_string, ...);
+// Add to a specific assembly src section, like the .data section, formatted
+void asm_add_sectionf(AsmContext* ctx, StrVector* section, char* format_string, ...);
 // Add assembly comment
 void asm_add_com(AsmContext* ctx, char* str);
-
 // Add a newline with proper indentation
 void asm_add_newline(AsmContext* ctx, StrVector* asm_src);
-
-// Add assembly, variable amount of strings which are combined
-// A newline and proper indentation is added beforehand
-void asm_add(AsmContext* ctx, int n, ...);
-// Add to a specific assembly src part, like the .data section
-void asm_add_to_section(AsmContext* ctx, StrVector* section, int n, ...);
-
 // Set the indendentation level and update the indentation string
 void asm_set_indent(AsmContext* ctx, int indent);
 
@@ -69,24 +66,19 @@ char* asm_context_join_srcs(AsmContext* ctx);
 
 // Get a C string representing a jump label
 char* get_label_str(int label);
-
 // Get a C string representing a switch case jump label
 char* get_case_label_str(int label, char* value);
-
 // Get the next jump label and increment the global label counter
 char* get_next_label_str(AsmContext* ctx);
 // Get the next label for constant c-strings, used for string literals
 char* get_next_cstring_label_str(AsmContext* ctx);
 
-// Get the corresponding byte size register, eg 2, RAX = AX
+// Get the corresponding byte size register, eg 2, RAX -> AX
 char* get_reg_width_str(VarType var_type, RegisterEnum reg);
-
 // Get the address size corresponding to bytes, ex 8->qword or 4->dword
 char* bytes_to_addr_size(VarType var_type);
-
 // Get stack adress of a variable, ex qword [rbp - 8]
 char* var_to_stack_ptr(Variable* var);
-
 // Get the corresponding move instr for a certain memory size, ex movzx for 2
 char* get_move_instr_for_var_type(VarType var_type);
 

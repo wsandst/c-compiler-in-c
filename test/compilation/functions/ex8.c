@@ -16,5 +16,5 @@ float f3(float a, float b, int c, int d, int e, int f, float g, int h, float i, 
 int main() {
     return f1(1, 2, 3, 4, 5, 6, 7, 8)
         + f2(1.1, 2.2, 3.3, 4.4, 5.5, 6.6) 
-        + f3(1.1, 2.2, 3, 4, 5, 6, 7.7, 8, 9.9, 10);
+        + f3(1.1, 2, 3.3, 4, 5, 6.6, 7.7, 8, 9.9, 10);
 }
