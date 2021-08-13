@@ -11,6 +11,7 @@ Normally a task like this is more suited to regex.
 #include <string.h>
 #include <ctype.h>
 
+#include "util/vector.h"
 #include "util/string_helpers.h"
 
 typedef enum TokenType TokenType;
@@ -121,7 +122,7 @@ struct Token {
 };
 
 struct Tokens {
-    Token* elems;
+    Vec elems; // Token vec
     int size;
 };
 
@@ -133,10 +134,17 @@ Tokens tokens_new(int size);
 // Free the Token object
 void tokens_free(Tokens *tokens);
 
+Token* tokens_get(Tokens *tokens, int i);
+
 // Remove NULL elements from the token array
 void tokens_trim(Tokens* tokens);
 
+// Necessary to free correctly with tokens_free in some cases
+Tokens tokens_copy(Tokens* tokens);
+
 void tokens_print(Tokens* tokens);
+
+void tokens_pretty_print(Tokens* tokens);
 
 // Insert the entire tokens2 into tokens1 at a specific index in tokens1
 Tokens* tokens_insert(Tokens* tokens1, Tokens* tokens2, int tokens1_index);

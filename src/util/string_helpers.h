@@ -42,6 +42,12 @@ void str_vec_print(StrVector* str_vec);
 // Join a string vector into a single C string
 char* str_vec_join(StrVector* str_vec);
 
+// Join a string vector into a single C string, separate parts with delimiter
+char* str_vec_join_with_delim(StrVector* str_vec, char delim);
+
+// Return a slice of the string vector. from_index inclusive, to_index exclusive
+StrVector str_vec_slice(StrVector* str_vec, int from_index, int to_index);
+
 // Add two string vectors, store result in str_vec1 and free str_vec2
 StrVector* str_vec_add(StrVector *str_vec1, StrVector* str_vec2);
 

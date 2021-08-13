@@ -117,15 +117,16 @@ char* var_to_stack_ptr(Variable* var) {
                 return offset_to_stack_ptr(var->stack_offset, "byte");
             default:
                 return str_copy("error");
+                //codegen_error("Unsupported stack byte length encountered (var_to_stack_ptr)");
         }
         
     }
     else { // Global variable
-        char buf[64];
+        static char buf[64];
         snprintf(buf, 63, "[%s]", var->name);
         return str_copy(buf);
     }
-    return str_copy("error");
+    return NULL;
 }
 
 char* get_reg_width_str(VarType var_type, RegisterEnum reg) {
@@ -154,15 +155,15 @@ char* get_move_instr_for_var_type(VarType var_type) {
 }
 
 char* get_label_str(int label) {
-    char result[64];
+    static char result[64];
     snprintf(result, 63, ".L%d", label);
-    return str_copy(result);
+    return result;
 }
 
 char* get_case_label_str(int label, char* value) {
-    char result[64];
+    static char result[64];
     snprintf(result, 63, ".LC%d_%s", label, value);
-    return str_copy(result);
+    return result;
 }
 
 char* get_next_label_str(AsmContext* ctx) {
@@ -172,9 +173,9 @@ char* get_next_label_str(AsmContext* ctx) {
 
 char* get_next_cstring_label_str(AsmContext* ctx) {
     (*ctx->cstring_label_count)++;
-    char result[64];
+    static char result[64];
     snprintf(result, 63, "STR%d", *ctx->cstring_label_count);
-    return str_copy(result);
+    return result;
 }
 
 AsmContext asm_context_new() {
@@ -246,7 +247,6 @@ char* generate_assembly(AST* ast, SymbolTable* symbols) {
     gen_asm(ast->program, ctx);
 
     asm_add_newline(&ctx, ctx.asm_data_src);
-    asm_addf(&ctx, "; the answer is fun!!!");
 
     // Join the different sections
     char* asm_src_str = asm_context_join_srcs(&ctx);
@@ -459,7 +459,7 @@ void gen_asm_func(ASTNode* node, AsmContext ctx) {
     static RegisterEnum arg_regs[6] = {RDI, RSI, RDX, RCX, R8, R9};
     static char *float_reg_strs[4] = {"xmm0", "xmm1", "xmm2", "xmm3"};
     Variable* param = node->func.params;
-    ctx.func_return_label = get_next_label_str(&ctx);
+    ctx.func_return_label = str_copy(get_next_label_str(&ctx));
     asm_set_indent(&ctx, 0);
     asm_add_newline(&ctx, ctx.asm_text_src);
     asm_addf(&ctx, "%s:", node->func.name);
@@ -528,10 +528,10 @@ void gen_asm_if(ASTNode* node, AsmContext ctx) {
     gen_asm(node->cond, ctx); // Value now in RAX
     asm_addf(&ctx, "cmp rax, 0");
     if (node->els != NULL) { // There is an else statement
-        else_label = get_next_label_str(&ctx);
+        else_label = str_copy(get_next_label_str(&ctx));
         asm_addf(&ctx, "je %s, ; Conditional false -> Jump to Else", else_label);
         gen_asm(node->body, ctx); // If body
-        after_label = get_next_label_str(&ctx);
+        after_label = str_copy(get_next_label_str(&ctx));
         asm_addf(&ctx, "jmp %s ; Jump to end of if/else after if", after_label); 
         asm_add_com(&ctx, "; Label: Else statement");
         asm_addf(&ctx, "%s: ; Else statement", else_label);
@@ -540,7 +540,7 @@ void gen_asm_if(ASTNode* node, AsmContext ctx) {
         free(else_label);
     }
     else { // No else statement
-        after_label = get_next_label_str(&ctx);
+        after_label = str_copy(get_next_label_str(&ctx));
         asm_addf(&ctx, "je %s ; Conditional false => Jump to end of if block", after_label);
         gen_asm(node->body, ctx); // If body
         asm_add_newline(&ctx, ctx.asm_text_src);
@@ -553,14 +553,14 @@ void gen_asm_if(ASTNode* node, AsmContext ctx) {
 
 // Generate assembly for a loop node, condition at start, ex while and for loops
 void gen_asm_loop(ASTNode* node, AsmContext ctx) {
-    char* loop_start_label = get_next_label_str(&ctx);
-    char* loop_end_label = get_next_label_str(&ctx);
+    char* loop_start_label = str_copy(get_next_label_str(&ctx));
+    char* loop_end_label = str_copy(get_next_label_str(&ctx));
     // For loop
     // Setup ctx for break/continues
     ctx.last_start_label = loop_start_label;
     ctx.last_end_label = loop_end_label;
     if (node->incr != NULL) { // For loop, jump needs to be near incr
-        ctx.last_start_label = get_next_label_str(&ctx);
+        ctx.last_start_label = str_copy(get_next_label_str(&ctx));
     }
     // Add asm
     asm_add_newline(&ctx, ctx.asm_text_src);
@@ -585,7 +585,7 @@ void gen_asm_loop(ASTNode* node, AsmContext ctx) {
 
 // Generate assembly for a do loop node, condition at end, ex do while loops
 void gen_asm_do_loop(ASTNode* node, AsmContext ctx) {
-    char* while_start_label = get_next_label_str(&ctx);
+    char* while_start_label = str_copy(get_next_label_str(&ctx));
     ctx.last_start_label = while_start_label;
     asm_add_newline(&ctx, ctx.asm_text_src);
     asm_addf(&ctx, "%s:", while_start_label);
@@ -623,16 +623,14 @@ void gen_asm_switch(ASTNode* node, AsmContext ctx) {
             asm_addf(&ctx, "cmp rax, %s", case_labels->value);
             asm_addf(&ctx, "je %s ; Jump to the case label if value is equal", case_label_str);
             asm_addf(&ctx, "mov rax, rbx"); // Restore rax
-            free(case_label_str);
         }
         case_labels = case_labels->next;
     }
     if (default_label != NULL) { // We found a default case
         char* default_label_str = get_case_label_str(default_label->id, "D");
         asm_addf(&ctx, "jmp %s ; Jump to the default case label", default_label_str);
-        free(default_label_str);
     }
-    char* switch_break_label = get_next_label_str(&ctx);
+    char* switch_break_label = str_copy(get_next_label_str(&ctx));
     ctx.last_end_label = switch_break_label;
     gen_asm(node->body, ctx);
     // Add label at end for break
@@ -651,7 +649,6 @@ void gen_asm_case(ASTNode* node, AsmContext ctx) {
         case_label_str = get_case_label_str(node->label.id, node->label.value);
     }
     asm_addf(&ctx, "%s: ; Switch case label", case_label_str);
-    free(case_label_str);
     gen_asm(node->next, ctx);
 }
 

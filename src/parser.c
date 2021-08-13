@@ -58,7 +58,7 @@ static VarType latest_parsed_var_type;
 static Function latest_func;
 
 AST parse(Tokens* tokens, SymbolTable* global_symbols) {
-    parse_token = &tokens->elems[0];
+    parse_token = tokens_get(tokens, 0);
     // Setup initial AST
     AST ast;
     ASTNode *program_node = ast_node_new(AST_PROGRAM, 1);

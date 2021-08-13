@@ -53,12 +53,11 @@ void gen_asm_literal(ASTNode* node, AsmContext ctx) {
         asm_addf(&ctx, "movq xmm0, rax");
     }
     else if (node->literal_type == LT_STRING) {
-        char* label_name = get_next_cstring_label_str(&ctx);
         asm_set_indent(&ctx, 0);
+        char* label_name = get_next_cstring_label_str(&ctx);
         asm_add_sectionf(&ctx, ctx.asm_rodata_src, "%s: db `%s`, 0", label_name, node->literal);
         asm_set_indent(&ctx, 1);
         asm_addf(&ctx, "lea rax, [%s]", label_name);
-        free(label_name);
     }
     else if (node->literal_type == LT_CHAR) {
         asm_addf(&ctx, "mov rax, '%s'", node->literal);
@@ -653,7 +652,7 @@ void gen_asm_setup_short_circuiting(ASTNode* node, AsmContext* ctx) {
     }
     if (node->op_type == BOP_AND) { // AND end node found
         if (ctx->and_short_circuit_label == NULL) {
-            ctx->and_short_circuit_label = get_next_label_str(ctx);
+            ctx->and_short_circuit_label = str_copy(get_next_label_str(ctx));
             ctx->and_end_node = true;
         }
     }
@@ -665,7 +664,7 @@ void gen_asm_setup_short_circuiting(ASTNode* node, AsmContext* ctx) {
     }
     if (node->op_type == BOP_OR) { // OR end node found
         if (ctx->or_short_circuit_label == NULL) {
-            ctx->or_short_circuit_label = get_next_label_str(ctx);
+            ctx->or_short_circuit_label = str_copy(get_next_label_str(ctx));
             ctx->or_end_node = true;
         }
     }

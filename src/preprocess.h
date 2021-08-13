@@ -39,6 +39,7 @@ struct PreprocessorItem {
     char* name;
     char* value;
     bool include_file_only_once;
+    Tokens define_value_tokens;
 };
 
 // Turn the first file into a list of tokens
@@ -47,10 +48,15 @@ Tokens preprocess_first(char* filename);
 // Turn a file into a list of tokens
 Tokens preprocess(char* filename, PreprocessorTable* table);
 
-Tokens preprocess_directives(Tokens* tokens, PreprocessorTable* table);
-
+Tokens preprocess_tokens(Tokens* tokens, PreprocessorTable* table);
 void preprocess_token(Tokens* tokens, PreprocessorTable* table);
+
+// Preprocess include directive
 void preprocess_include(Tokens* tokens, PreprocessorTable* table);
+// Preprocess define directive (replace macro)
+void preprocess_define(Tokens* tokens, PreprocessorTable* table);
+// Preprocess identifiers and check if they match a define directive (replace macro)
+void preprocess_ident(Tokens* tokens, PreprocessorTable* table);
 
 // =============== Preprocessor Table ===================
 // Create a new PreprocessorTable

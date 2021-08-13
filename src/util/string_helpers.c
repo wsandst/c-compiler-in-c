@@ -89,6 +89,30 @@ char* str_vec_join(StrVector* str_vec) {
     return joined_start;
 }
 
+char* str_vec_join_with_delim(StrVector* str_vec, char delim) {
+    int total_size = str_vec_total_item_size(str_vec);
+    char *joined_start = calloc(total_size+1 + str_vec->size, sizeof(char)); // Null terminated
+    char *joined_cur = joined_start;
+    for (int i = 0; i < str_vec->size; i++) {
+        char* str = str_vec->elems[i];
+        while (*str != '\0') {
+            *joined_cur = *str;
+            str++;
+            joined_cur++;
+        }
+        *joined_cur = delim;
+        joined_cur++;
+    }
+    return joined_start;
+}
+
+StrVector str_vec_slice(StrVector* str_vec, int from_index, int to_index) {
+    StrVector slice_vec = *str_vec;
+    slice_vec.elems += from_index;
+    slice_vec.size = to_index - from_index;
+    return slice_vec;
+}
+
 // Split a C string based on a delimiter and return a StrVector
 StrVector str_split(char* str, char delimiter) {
     StrVector str_vec = str_vec_new(4);

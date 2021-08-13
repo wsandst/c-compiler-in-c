@@ -30,6 +30,16 @@ void test_str_vec() {
     assert(strcmp(joined_str, "helloworldtesttest2") == 0);
     free(joined_str);
 
+    joined_str = str_vec_join_with_delim(&vec, ' ');
+    assert(strcmp(joined_str, "hello world test test2 ") == 0);
+    free(joined_str);
+
+    // Slice
+    StrVector slice_vec = str_vec_slice(&vec, 1, 3);
+    joined_str = str_vec_join(&slice_vec);
+    assert(strcmp(joined_str, "worldtest") == 0);
+    free(joined_str);
+
     // Add two StrVectors
     StrVector vec1 = str_split("hello world cool", ' ');
     StrVector vec2 = str_split("more cool stuff", ' ');

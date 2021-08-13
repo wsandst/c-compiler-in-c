@@ -14,7 +14,8 @@ Tokens preprocess(char* filename, PreprocessorTable* table) {
     preprocessor_table_update_current_dir(table, filename);
 
     Tokens tokens = tokenize(src);
-    preprocess_directives(&tokens, table);
+    
+    preprocess_tokens(&tokens, table);
 
     free(src);
     free(table->current_file_dir);
@@ -22,34 +23,39 @@ Tokens preprocess(char* filename, PreprocessorTable* table) {
     return tokens;
 }
 
-Tokens preprocess_directives(Tokens* tokens, PreprocessorTable* table) {
+Tokens preprocess_tokens(Tokens* tokens, PreprocessorTable* table) {
     for (size_t i = 0; i < tokens->size; i++) {
-        Token* token = &tokens->elems[i];
-        if (token->type == TK_PREPROCESSOR) {
-            table->token_index = i;
-            preprocess_token(tokens, table);
-            i = table->token_index;
-        }
+        table->token_index = i;
+        preprocess_token(tokens, table);
+        i = table->token_index;
     }
     return *tokens;
 }
 
 void preprocess_token(Tokens* tokens, PreprocessorTable* table) {
-    Token* token = &tokens->elems[table->token_index];
-    if (str_startswith(token->string_repr, "#include")) {
-        preprocess_include(tokens, table);
+    Token* token = tokens_get(tokens, table->token_index);
+    if (token->type == TK_PREPROCESSOR) {
+        if (str_startswith(token->string_repr, "#include")) {
+            preprocess_include(tokens, table);
+        }
+        else if (str_startswith(token->string_repr, "#define")) {
+            preprocess_define(tokens, table);
+        }
+        else if (str_startswith(token->string_repr, "#pragma once")) {
+            PreprocessorItem* cur_file = preprocessor_table_get_current_file(table);
+            cur_file->include_file_only_once = true;
+        }
+        else {
+            preprocess_error("Unknown preprocess directive encountered");
+        }
     }
-    else if (str_startswith(token->string_repr, "#pragma once")) {
-        PreprocessorItem* cur_file = preprocessor_table_get_current_file(table);
-        cur_file->include_file_only_once = true;
-    }
-    else {
-        preprocess_error("Unknown preprocess directive encountered");
+    else if (token->type == TK_IDENT) {
+        preprocess_ident(tokens, table);
     }
 }
 
 void preprocess_include(Tokens* tokens, PreprocessorTable* table) {
-    Token* token = &tokens->elems[table->token_index];
+    Token* token = tokens_get(tokens, table->token_index);
     // Isolate the include filename
     StrVector str_vec = str_split(token->string_repr, ' ');
     char* file_str = str_vec.elems[1];
@@ -77,6 +83,7 @@ void preprocess_include(Tokens* tokens, PreprocessorTable* table) {
     // Consumed this token, set it to none
     free(token->string_repr);
     token->type = TK_NONE;
+    token->requires_string_free = false;
     
     // Send the include file into the preprocessor
     PreprocessorTable next_table = *table;
@@ -85,13 +92,71 @@ void preprocess_include(Tokens* tokens, PreprocessorTable* table) {
     Tokens file_tokens = preprocess(file_str, &next_table);
     tokens_trim(&file_tokens);
     // Remove the EOF token
-    file_tokens.elems[file_tokens.size-1].type = TK_NONE;
+    Token* last_token = vec_peek(&file_tokens.elems);
+    last_token->type = TK_NONE;
     // Insert the include file tokens at the preprocessor token location
     tokens = tokens_insert(tokens, &file_tokens, table->token_index);
     // Free used memory
     str_vec_free(&str_vec);
-    free(file_tokens.elems);
+    vec_free(&file_tokens.elems);
     table->token_index += file_tokens.size;
+}
+
+void preprocess_define(Tokens* tokens, PreprocessorTable* table) {
+    Token* token = tokens_get(tokens, table->token_index);
+    // Isolate everything after define
+    StrVector str_vec = str_split(token->string_repr, ' ');
+    char* define_ident = str_copy(str_vec.elems[1]);
+    StrVector str_vec_value = str_vec_slice(&str_vec, 2, str_vec.size);
+    char* define_value = str_vec_join_with_delim(&str_vec_value, ' '); 
+
+    Tokens define_value_tokens = tokenize(define_value);
+    // Remove the EOF token
+    Token* last_token = vec_peek(&define_value_tokens.elems);
+    last_token->type = TK_NONE;
+    tokens_trim(&define_value_tokens);
+    preprocess_tokens(&define_value_tokens, table);
+    // Consumed this token, set it to none
+    free(token->string_repr);
+    token->type = TK_NONE;
+    token->requires_string_free = false;
+
+    // If file already is in table, override
+    PreprocessorItem* item = preprocessor_table_lookup(table, define_value);
+    if (item) {
+        // Just overwrite with the new value tokens
+        vec_free(&item->define_value_tokens.elems);
+        item->define_value_tokens = define_value_tokens;
+        return;
+    }
+    // Add it to the preprocessor table
+    PreprocessorItem define_item;
+    define_item.type = PP_DEFINE;
+    define_item.name = define_ident;
+    define_item.define_value_tokens = define_value_tokens;
+    preprocessor_table_insert(table, define_item);
+
+    str_vec_free(&str_vec);
+    free(define_value);
+}
+
+void preprocess_ident(Tokens* tokens, PreprocessorTable* table) {
+    // Replace identifiers which are defines with the define tokens
+    Token* token = tokens_get(tokens, table->token_index);
+    PreprocessorItem* item = preprocessor_table_lookup(table, token->string_repr);
+    if (item == NULL) {
+        return;
+    }
+    // This is a define identifier, replace with define tokens
+
+    // Consumed this token, set it to none
+    free(token->string_repr);
+    token->type = TK_NONE;
+    token->requires_string_free = false;
+    Tokens insert_tokens = tokens_copy(&item->define_value_tokens);
+    tokens = tokens_insert(tokens, &insert_tokens, table->token_index);
+    free(insert_tokens.elems.elems);
+    table->token_index += item->define_value_tokens.size;
 }
 
 // ================ Preprocessor Table ===================
@@ -110,6 +175,10 @@ void preprocessor_table_free(PreprocessorTable* table) {
     {
         PreprocessorItem* item = vec_get(table->elems, i);
         if (item->type == PP_INCLUDED_FILE && item->name != NULL) {
+            free(item->name);
+        }
+        else if (item->type == PP_DEFINE && item->name != NULL) {
+            tokens_free(&item->define_value_tokens);
             free(item->name);
         }
     }

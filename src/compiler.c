@@ -5,17 +5,21 @@
 /*
 TODO:
     Current:
-        Improve function arg handling
+        Improve function arg handling:
+            Save on stack
         Variable keyword arguments function calling, fixes printf
+
         Implement simple stdlib
         Implement static values
         Floating point logical operators
 
+        Arrays
+
+        Structs, enums, unions
+
+
     Refactoring:
         Refactor parser
-        Refactor add_asm to use printf syntax:
-            This should make the code much nicer to look at.
-            However, can I pass the variable arguments into printf? Yes, using vprintf
         Cleanup pointer lhs deref r12 pushing
 
     Expressions:
@@ -52,6 +56,12 @@ TODO:
             and simple constant defines.
         Includes:
             Support useful STD headers. I should take from GCC and remove all the macros
+
+        Let's redo tokens structure: Push instead
+        So, if we find a #define, we save map the identifier to the resulting tokens
+        Then, when we look for identifiers, we check if the identifier exists in the map,
+        then we insert the new tokens there. #ifdef just checks if the identifier is in the table,
+        otherwise we skip the tokenization to the next #endif
     
     Tokenizer:
         Fix nested strings within comments, comments within strings, escape characters etc

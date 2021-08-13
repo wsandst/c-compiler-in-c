@@ -8,16 +8,19 @@ The compiler uses a handwritten tokenizer, a recursive decent parser and a code 
     * Globals
     * Locals
     * Scopes
-    * Currently only supports 64-bit integers
 * Expressions
-    * All binary operations implemented
+    * Binary operations
     * Unary operations (post and pre)
     * Parenthesis
     * Operator precedence, associativity
     * Logical short circuiting
+    * Floating point operations, excluding logical
+    * Pointer operations
 * Functions
-    * Integer function arguments (up to 6 arguments)
-    * Return values (integer)
+    * Integer function arguments
+    * Float function arguments
+    * Issues with large amounts of mixed integer and float args
+    * Return values (integer/float)
 * Loops
     * While loops
     * Do while loops
@@ -28,6 +31,14 @@ The compiler uses a handwritten tokenizer, a recursive decent parser and a code 
     * Normal cases
     * Default case
     * Breaks
+* Types
+    * Integers (8, 16, 32, 64 bit)
+    * Floats (64 bit)
+    * Pointers
+    * Type casting (explicit and implicit)
+* Preprocessor
+    * Includes (no support for STL currently)
+    * Pragma once
 * Gotos, labels
 
 
@@ -37,6 +48,7 @@ Compile: `make`
 Run: `./build/ccompiler <source>` 
 ### Tests
 Run tests: `make test`  
+Extensive valgrind tests: `make test-full`
 
 ## Dependencies
 `nasm` - Assembler for the generated Intel-syntax assembly  
@@ -46,4 +58,4 @@ Run tests: `make test`
 ## Testing
 The project contains an extensive testing suite, which 
 includes both unit tests and compilation tests. These 
-compilation tests compile example programs, found under `test/test_code/`, with both GCC and this compiler. The return values are then compared to make sure the compiler behaves identical to GCC. These example programs have been constructed to test various C language constructs. All of the tests are also run with valgrind to make sure there are no memory leaks.
+compilation tests compile example programs, found under `test/compilation/`, with both GCC and this compiler. The return values are then compared to make sure the compiler behaves identical to GCC. These example programs have been constructed to test various C language constructs. All of the tests are also run with valgrind to make sure there are no memory leaks.

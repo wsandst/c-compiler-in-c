@@ -20,7 +20,7 @@ Tokens tokenize(char* src) {
     }
 
     // Set last token to EOF
-    tokens.elems[tokens.size-1].type = TK_EOF;
+    tokens_get(&tokens, tokens.size-1)->type = TK_EOF;
 
     //str_vec_print(&lines);
     
@@ -47,20 +47,25 @@ Tokens tokenize(char* src) {
 Tokens tokens_new(int size) {
     Tokens tokens;
     tokens.size = size;
-    tokens.elems = calloc(size, sizeof(Token));
+    tokens.elems = vec_new(sizeof(Token), size);
+    vec_resize(&tokens.elems, size);
     return tokens;
 }
 
 void tokens_free(Tokens *tokens) {
     for (size_t i = 0; i < tokens->size; i++)
     {
-        if(tokens->elems[i].requires_string_free) {
+        Token* t = tokens_get(tokens, i);
+        if(t->requires_string_free) {
             // We get invalid frees here for some reason.
-            free(tokens->elems[i].string_repr);
+            free(t->string_repr);
         }
     }
-    
-    free(tokens->elems);
+    vec_free(&tokens->elems);
+}
+
+Token* tokens_get(Tokens *tokens, int i) {
+    return (Token*) vec_get(&tokens->elems, i);
 }
 
 // Remove NULL elements from the Token Array
@@ -68,36 +73,31 @@ void tokens_trim(Tokens *tokens) {
     // Count non-none tokens
     int token_count = 0;
     for (size_t i = 0; i < tokens->size; i++) {
-        if (tokens->elems[i].type != TK_NONE) {
+        if (tokens_get(tokens, i)->type != TK_NONE) {
             token_count++;
         }
     }
-    Token* new_token_array = malloc(token_count*sizeof(Token));
+    Vec new_token_vec = vec_new(sizeof(Token), token_count);
+    vec_resize(&new_token_vec, token_count);
     // Add the tokens
     int j = 0;
     for (size_t i = 0; i < tokens->size; i++) {
-        Token token = tokens->elems[i];
-        if (token.type != TK_NONE) {
-            new_token_array[j] = token;
+        Token* token = tokens_get(tokens, i);
+        if (token->type != TK_NONE) {
+            Token* new_token = vec_get(&new_token_vec, j);
+            *new_token = *token;
             j++;
         }
     }
-    free(tokens->elems);
+    vec_free(&tokens->elems);
     tokens->size = token_count;
-    tokens->elems = new_token_array;
+    tokens->elems = new_token_vec;
 }
 
 // Insert the entire tokens2 into tokens1 at a specific index in tokens1
 Tokens* tokens_insert(Tokens* tokens1, Tokens* tokens2, int tokens1_index) {
-    int new_size = tokens1->size + tokens2->size;
-    tokens1->elems = realloc(tokens1->elems, new_size*sizeof(Token));
-    // Shift the latter half of tokens1 to the end
-    int to_index = new_size-(tokens1->size - tokens1_index);
-    Token* from_address = tokens1->elems+tokens1_index;
-    memmove(&tokens1->elems[to_index], from_address, (tokens1->size - tokens1_index)*sizeof(Token));
-    // Copy in tokens2
-    memcpy(from_address, tokens2->elems, tokens2->size*sizeof(Token));
-    tokens1->size = new_size;
+    vec_insert(&tokens1->elems, &tokens2->elems, tokens1_index);
+    tokens1->size = tokens1->elems.size;
     return tokens1;
 }
 
@@ -107,10 +107,11 @@ void tokenize_preprocessor(Tokens *tokens, StrVector *str_split) {
         char* str = str_split->elems[i];
         // Is this a preprocessor line?
         if (str_startswith(str, "#")) {
-            tokens->elems[src_pos].type = TK_PREPROCESSOR;
-            tokens->elems[src_pos].value.string = str_copy(str);
-            tokens->elems[src_pos].string_repr = tokens->elems[src_pos].value.string;
-            tokens->elems[src_pos].requires_string_free = true;
+            Token* t = tokens_get(tokens, src_pos);
+            t->type = TK_PREPROCESSOR;
+            t->value.string = str_copy(str);
+            t->string_repr = t->value.string;
+            t->requires_string_free = true;
             str_fill(str, strlen(str), ' ');
         }
         src_pos += strlen(str);
@@ -146,8 +147,9 @@ void tokenize_comments(Tokens *tokens, StrVector *str_split) {
                 else {
                     str_fill(zero_from, zero_from - str + block_comment_end + 1, ' ');
                 }
-                tokens->elems[comment_src_pos].type = TK_COMMENT;
-                tokens->elems[comment_src_pos].string_repr = "BLOCK COMMENT N/A";
+                Token* t = tokens_get(tokens, comment_src_pos);
+                t->type = TK_COMMENT;
+                t->string_repr = "BLOCK COMMENT N/A";
                 seeking_block_comment_end = false;
                 zero_from_start = false;
             }
@@ -171,10 +173,11 @@ void tokenize_comments(Tokens *tokens, StrVector *str_split) {
         if (comment_index) {
             int comment_src_pos = src_pos + comment_index + 1;
             char* comment_start = str + comment_index - 1;
-            tokens->elems[comment_src_pos].type = TK_COMMENT;
-            tokens->elems[comment_src_pos].value.string = str_substr(comment_start, strlen(comment_start));
-            tokens->elems[comment_src_pos].string_repr = tokens->elems[comment_src_pos].value.string;
-            tokens->elems[comment_src_pos].requires_string_free = true;
+            Token* t = tokens_get(tokens, comment_src_pos);
+            t->type = TK_COMMENT;
+            t->value.string = str_substr(comment_start, strlen(comment_start));
+            t->string_repr = t->value.string;
+            t->requires_string_free = true;
             str_fill(comment_start, strlen(comment_start), ' ');
         }
         src_pos += strlen(str);
@@ -196,10 +199,11 @@ void tokenize_strings(Tokens *tokens, StrVector *str_split) {
                     search_str++;
                 }
                 int string_src_pos = src_pos + s_quote_start + 1;
-                tokens->elems[string_src_pos].type = TK_LCHAR;
-                tokens->elems[string_src_pos].value.string = str_substr(str+s_quote_start, search_str - (str + s_quote_start));
-                tokens->elems[string_src_pos].string_repr = tokens->elems[string_src_pos].value.string;
-                tokens->elems[string_src_pos].requires_string_free = true;
+                Token* t = tokens_get(tokens, string_src_pos);
+                t->type = TK_LCHAR;
+                t->value.string = str_substr(str+s_quote_start, search_str - (str + s_quote_start));
+                t->string_repr = t->value.string;
+                t->requires_string_free = true;
                 str_fill(str+s_quote_start-1, search_str - (str + s_quote_start) + 2, ' ');
             }
         }
@@ -213,10 +217,11 @@ void tokenize_strings(Tokens *tokens, StrVector *str_split) {
                     search_str++;
                 }
                 int string_src_pos = src_pos + quote_start + 1;
-                tokens->elems[string_src_pos].type = TK_LSTRING;
-                tokens->elems[string_src_pos].value.string = str_substr(str+quote_start, search_str - (str + quote_start));
-                tokens->elems[string_src_pos].string_repr = tokens->elems[string_src_pos].value.string;
-                tokens->elems[string_src_pos].requires_string_free = true;
+                Token* t = tokens_get(tokens, string_src_pos);
+                t->type = TK_LSTRING;
+                t->value.string = str_substr(str+quote_start, search_str - (str + quote_start));
+                t->string_repr = t->value.string;
+                t->requires_string_free = true;
                 str_fill(str+quote_start-1, search_str - (str + quote_start) + 2, ' ');
             }
         }
@@ -264,8 +269,9 @@ void tokenize_keyword(Tokens* tokens, StrVector *str_split, char* keyword, enum 
             char* start = str + match_i-1;
             int keyword_src_index = src_pos+match_i-1;
             str_fill(start, keyword_length, ' ');
-            tokens->elems[keyword_src_index].type = type;
-            tokens->elems[keyword_src_index].string_repr = keyword;
+            Token* t = tokens_get(tokens, keyword_src_index);
+            t->type = type;
+            t->string_repr = keyword;
         }
         src_pos += strlen(str);
     }
@@ -327,8 +333,9 @@ void tokenize_op(Tokens* tokens, StrVector *str_split, char* op, enum TokenType 
             char* start = str + match_i-1;
             int keyword_src_index = src_pos+match_i-1;
             str_fill(start, op_length, ' ');
-            tokens->elems[keyword_src_index].type = type;
-            tokens->elems[keyword_src_index].string_repr = op;
+            Token* t = tokens_get(tokens, keyword_src_index);
+            t->type = type;
+            t->string_repr = op;
         }
         src_pos += strlen(str);
     } 
@@ -355,10 +362,11 @@ void tokenize_idents(Tokens *tokens, StrVector *str_split) {
             else {
                 if (!(isalnum(*str)) && *str != '_') { // Found end of identifier
                     int length = str - ident_start;
-                    tokens->elems[src_pos-length].type = TK_IDENT;
-                    tokens->elems[src_pos-length].value.string = str_substr(ident_start, length);
-                    tokens->elems[src_pos-length].string_repr = tokens->elems[src_pos-length].value.string;
-                    tokens->elems[src_pos-length].requires_string_free = true;
+                    Token* t = tokens_get(tokens, src_pos-length);
+                    t->type = TK_IDENT;
+                    t->value.string = str_substr(ident_start, length);
+                    t->string_repr = t->value.string;
+                    t->requires_string_free = true;
                     str_fill(ident_start, length, ' ');
                     matching_ident = false;
                 }
@@ -374,10 +382,11 @@ void tokenize_idents(Tokens *tokens, StrVector *str_split) {
         }
         if (matching_ident) { // Found end of identifier, line ended
             int length = str - ident_start;
-            tokens->elems[src_pos-length].type = TK_IDENT;
-            tokens->elems[src_pos-length].value.string = str_substr(ident_start, length);
-            tokens->elems[src_pos-length].string_repr = tokens->elems[src_pos-length].value.string;
-            tokens->elems[src_pos-length].requires_string_free = true;
+            Token* t = tokens_get(tokens, src_pos-length);
+            t->type = TK_IDENT;
+            t->value.string = str_substr(ident_start, length);
+            t->string_repr = t->value.string;
+            t->requires_string_free = true;
             str_fill(ident_start, length, ' ');
             matching_ident = false;
         }
@@ -414,10 +423,11 @@ void tokenize_ints(Tokens *tokens, StrVector *str_split) {
                 }
                 else if (!isalnum(*str)) { // End of int
                     int length = str - ident_start;
-                    tokens->elems[src_pos-length].type = TK_LINT;
-                    tokens->elems[src_pos-length].value.string = str_substr(ident_start, length);
-                    tokens->elems[src_pos-length].string_repr = tokens->elems[src_pos-length].value.string;
-                    tokens->elems[src_pos-length].requires_string_free = true;
+                    Token* t = tokens_get(tokens, src_pos-length);
+                    t->type = TK_LINT;
+                    t->value.string = str_substr(ident_start, length);
+                    t->string_repr = t->value.string;
+                    t->requires_string_free = true;
                     str_fill(ident_start, length, ' ');
                     matching = false;
                 }
@@ -433,10 +443,11 @@ void tokenize_ints(Tokens *tokens, StrVector *str_split) {
         }
         if (matching) { // Found end of identifier, line ended
             int length = str - ident_start;
-            tokens->elems[src_pos-length].type = TK_LINT;
-            tokens->elems[src_pos-length].value.string = str_substr(ident_start, length);
-            tokens->elems[src_pos-length].string_repr = tokens->elems[src_pos-length].value.string;
-            tokens->elems[src_pos-length].requires_string_free = true;
+            Token* t = tokens_get(tokens, src_pos-length);
+            t->type = TK_LINT;
+            t->value.string = str_substr(ident_start, length);
+            t->string_repr = t->value.string;
+            t->requires_string_free = true;
             str_fill(ident_start, length, ' ');
             matching = false;
         }
@@ -481,10 +492,11 @@ void tokenize_floats(Tokens *tokens, StrVector *str_split) {
                 }
                 else if (!isalnum(*str)) { // End of int
                     int length = str - ident_start;
-                    tokens->elems[src_pos-length].type = TK_LFLOAT;
-                    tokens->elems[src_pos-length].value.string = str_substr(ident_start, length);
-                    tokens->elems[src_pos-length].string_repr = tokens->elems[src_pos-length].value.string;
-                    tokens->elems[src_pos-length].requires_string_free = true;
+                    Token* t = tokens_get(tokens, src_pos-length);
+                    t->type = TK_LFLOAT;
+                    t->value.string = str_substr(ident_start, length);
+                    t->string_repr = t->value.string;
+                    t->requires_string_free = true;
                     str_fill(ident_start, length, ' ');
                     matching = false;
                     found_dot = false;
@@ -501,10 +513,11 @@ void tokenize_floats(Tokens *tokens, StrVector *str_split) {
         }
         if (matching) { // Found end of identifier, line ended
             int length = str - ident_start;
-            tokens->elems[src_pos-length].type = TK_LFLOAT;
-            tokens->elems[src_pos-length].value.string = str_substr(ident_start, length);
-            tokens->elems[src_pos-length].string_repr = tokens->elems[src_pos-length].value.string;
-            tokens->elems[src_pos-length].requires_string_free = true;
+            Token* t = tokens_get(tokens, src_pos-length);
+            t->type = TK_LFLOAT;
+            t->value.string = str_substr(ident_start, length);
+            t->string_repr = t->value.string;
+            t->requires_string_free = true;
             str_fill(ident_start, length, ' ');
             matching = false;
             found_dot = false;
@@ -517,56 +530,57 @@ void tokenize_delims(Tokens *tokens, StrVector *str_split) {
     for (size_t i = 0; i < str_split->size; i++) {
         char* str = str_split->elems[i];
         while (*str != '\0') {
+            Token* t = tokens_get(tokens, src_pos);
             switch (*str) {
                 case '{':
                     *str = ' ';
-                    tokens->elems[src_pos].type = TK_DL_OPENBRACE;
-                    tokens->elems[src_pos].string_repr = "{";
+                    t->type = TK_DL_OPENBRACE;
+                    t->string_repr = "{";
                     break;
                 case '}':
                     *str = ' ';
-                    tokens->elems[src_pos].type = TK_DL_CLOSEBRACE;
-                    tokens->elems[src_pos].string_repr = "}";
+                    t->type = TK_DL_CLOSEBRACE;
+                    t->string_repr = "}";
                     break;
                 case '(':
                     *str = ' ';
-                    tokens->elems[src_pos].type = TK_DL_OPENPAREN;
-                    tokens->elems[src_pos].string_repr = "(";
+                    t->type = TK_DL_OPENPAREN;
+                    t->string_repr = "(";
                     break;
                 case ')':
                     *str = ' ';
-                    tokens->elems[src_pos].type = TK_DL_CLOSEPAREN;
-                    tokens->elems[src_pos].string_repr = ")";
+                    t->type = TK_DL_CLOSEPAREN;
+                    t->string_repr = ")";
                     break;
                 case '[':
                     *str = ' ';
-                    tokens->elems[src_pos].type = TK_DL_OPENBRACKET;
-                    tokens->elems[src_pos].string_repr = "[";
+                    t->type = TK_DL_OPENBRACKET;
+                    t->string_repr = "[";
                     break;
                 case ']':
                     *str = ' ';
-                    tokens->elems[src_pos].type = TK_DL_CLOSEBRACKET;
-                    tokens->elems[src_pos].string_repr = "]";
+                    t->type = TK_DL_CLOSEBRACKET;
+                    t->string_repr = "]";
                     break;
                 case '.':
                     *str = ' ';
-                    tokens->elems[src_pos].type = TK_DL_DOT;
-                    tokens->elems[src_pos].string_repr = ".";
+                    t->type = TK_DL_DOT;
+                    t->string_repr = ".";
                     break;
                 case ',':
                     *str = ' ';
-                    tokens->elems[src_pos].type = TK_DL_COMMA;
-                    tokens->elems[src_pos].string_repr = ",";
+                    t->type = TK_DL_COMMA;
+                    t->string_repr = ",";
                     break;
                 case ';':
                     *str = ' ';
-                    tokens->elems[src_pos].type = TK_DL_SEMICOLON;
-                    tokens->elems[src_pos].string_repr = ";";
+                    t->type = TK_DL_SEMICOLON;
+                    t->string_repr = ";";
                     break;
                 case ':':
                     *str = ' ';
-                    tokens->elems[src_pos].type = TK_DL_COLON;
-                    tokens->elems[src_pos].string_repr = ":";
+                    t->type = TK_DL_COLON;
+                    t->string_repr = ":";
                     break;
             }
             src_pos++;
@@ -578,16 +592,45 @@ void tokenize_delims(Tokens *tokens, StrVector *str_split) {
 void tokens_print(Tokens* tokens) {
     for (size_t i = 0; i < tokens->size; i++)
     {
-        Token t = tokens->elems[i];
-        if (t.type == TK_NONE) {
+        Token* t = tokens_get(tokens, i);
+        if (t->type == TK_NONE) {
             continue;
         }
-        char* type_str = token_type_to_string(t.type);
-        if (t.string_repr != 0) {
-            printf("[T: %s, V: %li, STR: \"%s\"]\n", type_str, t.value.ivalue, t.string_repr);
+        char* type_str = token_type_to_string(t->type);
+        if (t->string_repr != 0) {
+            printf("[T: %-18s free: %d   STR: \"%s\"]\n", type_str, t->requires_string_free, t->string_repr);
         }
         else {
-            printf("[T: %s, V: %li]\n", type_str, t.value.ivalue);
+            printf("[T: %s]\n", type_str);
+        }
+    }
+}
+
+Tokens tokens_copy(Tokens* tokens) {
+    Tokens tokens_copy = *tokens;
+    tokens_copy.elems = vec_copy(&tokens->elems);
+    for (size_t i = 0; i < tokens->size; i++) {
+        Token* token = tokens_get(tokens, i);
+        Token* token_copy = tokens_get(&tokens_copy, i);
+        if (token->requires_string_free) {
+            token_copy->string_repr = str_copy(token->string_repr);
+        }
+    }
+    return tokens_copy;
+}
+
+void tokens_pretty_print(Tokens* tokens) {
+    for (size_t i = 0; i < tokens->size; i++)
+    {
+        Token* t = tokens_get(tokens, i);
+        if (t->type == TK_DL_CLOSEBRACE) {
+            printf("\n");
+        }
+        if (t->string_repr != 0) {
+            printf("%s ", t->string_repr);
+        }
+        if (t->type == TK_DL_SEMICOLON || t->type == TK_DL_OPENBRACE) {
+            printf("\n");
         }
     }
 }
