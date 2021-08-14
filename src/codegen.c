@@ -385,12 +385,21 @@ void gen_asm_func_call(ASTNode* node, AsmContext ctx) {
     // This can be fixed by storing every argument temporarily as stack variables,
     // then putting that into the registers at the end
     ASTNode* current_arg = node->args_end->prev;
-    Variable* current_func_def_arg = node->func.params + node->func.param_count - 1;
-    for (int i = node->func.param_count; i > 0; i--) {
+    Variable* current_func_def_arg = node->func.params + node->func.def_param_count - 1;
+    for (int i = node->func.call_param_count; i > 0; i--) {
         VarType arg_type = current_func_def_arg->type;
         gen_asm(current_arg, ctx);
         // Cast function parameter if necessary
-        gen_asm_unary_op_cast(ctx, arg_type, current_arg->cast_type);
+        if (i > node->func.def_param_count) {
+            // Variadic argument, we don't want to cast
+            arg_type = current_arg->cast_type;
+        } 
+        else {
+            gen_asm_unary_op_cast(ctx, arg_type, current_arg->cast_type);
+        }
+        if (current_func_def_arg > node->func.params) {
+            current_func_def_arg--;
+        }
         // Integer/pointer argument
         if (arg_type.ptr_level > 0 || arg_type.type == TY_INT) {
             asm_addf(&ctx, "push rax");
@@ -404,14 +413,20 @@ void gen_asm_func_call(ASTNode* node, AsmContext ctx) {
             codegen_error("Unsupported function argument type encountered!");
         }
         current_arg = current_arg->prev;
-        current_func_def_arg--;
     }
     int int_arg_count = 0;
     int float_arg_count = 0;
     current_arg = node->args;
-    current_func_def_arg++;
-    for (int i = 0; i < node->func.param_count; i++) {
-        VarType arg_type = current_func_def_arg->type;
+    for (int i = 0; i < node->func.call_param_count; i++) {
+        VarType arg_type; 
+        if (i >= node->func.def_param_count) {
+            // Variadic argument, use the node type
+            arg_type = current_arg->cast_type;
+        } 
+        else {
+            arg_type = current_func_def_arg->type;
+            current_func_def_arg++;
+        }
         // Integer/pointer argument
         if (arg_type.ptr_level > 0 || arg_type.type == TY_INT) {
             if (int_arg_count < 6) { // Pass by register
@@ -436,10 +451,14 @@ void gen_asm_func_call(ASTNode* node, AsmContext ctx) {
             codegen_error("Unsupported combination of floats and integer function arguments!");
         }
         current_arg = current_arg->next;
-        current_func_def_arg++;
     }
     int pop_count = max(int_arg_count - 6, 0) + max(float_arg_count - 4, 0);
     
+    // If variadic we need to pass floating vector reg count into AL
+    if (node->func.is_variadic && float_arg_count > 0) {
+        asm_addf(&ctx, "mov al, %d", min(4, float_arg_count));
+    }
+
     asm_addf(&ctx, "call %s", node->func.name);
 
     for (int i = 0; i < pop_count; i++) {
@@ -473,7 +492,7 @@ void gen_asm_func(ASTNode* node, AsmContext ctx) {
     asm_add_com(&ctx, "; Store passed function arguments");
     int int_arg_count = 0;
     int float_arg_count = 0;
-    for (int i = 0; i < node->func.param_count; i++) {
+    for (int i = 0; i < node->func.def_param_count; i++) {
         char* param_ptr = var_to_stack_ptr(param);
         if (param->type.type == TY_INT || param->type.ptr_level > 0) {
             if (int_arg_count < 6) { // Pass by register

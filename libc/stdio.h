@@ -36,8 +36,22 @@
  #define SEEK_HOLE	4	/* Seek to next hole.  */
 #endif
 
-extern int printf (char * __format);
+extern int printf (char * __format, ...);
+
+extern int sprintf (char * __s,
+		    const char * __format, ...);
+
+extern int snprintf (char * __s, size_t __maxlen,
+		     const char * __format, ...);
+
 extern int putchar (int __c);
+
+extern int scanf (const char * __format, ...);
+
+extern int sscanf (const char * __s,
+		   const char * __format, ...);
+
+extern int getchar (void);
 
 #endif
 

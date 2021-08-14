@@ -4,13 +4,7 @@
 #ifndef	_STRING_H
 #define	_STRING_H	1
 
-#define __GLIBC_INTERNAL_STARTING_HEADER_IMPLEMENTATION
-#include <bits/libc-header-start.h>
-
-
 /* Get size_t and NULL from <stddef.h>.  */
-#define	__need_size_t
-#define	__need_NULL
 #include <stddef.h>
 
 extern void *memcpy (void * __dest, const void * __src,

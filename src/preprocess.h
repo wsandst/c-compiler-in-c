@@ -28,6 +28,7 @@ struct PreprocessorTable {
     int token_index;
     int current_file_index;
     char* current_file_dir;
+    char* current_file;
 };
 
 enum PreprocessorItemType {

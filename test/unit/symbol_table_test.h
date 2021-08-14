@@ -87,25 +87,25 @@ void test_symbol_table_funcs() {
     // Inserting
     Function func;
     func.name = "func1";
-    func.param_count = 1;
+    func.def_param_count = 1;
     symbol_table_insert_func(table, func);
     assert(table->func_count == 1);
     func.name = "func2";
-    func.param_count = 2;
+    func.def_param_count = 2;
     symbol_table_insert_func(table, func);
     func.name = "func3";
-    func.param_count = 3;
+    func.def_param_count = 3;
     symbol_table_insert_func(table, func);
     assert(table->func_count == 3);
     assert(table->func_max_count == 4);
 
     // Lookup
-    assert(symbol_table_lookup_func(table, "func1").param_count == 1);
-    assert(symbol_table_lookup_func(table, "func2").param_count == 2);
-    assert(symbol_table_lookup_func(table, "func3").param_count == 3);
+    assert(symbol_table_lookup_func(table, "func1").def_param_count == 1);
+    assert(symbol_table_lookup_func(table, "func2").def_param_count == 2);
+    assert(symbol_table_lookup_func(table, "func3").def_param_count == 3);
 
     // Check going up a scope
-    assert(symbol_table_lookup_func(child, "func1").param_count == 1);
+    assert(symbol_table_lookup_func(child, "func1").def_param_count == 1);
     // symbol_table_lookup_var(child, "novar"); // This will correctly error!
     symbol_table_free(table);
 }

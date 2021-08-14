@@ -136,6 +136,28 @@ StrVector str_split(char* str, char delimiter) {
     return str_vec;
 }
 
+// Split a C string based on whitespace and return a StrVector
+StrVector str_split_on_whitespace(char* str) {
+    StrVector str_vec = str_vec_new(4);
+    char* start = str;
+    while (*str != '\0') {
+        if (isspace(*str)) {
+            if (start != str) {
+                int length = str - start;
+                char* word = str_substr(start, length);
+                str_vec_push_no_copy(&str_vec, word);
+            }
+            start = str + 1;
+        }
+        str++;
+    }
+    if (start != str) {
+        char* word = str_substr(start, str - start);
+        str_vec_push_no_copy(&str_vec, word);
+    }
+    return str_vec;
+}
+
 // Add two string vectors
 StrVector* str_vec_add(StrVector *str_vec1, StrVector* str_vec2) {
     str_vec1->elems = realloc(str_vec1->elems, (str_vec1->size + str_vec2->size) * sizeof(char*));
@@ -313,6 +335,13 @@ int str_index_of_reverse(char* str, char c) {
 
 int max(int a, int b) {
     if (a > b)
+        return a;
+    else
+        return b;
+}
+
+int min(int a, int b) {
+    if (a < b)
         return a;
     else
         return b;

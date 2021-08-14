@@ -7,7 +7,6 @@ TODO:
     Current:
         Improve function arg handling:
             Save on stack
-        Variable keyword arguments function calling, fixes printf
 
         Implement static values
         Floating point logical operators

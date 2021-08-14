@@ -16,6 +16,7 @@ Tokens preprocess(char* filename, PreprocessorTable* table, bool is_stl_file) {
     else { // STL file, stored under libc/
         filename_with_dir = str_add("libc/", filename);
     }
+    table->current_file = filename_with_dir;
     char* src = load_file_to_string(filename_with_dir);
     preprocessor_table_update_current_dir(table, filename);
 
@@ -72,7 +73,7 @@ void preprocess_token(Tokens* tokens, PreprocessorTable* table) {
 void preprocess_include(Tokens* tokens, PreprocessorTable* table) {
     Token* token = tokens_get(tokens, table->token_index);
     // Isolate the include filename
-    StrVector str_vec = str_split(token->string_repr, ' ');
+    StrVector str_vec = str_split_on_whitespace(token->string_repr);
     char* file_str = str_vec.elems[1];
     bool is_stl_file = false;
     if (file_str[0] == '\"') { // We do not support STL yet
@@ -127,7 +128,7 @@ void preprocess_include(Tokens* tokens, PreprocessorTable* table) {
 void preprocess_define(Tokens* tokens, PreprocessorTable* table) {
     Token* token = tokens_get(tokens, table->token_index);
     // Isolate everything after define
-    StrVector str_vec = str_split(token->string_repr, ' ');
+    StrVector str_vec = str_split_on_whitespace(token->string_repr);
     char* define_ident = str_copy(str_vec.elems[1]);
     StrVector str_vec_value = str_vec_slice(&str_vec, 2, str_vec.size);
     char* define_value = str_vec_join_with_delim(&str_vec_value, ' '); 
@@ -173,7 +174,7 @@ void preprocess_undef(Tokens* tokens, PreprocessorTable* table) {
     // Remove item from preprocessor table
     Token* token = tokens_get(tokens, table->token_index);
     // Isolate everything after define
-    StrVector str_vec = str_split(token->string_repr, ' ');
+    StrVector str_vec = str_split_on_whitespace(token->string_repr);
     char* define_ident = str_copy(str_vec.elems[1]);
 
     preprocessor_table_remove(table, define_ident);
@@ -206,7 +207,7 @@ void preprocess_ident(Tokens* tokens, PreprocessorTable* table) {
 void preprocess_ifdef(Tokens* tokens, PreprocessorTable* table) {
     Token* token = tokens_get(tokens, table->token_index);
     // Isolate #ifdef identifier
-    StrVector str_vec = str_split(token->string_repr, ' ');
+    StrVector str_vec = str_split_on_whitespace(token->string_repr);
     if (str_vec.size < 2) {
         preprocess_error("#ifdef directive has no identifier!", table);
     }
@@ -236,9 +237,9 @@ void preprocess_ifdef(Tokens* tokens, PreprocessorTable* table) {
 void preprocess_ifndef(Tokens* tokens, PreprocessorTable* table) {
     Token* token = tokens_get(tokens, table->token_index);
     // Isolate #ifdef identifier
-    StrVector str_vec = str_split(token->string_repr, ' ');
+    StrVector str_vec = str_split_on_whitespace(token->string_repr);
     if (str_vec.size < 2) {
-        preprocess_error("#ifdef directive has no identifier!", table);
+        preprocess_error("#ifndef directive has no identifier!", table);
     }
     char* define_ident = str_copy(str_vec.elems[1]);
     int endif_offset = preprocess_scan_for_endif(token, table);
@@ -354,6 +355,6 @@ int preprocessor_table_remove(PreprocessorTable* table, char* name) {
 }
 
 void preprocess_error(char* error_message, PreprocessorTable* table) {
-    fprintf(stderr, "Preprocess error: %s in dir \"%s\"\n", error_message, table->current_file_dir);
+    fprintf(stderr, "Preprocess error: %s (in file \"%s\")\n", error_message, table->current_file);
     exit(1); 
 }

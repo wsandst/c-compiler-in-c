@@ -60,10 +60,12 @@ struct Variable {
 struct Function {
     char* name;
     VarType return_type;
-    int param_count;
+    int def_param_count;
+    int call_param_count;
     Variable* params;
     int stack_space_used;
     bool is_defined; // Has this function been defined? Otherwise, declare as extern
+    bool is_variadic;
 };
 
 struct ValueLabel { // Switch case labels

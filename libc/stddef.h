@@ -10,6 +10,7 @@
 #define __SIZE_T
 #define __size_t
 //typedef __SIZE_TYPE__ size_t;
+#define size_t int
 #endif
 
 #ifndef NULL

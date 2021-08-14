@@ -102,7 +102,8 @@ enum TokenType {
     TK_KW_FLOAT, 
     TK_KW_DOUBLE, 
     TK_KW_CHAR, 
-    TK_KW_VOID
+    TK_KW_VOID,
+    TK_KW_VARIADIC_DOTS,
 };
 
 typedef struct Token Token;

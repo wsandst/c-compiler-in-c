@@ -161,8 +161,14 @@ bool accept_type() {
     else if (accept(TK_KW_LONG)) {
         latest_parsed_var_type.type = TY_INT;
         latest_parsed_var_type.bytes = 8;
-        accept(TK_KW_LONG);
-        accept(TK_KW_INT);
+        if (accept(TK_KW_DOUBLE)) {
+            latest_parsed_var_type.type = TY_FLOAT;
+            latest_parsed_var_type.bytes = 8;
+        }
+        else {
+            accept(TK_KW_LONG);
+            accept(TK_KW_INT);
+        }
     }
     else if (accept(TK_KW_FLOAT)) {
         latest_parsed_var_type.type = TY_FLOAT;
@@ -236,6 +242,7 @@ void parse_func(ASTNode* node, SymbolTable* symbols) {
     func.name = ident;
     func.return_type = latest_parsed_var_type;;
     func.is_defined = false;
+    func.is_variadic = false;
 
     // Create new scope for function
     SymbolTable* func_symbols = symbol_table_create_child(symbols, 0);
@@ -243,9 +250,19 @@ void parse_func(ASTNode* node, SymbolTable* symbols) {
     expect(TK_DL_OPENPAREN);
     // Parse function arguments
     while (!accept(TK_DL_CLOSEPAREN)) { // Add argument variables to symbol map
+        // Special handling for variadic argument
+        if (accept(TK_KW_VARIADIC_DOTS)) {
+            func.is_variadic = true;
+            continue;
+        }
         Variable var; 
         expect_type();
         var.type = latest_parsed_var_type;
+        // Check for func(void) arg
+        if (latest_parsed_var_type.type == TY_VOID && latest_parsed_var_type.ptr_level == 0) {
+            continue;
+        }
+        // Normal function argument
         expect(TK_IDENT);
         var.name = prev_token().string_repr;
         accept(TK_DL_COMMA);
@@ -254,7 +271,7 @@ void parse_func(ASTNode* node, SymbolTable* symbols) {
     // We can directly take the variables pointer, as nothing else will be added
     // in this scope
     func.params = func_symbols->vars;
-    func.param_count = func_symbols->var_count;
+    func.def_param_count = func_symbols->var_count;
 
     if (!accept(TK_DL_OPENBRACE)) { // No function body, this is a declaration
         node->type = AST_NULL_STMT; // Definitions are virtual
@@ -603,13 +620,19 @@ void parse_func_call(ASTNode* node, SymbolTable* symbols) {
     node->args = ast_node_new(AST_EXPR, 1);
     node->cast_type = node->func.return_type; // Return type
     ASTNode* arg_node = node->args;
+    int arg_count = 0;
     while (!(accept(TK_DL_CLOSEPAREN) || prev_token().type == TK_DL_CLOSEPAREN)) { // Go through argument expressions
         parse_expression(arg_node, symbols, 1);
         arg_node->next = ast_node_new(AST_END, 1);
         arg_node->next->prev = arg_node;
         arg_node = arg_node->next;
         accept(TK_DL_COMMA);
+        arg_count++;
+        if (arg_count > node->func.def_param_count && !node->func.is_variadic) {
+            parse_error("Function call error, too many parameters!");
+        }
     }
+    node->func.call_param_count = arg_count;
     node->args_end = arg_node;
 }
 

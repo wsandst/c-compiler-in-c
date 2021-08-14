@@ -279,6 +279,7 @@ void tokenize_keywords(Tokens* tokens, StrVector *str_split) {
     tokenize_keyword(tokens, str_split, "double", TK_KW_DOUBLE);
     tokenize_keyword(tokens, str_split, "char", TK_KW_CHAR);
     tokenize_keyword(tokens, str_split, "void", TK_KW_VOID);
+    tokenize_keyword(tokens, str_split, "...", TK_KW_VARIADIC_DOTS);
 }
 
 void tokenize_keyword(Tokens* tokens, StrVector *str_split, char* keyword, enum TokenType type) {
@@ -749,7 +750,8 @@ char* token_type_to_string(enum TokenType type) {
         "TK_KW_FLOAT", 
         "TK_KW_DOUBLE", 
         "TK_KW_CHAR", 
-        "TK_KW_VOID"
+        "TK_KW_VOID",
+        "TK_KW_VARIADIC_DOTS",
     };
     return type_strings[type];
 }

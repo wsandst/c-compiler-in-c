@@ -54,6 +54,9 @@ StrVector* str_vec_add(StrVector *str_vec1, StrVector* str_vec2);
 // Split a C string based on a delimiter and return a StrVector
 StrVector str_split(char* str, char delimiter);
 
+// Split a C string based on whitespace and return a StrVector
+StrVector str_split_on_whitespace(char* str);
+
 // ======================== String Helpers =============================
 // IMPORTANT: These all work on C strings. Without a terminating NULL character,
 // many of these functions will crash or loop forever!
@@ -92,3 +95,5 @@ char* str_strip(char* str);
 int str_index_of_reverse(char* str, char c);
 
 int max(int a, int b);
+
+int min(int a, int b);
