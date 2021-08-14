@@ -88,6 +88,11 @@ void tokens_trim(Tokens *tokens) {
             *new_token = *token;
             j++;
         }
+        else {
+            if (token->requires_string_free) {
+                free(token->string_repr);
+            }
+        }
     }
     vec_free(&tokens->elems);
     tokens->size = token_count;

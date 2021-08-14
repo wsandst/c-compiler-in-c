@@ -39,6 +39,8 @@ The compiler uses a handwritten tokenizer, a recursive decent parser and a code 
 * Preprocessor
     * Includes (no support for STL currently)
     * Pragma once
+    * Simple defines, undef (no function macros)
+    * Ifdef, ifndef
 * Gotos, labels
 
 

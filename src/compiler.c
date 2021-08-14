@@ -51,17 +51,8 @@ TODO:
             the symbol tree
 
     Preprocessor:
-        Defines:
-            Simple defines, ifndef, ifdef. Goal is to support simple include headers
-            and simple constant defines.
         Includes:
             Support useful STD headers. I should take from GCC and remove all the macros
-
-        Let's redo tokens structure: Push instead
-        So, if we find a #define, we save map the identifier to the resulting tokens
-        Then, when we look for identifiers, we check if the identifier exists in the map,
-        then we insert the new tokens there. #ifdef just checks if the identifier is in the table,
-        otherwise we skip the tokenization to the next #endif
     
     Tokenizer:
         Fix nested strings within comments, comments within strings, escape characters etc

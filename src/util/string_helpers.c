@@ -110,6 +110,7 @@ StrVector str_vec_slice(StrVector* str_vec, int from_index, int to_index) {
     StrVector slice_vec = *str_vec;
     slice_vec.elems += from_index;
     slice_vec.size = to_index - from_index;
+    slice_vec.max_size = slice_vec.max_size - from_index;
     return slice_vec;
 }
 

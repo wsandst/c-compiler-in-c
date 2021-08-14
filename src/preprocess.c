@@ -45,6 +45,15 @@ void preprocess_token(Tokens* tokens, PreprocessorTable* table) {
             PreprocessorItem* cur_file = preprocessor_table_get_current_file(table);
             cur_file->include_file_only_once = true;
         }
+        else if (str_startswith(token->string_repr, "#ifdef")) {
+            preprocess_ifdef(tokens, table);
+        }
+        else if (str_startswith(token->string_repr, "#ifndef")) {
+            preprocess_ifndef(tokens, table);
+        }
+        else if (str_startswith(token->string_repr, "#undef")) {
+            preprocess_undef(tokens, table);
+        }
         else {
             preprocess_error("Unknown preprocess directive encountered");
         }
@@ -81,9 +90,7 @@ void preprocess_include(Tokens* tokens, PreprocessorTable* table) {
     preprocessor_table_insert(table, file_item);
 
     // Consumed this token, set it to none
-    free(token->string_repr);
     token->type = TK_NONE;
-    token->requires_string_free = false;
     
     // Send the include file into the preprocessor
     PreprocessorTable next_table = *table;
@@ -110,16 +117,22 @@ void preprocess_define(Tokens* tokens, PreprocessorTable* table) {
     StrVector str_vec_value = str_vec_slice(&str_vec, 2, str_vec.size);
     char* define_value = str_vec_join_with_delim(&str_vec_value, ' '); 
 
-    Tokens define_value_tokens = tokenize(define_value);
+    Tokens define_value_tokens;
+    if (str_vec_value.size > 0) { // Define has a replace value we should use
+        define_value_tokens = tokenize(define_value);
+    }
+    else { // This is an empty define, if used should produce no token
+        define_value_tokens = tokens_new(1);
+    }
+
     // Remove the EOF token
     Token* last_token = vec_peek(&define_value_tokens.elems);
     last_token->type = TK_NONE;
     tokens_trim(&define_value_tokens);
     preprocess_tokens(&define_value_tokens, table);
-    // Consumed this token, set it to none
-    free(token->string_repr);
+
+    // Consume this token, set it to none
     token->type = TK_NONE;
-    token->requires_string_free = false;
 
     // If file already is in table, override
     PreprocessorItem* item = preprocessor_table_lookup(table, define_value);
@@ -140,6 +153,23 @@ void preprocess_define(Tokens* tokens, PreprocessorTable* table) {
     free(define_value);
 }
 
+// Preprocess #undef directive (undefine)
+void preprocess_undef(Tokens* tokens, PreprocessorTable* table) {
+    // Remove item from preprocessor table
+    Token* token = tokens_get(tokens, table->token_index);
+    // Isolate everything after define
+    StrVector str_vec = str_split(token->string_repr, ' ');
+    char* define_ident = str_copy(str_vec.elems[1]);
+
+    preprocessor_table_remove(table, define_ident);
+
+    // Consume this token, set it to none
+    token->type = TK_NONE;
+
+    str_vec_free(&str_vec);
+    free(define_ident);
+}
+
 void preprocess_ident(Tokens* tokens, PreprocessorTable* table) {
     // Replace identifiers which are defines with the define tokens
     Token* token = tokens_get(tokens, table->token_index);
@@ -149,14 +179,97 @@ void preprocess_ident(Tokens* tokens, PreprocessorTable* table) {
     }
     // This is a define identifier, replace with define tokens
 
-    // Consumed this token, set it to none
-    free(token->string_repr);
+    // Consume this token, set it to none
     token->type = TK_NONE;
-    token->requires_string_free = false;
     Tokens insert_tokens = tokens_copy(&item->define_value_tokens);
     tokens = tokens_insert(tokens, &insert_tokens, table->token_index);
     free(insert_tokens.elems.elems);
     table->token_index += item->define_value_tokens.size;
+}
+
+// Preprocess #ifdef directives
+void preprocess_ifdef(Tokens* tokens, PreprocessorTable* table) {
+    Token* token = tokens_get(tokens, table->token_index);
+    // Isolate #ifdef identifier
+    StrVector str_vec = str_split(token->string_repr, ' ');
+    if (str_vec.size < 2) {
+        preprocess_error("#ifdef directive has no identifier!");
+    }
+    char* define_ident = str_copy(str_vec.elems[1]);
+    int endif_offset = preprocess_scan_for_endif(token, table);
+    if (preprocessor_table_lookup(table, define_ident)) { // Value defined, use code
+        // Consume this token, set it to none
+        token->type = TK_NONE;
+
+        // Consume matching #endif
+        token += endif_offset;
+        token->type = TK_NONE;
+    }
+    else { // Value not defined, cut out the tokens by setting them to none
+        Token* end_token = token + endif_offset;
+        while (token <= end_token) {
+            token->type = TK_NONE;
+            token++;
+        }
+    }
+
+    str_vec_free(&str_vec);
+    free(define_ident);
+}
+
+// Preprocess #ifndef directives
+void preprocess_ifndef(Tokens* tokens, PreprocessorTable* table) {
+    Token* token = tokens_get(tokens, table->token_index);
+    // Isolate #ifdef identifier
+    StrVector str_vec = str_split(token->string_repr, ' ');
+    if (str_vec.size < 2) {
+        preprocess_error("#ifdef directive has no identifier!");
+    }
+    char* define_ident = str_copy(str_vec.elems[1]);
+    int endif_offset = preprocess_scan_for_endif(token, table);
+    if (!preprocessor_table_lookup(table, define_ident)) { // Value not defined, use code
+        // Consume this token, set it to none
+        token->type = TK_NONE;
+
+        // Consume matching #endif
+        token += endif_offset;
+        token->type = TK_NONE;
+    }
+    else { // Value defined, cut out the tokens by setting them to none
+        Token* end_token = token + endif_offset;
+        while (token <= end_token) {
+            token->type = TK_NONE;
+            token++;
+        }
+    }
+
+    str_vec_free(&str_vec);
+    free(define_ident);
+}
+
+// Scan for #endif directive, return offset from given token
+int preprocess_scan_for_endif(Token* start_token, PreprocessorTable* table) {
+    // Simple stack-based match search
+    int offset = 0;
+    int endifs_left = 0; // Used as stack
+    while (start_token->type != TK_EOF) {
+        if (start_token->type == TK_PREPROCESSOR) {
+            if (str_startswith(start_token->string_repr, "#ifdef") ||
+                    str_startswith(start_token->string_repr, "#ifndef")) {
+                endifs_left++; // Push
+            }
+            else if (str_startswith(start_token->string_repr, "#endif")) {
+                endifs_left--; // Pop
+            }
+        }
+        if (endifs_left == 0) { // Stack empty, found match
+            return offset;
+        }
+        start_token++;
+        offset++;
+    }
+    preprocess_error("#ifdef/#ifndef directive has no matching #endif!");
+    return -1;
 }
 
 // ================ Preprocessor Table ===================
@@ -199,7 +312,7 @@ PreprocessorItem* preprocessor_table_lookup(PreprocessorTable* table, char* name
     for (size_t i = 0; i < table->elems->size; i++)
     {
         PreprocessorItem* item = vec_get(table->elems, i);
-        if (strcmp(item->name, name) == 0) {
+        if (!item->ignore && strcmp(item->name, name) == 0) {
             return item;
         }
     }
@@ -211,7 +324,18 @@ PreprocessorItem* preprocessor_table_get_current_file(PreprocessorTable* table) 
 }
 
 void preprocessor_table_insert(PreprocessorTable* table, PreprocessorItem item) {
+    item.ignore = false;
     vec_push(table->elems, &item);
+}
+
+int preprocessor_table_remove(PreprocessorTable* table, char* name) {
+    PreprocessorItem* item = preprocessor_table_lookup(table, name);
+    if (item == NULL) { // This item does not exist, do nothing
+        return 0;
+    }
+    // Removing items is expensive, just ignore this item from now on
+    item->ignore = true;
+    return 1;
 }
 
 void preprocess_error(char* error_message) {

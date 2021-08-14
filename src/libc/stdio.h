@@ -6,8 +6,6 @@
 #define __GLIBC_INTERNAL_STARTING_HEADER_IMPLEMENTATION
 #include <bits/libc-header-start.h>
 
-__BEGIN_DECLS
-
 #define __need_size_t
 #define __need_NULL
 #include <stddef.h>

@@ -51,6 +51,7 @@ void* vec_peek(Vec* vec);
 Vec* vec_insert(Vec* vec1, Vec* vec2, int insert_index);
 
 // Return a slice of the vector. from_index inclusive, to_index exclusive
+// Do not modify this slice without making a copy, will mess up the original vector
 Vec vec_slice(Vec* vec, int from_index, int to_index);
 
 // Runtime vector errors
