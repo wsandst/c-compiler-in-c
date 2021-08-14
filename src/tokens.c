@@ -24,8 +24,8 @@ Tokens tokenize(char* src) {
 
     //str_vec_print(&lines);
     
-    tokenize_preprocessor(&tokens, &lines);
     tokenize_comments(&tokens, &lines);
+    tokenize_preprocessor(&tokens, &lines);
     tokenize_strings(&tokens, &lines);
     tokenize_keywords(&tokens, &lines);
     tokenize_ops(&tokens, &lines);
@@ -38,7 +38,6 @@ Tokens tokenize(char* src) {
     //tokens_print(&tokens);
 
     tokens_trim(&tokens);
-
     str_vec_free(&lines);
     return tokens;
 }
@@ -131,6 +130,7 @@ void tokenize_comments(Tokens *tokens, StrVector *str_split) {
     int comment_src_pos;
     char* zero_from;
     bool zero_from_start = false;
+    char* block_comment_str;
     for (size_t i = 0; i < str_split->size; i++) {
         char* str = str_split->elems[i];
         // Block comments
@@ -148,25 +148,42 @@ void tokenize_comments(Tokens *tokens, StrVector *str_split) {
                 // Found the end
                 if (zero_from_start) {
                     str_fill(str, block_comment_end + 1, ' ');
+                    char* substr = str_substr(str, block_comment_end+1);
+                    char* added_str = str_add(block_comment_str, substr);
+                    free(substr);
+                    free(block_comment_str);
+                    block_comment_str = added_str;
                 }
                 else {
-                    str_fill(zero_from, zero_from - str + block_comment_end + 1, ' ');
+                    block_comment_str = str_substr(zero_from, block_comment_end - (zero_from - str) + 1);
+                    str_fill(zero_from, block_comment_end - (zero_from - str) + 1, ' ');
                 }
                 Token* t = tokens_get(tokens, comment_src_pos);
                 t->type = TK_COMMENT;
-                t->string_repr = "BLOCK COMMENT N/A";
+                t->string_repr = block_comment_str;
+                t->requires_string_free = true;
                 seeking_block_comment_end = false;
                 zero_from_start = false;
             }
             else if (!zero_from_start) {
                 // Zero from zero_from to the end of the str
+                block_comment_str = str_substr(zero_from, str - zero_from + strlen(str));
                 str_fill(zero_from, str - zero_from + strlen(str), ' ');
                 zero_from_start = true;
                 src_pos += strlen(str);
                 continue;
             }
             else {
-                // This is all a block comment, zero out the contents
+                // This is all a block comment
+                // Add to the string repr
+                char* substr = str_substr(str, strlen(str));
+                char* added_str1 = str_add(block_comment_str, substr);
+                char* added_str2 = str_add(added_str1, "\n");
+                free(substr);
+                free(added_str1);
+                free(block_comment_str);
+                block_comment_str = added_str2;
+                // Zero out the contents
                 str_fill(str, strlen(str), ' ');
                 src_pos += strlen(str);
                 continue;
@@ -254,6 +271,7 @@ void tokenize_keywords(Tokens* tokens, StrVector *str_split) {
     tokenize_keyword(tokens, str_split, "short", TK_KW_SHORT);
     tokenize_keyword(tokens, str_split, "signed", TK_KW_SIGNED);
     tokenize_keyword(tokens, str_split, "unsigned", TK_KW_UNSIGNED);
+    tokenize_keyword(tokens, str_split, "extern", TK_KW_EXTERN);
     tokenize_keyword(tokens, str_split, "struct", TK_KW_STRUCT);
     tokenize_keyword(tokens, str_split, "union", TK_KW_UNION);
     tokenize_keyword(tokens, str_split, "int", TK_KW_INT);
@@ -634,7 +652,10 @@ void tokens_pretty_print(Tokens* tokens) {
         if (t->string_repr != 0) {
             printf("%s ", t->string_repr);
         }
-        if (t->type == TK_DL_SEMICOLON || t->type == TK_DL_OPENBRACE) {
+        if (t->type == TK_DL_SEMICOLON 
+                || t->type == TK_DL_OPENBRACE
+                || t->type == TK_PREPROCESSOR
+                || t->type == TK_COMMENT) {
             printf("\n");
         }
     }
@@ -721,6 +742,7 @@ char* token_type_to_string(enum TokenType type) {
         "TK_KW_SHORT", 
         "TK_KW_SIGNED", 
         "TK_KW_UNSIGNED", 
+        "TK_KW_EXTERN",
         "TK_KW_STRUCT", 
         "TK_KW_UNION", 
         "TK_KW_INT", 

@@ -41,6 +41,7 @@ struct VarType {
     int ptr_level; // 0 = not pointer, 1 *, 2 ** etc
     int ptr_value_bytes;
     bool is_unsigned;
+    bool is_extern;
 };
 
 // Variable object

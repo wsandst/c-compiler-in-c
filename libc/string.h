@@ -1,4 +1,5 @@
-
+// <string.h> GCC header simplified 
+// Memcpy, str helpers
 
 #ifndef	_STRING_H
 #define	_STRING_H	1

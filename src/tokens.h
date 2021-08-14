@@ -95,6 +95,7 @@ enum TokenType {
     TK_KW_SHORT, 
     TK_KW_SIGNED, 
     TK_KW_UNSIGNED, 
+    TK_KW_EXTERN,
     TK_KW_STRUCT, 
     TK_KW_UNION, 
     TK_KW_INT, 

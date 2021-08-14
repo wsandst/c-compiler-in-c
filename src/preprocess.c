@@ -2,14 +2,20 @@
 
 Tokens preprocess_first(char* filename) {
     PreprocessorTable table = preprocessor_table_new();
-    Tokens tokens = preprocess(filename, &table);
+    Tokens tokens = preprocess(filename, &table, false);
     tokens_trim(&tokens);
     preprocessor_table_free(&table);
     return tokens;
 }
 
-Tokens preprocess(char* filename, PreprocessorTable* table) {
-    char* filename_with_dir = str_add(table->current_file_dir, filename);
+Tokens preprocess(char* filename, PreprocessorTable* table, bool is_stl_file) {
+    char* filename_with_dir;
+    if (!is_stl_file) { // Normal file
+        filename_with_dir = str_add(table->current_file_dir, filename);
+    }
+    else { // STL file, stored under libc/
+        filename_with_dir = str_add("libc/", filename);
+    }
     char* src = load_file_to_string(filename_with_dir);
     preprocessor_table_update_current_dir(table, filename);
 
@@ -55,7 +61,7 @@ void preprocess_token(Tokens* tokens, PreprocessorTable* table) {
             preprocess_undef(tokens, table);
         }
         else {
-            preprocess_error("Unknown preprocess directive encountered");
+            preprocess_error("Unknown preprocess directive encountered", table);
         }
     }
     else if (token->type == TK_IDENT) {
@@ -68,9 +74,17 @@ void preprocess_include(Tokens* tokens, PreprocessorTable* table) {
     // Isolate the include filename
     StrVector str_vec = str_split(token->string_repr, ' ');
     char* file_str = str_vec.elems[1];
-    if (file_str[0] != '\"') { // We do not support STL yet
-        return;
+    bool is_stl_file = false;
+    if (file_str[0] == '\"') { // We do not support STL yet
+        is_stl_file = false;
     }
+    else if (file_str[0] == '<') {
+        is_stl_file = true;
+    }
+    else {
+        preprocess_error("Incorrectly formatted include encountered!", table);
+    }
+
     file_str[0] = ' ';
     file_str[strlen(file_str) - 1] = ' ';
     file_str = str_strip(file_str);
@@ -86,6 +100,7 @@ void preprocess_include(Tokens* tokens, PreprocessorTable* table) {
     PreprocessorItem file_item;
     file_item.type = PP_INCLUDED_FILE;
     file_item.name = file_str;
+    file_item.include_file_only_once = false;
 
     preprocessor_table_insert(table, file_item);
 
@@ -96,7 +111,7 @@ void preprocess_include(Tokens* tokens, PreprocessorTable* table) {
     PreprocessorTable next_table = *table;
     next_table.current_file_index = next_table.elems->size-1;
 
-    Tokens file_tokens = preprocess(file_str, &next_table);
+    Tokens file_tokens = preprocess(file_str, &next_table, is_stl_file);
     tokens_trim(&file_tokens);
     // Remove the EOF token
     Token* last_token = vec_peek(&file_tokens.elems);
@@ -193,7 +208,7 @@ void preprocess_ifdef(Tokens* tokens, PreprocessorTable* table) {
     // Isolate #ifdef identifier
     StrVector str_vec = str_split(token->string_repr, ' ');
     if (str_vec.size < 2) {
-        preprocess_error("#ifdef directive has no identifier!");
+        preprocess_error("#ifdef directive has no identifier!", table);
     }
     char* define_ident = str_copy(str_vec.elems[1]);
     int endif_offset = preprocess_scan_for_endif(token, table);
@@ -223,7 +238,7 @@ void preprocess_ifndef(Tokens* tokens, PreprocessorTable* table) {
     // Isolate #ifdef identifier
     StrVector str_vec = str_split(token->string_repr, ' ');
     if (str_vec.size < 2) {
-        preprocess_error("#ifdef directive has no identifier!");
+        preprocess_error("#ifdef directive has no identifier!", table);
     }
     char* define_ident = str_copy(str_vec.elems[1]);
     int endif_offset = preprocess_scan_for_endif(token, table);
@@ -268,7 +283,7 @@ int preprocess_scan_for_endif(Token* start_token, PreprocessorTable* table) {
         start_token++;
         offset++;
     }
-    preprocess_error("#ifdef/#ifndef directive has no matching #endif!");
+    preprocess_error("#ifdef/#ifndef directive has no matching #endif!", table);
     return -1;
 }
 
@@ -338,7 +353,7 @@ int preprocessor_table_remove(PreprocessorTable* table, char* name) {
     return 1;
 }
 
-void preprocess_error(char* error_message) {
-    fprintf(stderr, "Preprocess error: %s\n", error_message);
+void preprocess_error(char* error_message, PreprocessorTable* table) {
+    fprintf(stderr, "Preprocess error: %s in dir \"%s\"\n", error_message, table->current_file_dir);
     exit(1); 
 }

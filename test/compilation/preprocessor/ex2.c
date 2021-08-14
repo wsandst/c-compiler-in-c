@@ -4,5 +4,5 @@
 #include "include4.h"
 
 int main() {
-    return test3(); // + test4();
+    return test3() + test4();
 }

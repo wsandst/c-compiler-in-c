@@ -1,25 +1,13 @@
-/* <stdio.h> GCC libc header simplified */
+// <stdio.h> GCC libc header simplified 
+// Printf, file-handling etc
 
 #ifndef _STDIO_H
 #define _STDIO_H	1
 
-#define __GLIBC_INTERNAL_STARTING_HEADER_IMPLEMENTATION
-#include <bits/libc-header-start.h>
+//#define __GLIBC_INTERNAL_STARTING_HEADER_IMPLEMENTATION
+//#include <bits/libc-header-start.h>
 
-#define __need_size_t
-#define __need_NULL
 #include <stddef.h>
-
-#include <bits/types.h>
-#include <bits/types/__FILE.h>
-#include <bits/types/FILE.h>
-
-#define _STDIO_USES_IOSTREAM
-
-#include <bits/libio.h>
-
-typedef _G_fpos_t fpos_t;
-
 
 /* The possibilities for the third argument to `setvbuf'.  */
 #define _IOFBF 0		/* Fully buffered.  */
@@ -28,14 +16,14 @@ typedef _G_fpos_t fpos_t;
 
 /* Default buffer size.  */
 #ifndef BUFSIZ
-# define BUFSIZ _IO_BUFSIZ
+ #define BUFSIZ _IO_BUFSIZ
 #endif
 
 
 /* End of file character.
    Some things throughout the library rely on this being -1.  */
 #ifndef EOF
-# define EOF (-1)
+ #define EOF (-1)
 #endif
 
 /* The possibilities for the third argument to `fseek'.
@@ -44,22 +32,43 @@ typedef _G_fpos_t fpos_t;
 #define SEEK_CUR	1	/* Seek from current position.  */
 #define SEEK_END	2	/* Seek from end of file.  */
 #ifdef __USE_GNU
-# define SEEK_DATA	3	/* Seek to next data.  */
-# define SEEK_HOLE	4	/* Seek to next hole.  */
+ #define SEEK_DATA	3	/* Seek to next data.  */
+ #define SEEK_HOLE	4	/* Seek to next hole.  */
 #endif
 
-/* Standard streams.  */
-extern struct _IO_FILE *stdin;		/* Standard input stream.  */
-extern struct _IO_FILE *stdout;		/* Standard output stream.  */
-extern struct _IO_FILE *stderr;		/* Standard error output stream.  */
-/* C89/C99 say they're macros.  Make them happy.  */
+extern int printf (char * __format);
+extern int putchar (int __c);
+
+#endif
+
+/*
+#define _G_va_list __builtin_va_list
+
+typedef struct _iobuf
+{
+    char*   _ptr;
+    int _cnt;
+    char*   _base;
+    int _flag;
+    int _file;
+    int _charbuf;
+    int _bufsiz;
+    char*   _tmpfname;
+} FILE;
+
+
+// Standard streams. 
+extern struct _IO_FILE *stdin;		// Standard input stream.
+extern struct _IO_FILE *stdout;		// Standard output stream.
+extern struct _IO_FILE *stderr;		// Standard error output stream. 
+// C89/C99 say they're macros.  Make them happy.
 #define stdin stdin
 #define stdout stdout
 #define stderr stderr
 
-/* Remove file FILENAME.  */
+
 extern int remove (const char *__filename) __THROW;
-/* Rename file OLD to NEW.  */
+
 extern int rename (const char *__old, const char *__new) __THROW;
 
 extern FILE *tmpfile (void) __wur;
@@ -133,7 +142,7 @@ extern int putchar (int __c);
 extern char *fgets (char * __s, int __n, FILE * __stream)
      __wur;
 
-extern _IO_ssize_t getline (char ** __lineptr,
+extern int getline (char ** __lineptr,
 			    size_t * __n,
 			    FILE * __stream) __wur;
 
@@ -155,10 +164,6 @@ extern long int ftell (FILE *__stream) __wur;
 
 extern void rewind (FILE *__stream);
 
-extern int fgetpos (FILE * __stream, fpos_t * __pos);
-
-extern int fsetpos (FILE *__stream, const fpos_t *__pos);
-
 extern void clearerr (FILE *__stream);
 
 extern int feof (FILE *__stream);
@@ -167,4 +172,5 @@ extern int ferror (FILE *__stream);
 
 extern void perror (const char *__s);
 
-#endif
+#endif 
+*/

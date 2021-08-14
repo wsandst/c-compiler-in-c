@@ -1,4 +1,15 @@
-/* Copyright (C) 1989-2019 Free Software Foundation, Inc.
+### Standard library headers for ccompiler
+This folder contains header files for the C standard libary,
+which are included by using the #include <...> syntax. These have 
+been modified and simplified from GCCs standard library header files,
+as this compiler does not support advanced macro features and certain 
+other C features used by the GCC headers.  
+The compiler expects this directory to be in the same working
+ directory as itself.
+
+### GCC Copyright info
+```
+Copyright (C) 1998-2019 Free Software Foundation, Inc.
 
 This file is part of GCC.
 
@@ -19,37 +30,4 @@ permissions described in the GCC Runtime Library Exception, version
 You should have received a copy of the GNU General Public License and
 a copy of the GCC Runtime Library Exception along with this program;
 see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
-<http://www.gnu.org/licenses/>.  */
-
-/*
- * ISO C Standard:  7.15  Variable arguments  <stdarg.h>
- */
-
-#ifndef _STDARG_H
-#ifndef _ANSI_STDARG_H_
-#ifndef __need___va_list
-#define _STDARG_H
-#define _ANSI_STDARG_H_
-#endif /* not __need___va_list */
-#undef __need___va_list
-
-/* Define __gnuc_va_list.  */
-
-#ifndef __GNUC_VA_LIST
-#define __GNUC_VA_LIST
-typedef __builtin_va_list __gnuc_va_list;
-#endif
-
-/* Define the standard macros for the user,
-   if this invocation was from the user program.  */
-#ifdef _STDARG_H
-
-#define va_start(v,l)	__builtin_va_start(v,l)
-#define va_end(v)	__builtin_va_end(v)
-#define va_arg(v,l)	__builtin_va_arg(v,l)
-#define va_copy(d,s)	__builtin_va_copy(d,s)
-
-#endif
-#endif
-
-#endif /* not _STDARG_H */
+<http://www.gnu.org/licenses/>. ```

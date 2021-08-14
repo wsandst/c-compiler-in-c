@@ -688,7 +688,8 @@ void gen_asm_add_short_circuit_jumps(ASTNode* node, AsmContext ctx) {
 
 void gen_asm_unary_op_cast(AsmContext ctx, VarType to_type, VarType from_type) {
     // We have value in rax or xmm0
-    if (to_type.ptr_level > 0 && from_type.ptr_level > 0) { // Pointer to pointer
+    if (to_type.ptr_level > 0 && from_type.ptr_level > 0) { 
+        // Pointer to pointer
         return; // No need to do anything
     }
     else if (to_type.type == TY_INT && from_type.type == TY_FLOAT) {
@@ -700,6 +701,14 @@ void gen_asm_unary_op_cast(AsmContext ctx, VarType to_type, VarType from_type) {
         // Int to float
         asm_add_com(&ctx, "; Int to float cast");
         asm_addf(&ctx, "cvtsi2sd xmm0, rax");
+    }
+    else if (to_type.type == TY_INT && from_type.ptr_level > 0) {
+        // Pointer to int
+        return;
+    }
+    else if (to_type.ptr_level > 0 && from_type.type == TY_INT) {
+        // Int to pointer
+        return;
     }
     else if (to_type.type == TY_INT && from_type.type == TY_INT) {
         return; // No need to do anything

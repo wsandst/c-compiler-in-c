@@ -133,6 +133,10 @@ bool accept_binop() {
 
 // Accept variable/function type: float, double, char, short, int, long
 bool accept_type() {
+    accept(TK_KW_CONST);
+    if (accept(TK_KW_EXTERN)) {
+        latest_parsed_var_type.is_extern = true;
+    };
     latest_parsed_var_type.ptr_level = 0;
     if (accept(TK_KW_UNSIGNED)) {
         latest_parsed_var_type.is_unsigned = true;

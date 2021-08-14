@@ -9,7 +9,6 @@ TODO:
             Save on stack
         Variable keyword arguments function calling, fixes printf
 
-        Implement simple stdlib
         Implement static values
         Floating point logical operators
 
@@ -49,15 +48,9 @@ TODO:
             Maybe I should refactor how I treat globals. Keep the declarations in the tree perhaps?
             That way I can create globals/statics as they are encountered, not by analyzing
             the symbol tree
-
-    Preprocessor:
-        Includes:
-            Support useful STD headers. I should take from GCC and remove all the macros
     
     Tokenizer:
         Fix nested strings within comments, comments within strings, escape characters etc
-
-    Known incorrect behaviour:
 
 */
 

@@ -48,7 +48,7 @@ struct PreprocessorItem {
 Tokens preprocess_first(char* filename);
 
 // Turn a file into a list of tokens
-Tokens preprocess(char* filename, PreprocessorTable* table);
+Tokens preprocess(char* filename, PreprocessorTable* table, bool is_stl_file);
 
 Tokens preprocess_tokens(Tokens* tokens, PreprocessorTable* table);
 void preprocess_token(Tokens* tokens, PreprocessorTable* table);
@@ -96,4 +96,4 @@ void preprocessor_table_insert(PreprocessorTable* table, PreprocessorItem item);
 // Remove a potential element from the PreprocessorTable
 int preprocessor_table_remove(PreprocessorTable* table, char* name);
 
-void preprocess_error(char* error_message);
+void preprocess_error(char* error_message, PreprocessorTable* table);

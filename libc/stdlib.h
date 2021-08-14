@@ -1,5 +1,6 @@
 
-/* <stdlib.h> GCC libc header simplified */
+// <stdlib.h> GCC libc header simplified 
+// String conversions, rand, malloc
 
 #ifndef	_STDLIB_H
 

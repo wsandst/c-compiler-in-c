@@ -37,7 +37,7 @@ The compiler uses a handwritten tokenizer, a recursive decent parser and a code 
     * Pointers
     * Type casting (explicit and implicit)
 * Preprocessor
-    * Includes (no support for STL currently)
+    * Includes (normal and STL includes)
     * Pragma once
     * Simple defines, undef (no function macros)
     * Ifdef, ifndef
