@@ -465,6 +465,48 @@ void gen_asm_binary_op_float(ASTNode* node, AsmContext ctx) {
             asm_add_com(&ctx, "; fOp: / (Integer)");
             asm_addf(&ctx, "divsd xmm0, xmm1");
             break;
+        case BOP_LT:
+            asm_add_com(&ctx, "; fOp: < (Integer)");
+            asm_addf(&ctx, "mov rax, 0");
+            asm_addf(&ctx, "comisd xmm0, xmm1");
+            asm_addf(&ctx, "setb al");
+            asm_addf(&ctx, "cvtsi2sd xmm0, rax");
+            break;
+        case BOP_LTE:
+            asm_add_com(&ctx, "; fOp: <= (Integer)");
+            asm_addf(&ctx, "mov rax, 0");
+            asm_addf(&ctx, "comisd xmm0, xmm1");
+            asm_addf(&ctx, "setbe al");
+            asm_addf(&ctx, "cvtsi2sd xmm0, rax");
+            break;
+        case BOP_GT:
+            asm_add_com(&ctx, "; fOp: > (Integer)");
+            asm_addf(&ctx, "mov rax, 0");
+            asm_addf(&ctx, "comisd xmm0, xmm1");
+            asm_addf(&ctx, "seta al");
+            asm_addf(&ctx, "cvtsi2sd xmm0, rax");
+            break;
+        case BOP_GTE:
+            asm_add_com(&ctx, "; fOp: >= (Integer)");
+            asm_addf(&ctx, "mov rax, 0");
+            asm_addf(&ctx, "comisd xmm0, xmm1");
+            asm_addf(&ctx, "setae al");
+            asm_addf(&ctx, "cvtsi2sd xmm0, rax");
+            break;
+        case BOP_EQ:
+            asm_add_com(&ctx, "; fOp: == (Integer)");
+            asm_addf(&ctx, "mov rax, 0");
+            asm_addf(&ctx, "comisd xmm0, xmm1");
+            asm_addf(&ctx, "sete al");
+            asm_addf(&ctx, "cvtsi2sd xmm0, rax");
+            break;
+        case BOP_NEQ:
+            asm_add_com(&ctx, "; fOp: != (Integer)");
+            asm_addf(&ctx, "mov rax, 0");
+            asm_addf(&ctx, "comisd xmm0, xmm1");
+            asm_addf(&ctx, "setne al");
+            asm_addf(&ctx, "cvtsi2sd xmm0, rax");
+            break;
         default:
             codegen_error("Unsupported float binary operation found!");
             break;

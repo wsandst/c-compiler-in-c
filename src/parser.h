@@ -269,7 +269,7 @@ bool is_binary_operation_logical(OpType type);
 
 // Return the wider variable type.
 // char > short > int > long > float > double > long double
-VarType return_wider_type(VarType type1, VarType type2, bool is_logical_op);
+VarType return_wider_type(VarType type1, VarType type2);
 
 // Convert a TokenType unary operator type to the corresponding prefix UnaryOpType
 OpType token_type_to_pre_uop_type(TokenType type);

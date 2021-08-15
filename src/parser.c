@@ -443,8 +443,19 @@ void parse_expression(ASTNode* node, SymbolTable* symbols, int min_precedence) {
             parse_expression(node->rhs, symbols, new_min_precedence);
             // LHS and RHS is now defined. Put the widest variable type in the op
             // for possible implicit casts
-            bool is_logical_op = is_binary_operation_logical(op_type);
-            node->cast_type = return_wider_type(node->rhs->cast_type, node->lhs->cast_type, is_logical_op);
+            node->cast_type = return_wider_type(node->rhs->cast_type, node->lhs->cast_type);
+            if(is_binary_operation_logical(op_type)) {
+                // Logical operator, we need to implicitly cast to integer
+                // We do this by creating a cast unary op
+                ASTNode* rhs = ast_node_new(AST_EXPR, 1);
+                ast_node_copy(rhs, node);
+                node->expr_type = EXPR_UNOP;
+                node->op_type = UOP_CAST;
+                node->rhs = rhs;
+                node->cast_type.type = TY_INT;
+                node->cast_type.ptr_level = 0;
+                node->cast_type.bytes = 8;
+            };
         }
         else {
             break;
@@ -798,6 +809,9 @@ char* evaluate_const_expression(ASTNode* node, SymbolTable* symbols) {
     return node->rhs->literal;
 }
 
+// Issue: Currently I just set the operation to be in int, which I don't want
+// But I want the result to be casted to this. 3.0 < 1 needs the cast type to be correct, right?
+
 // Get the precedence level of a binary operator
 // The higher the number, the higher the precedence
 int get_binary_operator_precedence(OpType type) {
@@ -884,14 +898,7 @@ bool is_binary_operation_logical(OpType type) {
     }
 }
 
-VarType return_wider_type(VarType type1, VarType type2, bool is_logical_op) {
-    if (is_logical_op) { // Logical operations always return bools/ints
-        VarType int_type;
-        int_type.type = TY_INT;
-        int_type.ptr_level = 0;
-        int_type.bytes = 8;
-        return int_type;
-    }
+VarType return_wider_type(VarType type1, VarType type2) {
     int type1_width = type1.bytes;
     int type2_width = type2.bytes;
     if (type1.type == TY_FLOAT) {

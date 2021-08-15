@@ -1,6 +1,6 @@
 #include "file_helpers.h"
 
-static const bool ASSEMBLE_DEBUG = false;
+static const bool ASSEMBLE_DEBUG = true;
 
 char* load_file_to_string(char* filename) {
     FILE *file = fopen(filename, "r");
