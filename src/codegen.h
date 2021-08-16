@@ -91,6 +91,9 @@ char* generate_assembly(AST* ast, SymbolTable* symbols);
 void gen_asm(ASTNode* node, AsmContext ctx);
 
 // Generate globals in the data and bss section
+void gen_asm_global_symbols(SymbolTable* symbols, AsmContext ctx);
+
+// Generate assembly for certain symbols (static etc)
 void gen_asm_symbols(SymbolTable* symbols, AsmContext ctx);
 
 // Generate assembly for a function definition

@@ -111,6 +111,8 @@ Variable symbol_table_insert_var(SymbolTable* table, Variable var) {
         var.stack_offset = table->cur_stack_offset;
     }
     var.is_global = table->is_global;
+    static int unique_id = 0;
+    var.unique_id = unique_id++;
     table->vars[table->var_count-1] = var;
     return var;
 }

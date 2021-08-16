@@ -192,6 +192,8 @@ void mark_first_and_or_nodes(ASTNode* node, OpType new_op);
 
 void parse_global(ASTNode* node, SymbolTable* symbols);
 
+void parse_static_assignment(ASTNode* node, SymbolTable* symbols);
+
 // <function_call> ::= <identifier> "(" <expression ...> ")"
 void parse_func_call(ASTNode* node,  SymbolTable* symbols);
 

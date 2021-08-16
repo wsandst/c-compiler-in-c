@@ -105,7 +105,17 @@ char* bytes_to_addr_size(VarType var_type) {
 }
 
 char* var_to_stack_ptr(Variable* var) {
-    if (!var->is_global) {
+    if (var->type.is_static) {
+        static char buf[64];
+        snprintf(buf, 63, "[%s.%ds]", var->name, var->unique_id);
+        return str_copy(buf);
+    }
+    else if (var->is_global) {
+        static char buf[64];
+        snprintf(buf, 63, "[%s]", var->name);
+        return str_copy(buf);
+    }
+    else {
         switch (var->type.bytes) {
             case 8:
                 return offset_to_stack_ptr(var->stack_offset, "qword");
@@ -120,11 +130,6 @@ char* var_to_stack_ptr(Variable* var) {
                 //codegen_error("Unsupported stack byte length encountered (var_to_stack_ptr)");
         }
         
-    }
-    else { // Global variable
-        static char buf[64];
-        snprintf(buf, 63, "[%s]", var->name);
-        return str_copy(buf);
     }
     return NULL;
 }
@@ -242,7 +247,7 @@ char* generate_assembly(AST* ast, SymbolTable* symbols) {
 
     // Setup globals/functions
     asm_set_indent(&ctx, 0);
-    gen_asm_symbols(symbols, ctx);
+    gen_asm_global_symbols(symbols, ctx);
 
     gen_asm(ast->program, ctx);
 
@@ -256,7 +261,7 @@ char* generate_assembly(AST* ast, SymbolTable* symbols) {
     return asm_src_str;
 }
 
-void gen_asm_symbols(SymbolTable* symbols, AsmContext ctx) {
+void gen_asm_global_symbols(SymbolTable* symbols, AsmContext ctx) {
     // Setup function globals
     asm_add_sectionf(&ctx, ctx.asm_data_src, "; External or global functions");
     for (size_t i = 0; i < symbols->func_count; i++) {
@@ -272,15 +277,12 @@ void gen_asm_symbols(SymbolTable* symbols, AsmContext ctx) {
     asm_add_newline(&ctx, ctx.asm_data_src);
 
     // The variables in this scope are always global
-    if (symbols->var_count == 0) { // No need if there are no globals
-        return;
-    }
     // .data section, globals with constants
     asm_add_sectionf(&ctx, ctx.asm_data_src, "; Global variables");
     int undefined_count = 0;
     for (size_t i = 0; i < symbols->var_count; i++) {
         Variable var = symbols->vars[i];
-        if (!var.is_undefined) {
+        if (!var.is_undefined && !var.type.is_static) {
             asm_add_sectionf(&ctx, ctx.asm_data_src, "global %s", var.name);
             asm_add_sectionf(&ctx, ctx.asm_data_src, "%s: dq %s", var.name, var.const_expr);
         }
@@ -294,12 +296,37 @@ void gen_asm_symbols(SymbolTable* symbols, AsmContext ctx) {
         asm_add_sectionf(&ctx, ctx.asm_bss_src, "section .bss");
         for (size_t i = 0; i < symbols->var_count; i++) {
             Variable var = symbols->vars[i];
-            if (var.is_undefined) {
+            if (var.is_undefined && !var.type.is_static) {
                 asm_add_sectionf(&ctx, ctx.asm_bss_src, "global %s", var.name);
                 asm_add_sectionf(&ctx, ctx.asm_bss_src, "%s: resq 1 ", var.name);
             }
         }   
     }
+    gen_asm_symbols(symbols, ctx);
+}
+
+void gen_asm_symbols(SymbolTable* symbols, AsmContext ctx) {
+    // Handle static variables
+    for (size_t i = 0; i < symbols->var_count; i++)
+    {
+        Variable var = symbols->vars[i];
+        if (var.type.is_static) {
+            if (!var.is_undefined) {
+                asm_add_sectionf(&ctx, ctx.asm_data_src, "; Static variable");
+                asm_add_sectionf(&ctx, ctx.asm_data_src, "%s.%ds: dq %s", var.name, var.unique_id, var.const_expr);
+            }
+            else {
+                asm_add_sectionf(&ctx, ctx.asm_bss_src, "; Uninitialized static variable");
+                asm_add_sectionf(&ctx, ctx.asm_bss_src, "%s.%ds: resq", var.name, var.unique_id);
+            }
+        }
+    }
+    
+    for (size_t i = 0; i < symbols->children_count; i++)
+    {
+        gen_asm_symbols(symbol_table_get_child(symbols, i), ctx);
+    }
+    
 }
 
 void gen_asm(ASTNode* node, AsmContext ctx) {

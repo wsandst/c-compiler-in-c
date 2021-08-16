@@ -134,9 +134,14 @@ bool accept_binop() {
 // Accept variable/function type: float, double, char, short, int, long
 bool accept_type() {
     accept(TK_KW_CONST);
+    latest_parsed_var_type.is_static = false;
+    latest_parsed_var_type.is_extern = false;
     if (accept(TK_KW_EXTERN)) {
         latest_parsed_var_type.is_extern = true;
     };
+    if (accept(TK_KW_STATIC)) {
+        latest_parsed_var_type.is_static = true;
+    }
     latest_parsed_var_type.ptr_level = 0;
     if (accept(TK_KW_UNSIGNED)) {
         latest_parsed_var_type.is_unsigned = true;
@@ -306,6 +311,12 @@ void parse_single_statement(ASTNode* node, SymbolTable* symbols) {
         char* ident = prev_token().value.string;
         var.name = ident;
         symbol_table_insert_var(symbols, var);
+
+        if (var.type.is_static) { // Static 
+            parse_static_assignment(node, symbols);
+            node->type = AST_NULL_STMT;
+            return;
+        }
 
         if (accept(TK_OP_ASSIGN)) { // Def and assignment
             // Treat this as an expresison
@@ -621,6 +632,32 @@ void parse_global(ASTNode* node, SymbolTable* symbols) {
         expect(TK_DL_SEMICOLON);
     }
     node->type = AST_NULL_STMT; // This is just a virtual node
+}
+
+void parse_static_assignment(ASTNode* node, SymbolTable* symbols) {
+    char* ident = prev_token().value.string;
+    Variable* var = symbol_table_lookup_var_ptr(symbols, ident);
+
+    if (accept(TK_OP_ASSIGN)) { // Def and assignment
+        // Treat this as an expresison
+        token_go_back(2); // Go back to ident token
+        node->type = AST_EXPR;
+        node->top_level_expr = true;
+        parse_expression(node, symbols, 1);
+        if (!is_const_expression(node, symbols)) {
+            parse_error("Attempted to initialize static variable with non-const value!");
+        }
+        var->const_expr = evaluate_const_expression(node, symbols);
+        var->is_undefined = false;
+        expect(TK_DL_SEMICOLON);
+    }
+    else {
+        var->is_undefined = true;
+        expect(TK_DL_SEMICOLON);
+        // We can reuse this node, assignment is just virtual
+        parse_single_statement(node, symbols);
+        return;
+    }
 }
 
 void parse_func_call(ASTNode* node, SymbolTable* symbols) {

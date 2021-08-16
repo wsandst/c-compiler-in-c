@@ -272,6 +272,7 @@ void tokenize_keywords(Tokens* tokens, StrVector *str_split) {
     tokenize_keyword(tokens, str_split, "signed", TK_KW_SIGNED);
     tokenize_keyword(tokens, str_split, "unsigned", TK_KW_UNSIGNED);
     tokenize_keyword(tokens, str_split, "extern", TK_KW_EXTERN);
+    tokenize_keyword(tokens, str_split, "static", TK_KW_STATIC);
     tokenize_keyword(tokens, str_split, "struct", TK_KW_STRUCT);
     tokenize_keyword(tokens, str_split, "union", TK_KW_UNION);
     tokenize_keyword(tokens, str_split, "int", TK_KW_INT);
@@ -744,6 +745,7 @@ char* token_type_to_string(enum TokenType type) {
         "TK_KW_SIGNED", 
         "TK_KW_UNSIGNED", 
         "TK_KW_EXTERN",
+        "TK_KW_STATIC",
         "TK_KW_STRUCT", 
         "TK_KW_UNION", 
         "TK_KW_INT", 

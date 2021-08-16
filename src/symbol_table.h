@@ -42,6 +42,7 @@ struct VarType {
     int ptr_value_bytes;
     bool is_unsigned;
     bool is_extern;
+    bool is_static;
 };
 
 // Variable object
@@ -54,6 +55,7 @@ struct Variable {
     bool is_undefined;
     bool is_dereferenced_ptr;
     char* const_expr;
+    int unique_id;
 };
 
 // Function object
@@ -182,7 +184,6 @@ Object symbol_table_lookup_object(SymbolTable* table, char* object_name);
 Object symbol_table_insert_object(SymbolTable* table, Object object);
 
 void symbol_table_objects_realloc(SymbolTable* table, int new_size);
-
 
 // =============== Tree related ================
 SymbolTable* symbol_table_create_child(SymbolTable* table, int stack_offset);
