@@ -43,6 +43,8 @@ struct VarType {
     bool is_unsigned;
     bool is_extern;
     bool is_static;
+    bool is_array;
+    int array_size;
 };
 
 // Variable object

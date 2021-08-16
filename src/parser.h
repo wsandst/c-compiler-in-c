@@ -49,6 +49,7 @@ enum OpType {
     BOP_ASSIGN_BITAND,      // &=
     BOP_ASSIGN_BITOR,       // |=
     BOP_ASSIGN_BITXOR,      // ^=
+    BOP_INDEX,
     UOP_NEG,                // unary -
     UOP_ADDR,               // unary &
     UOP_DEREF,              // unary *
@@ -184,15 +185,23 @@ void parse_single_statement(ASTNode* node, SymbolTable* symbols);
 
 // Parse an expression, ex (a + b) + 3
 void parse_expression(ASTNode* node,  SymbolTable* symbols, int min_precedence);
+// Parse an expression atom, ex 3 or x or (...)
 void parse_expression_atom(ASTNode* node,  SymbolTable* symbols);
+// Parse array indexing binop. This needs special handling
+void parse_binary_op_indexing(ASTNode* node, SymbolTable* symbols);
 void parse_unary_op(ASTNode* node, SymbolTable* symbols);
+// Parse a literal
 void parse_literal(ASTNode* node,  SymbolTable* symbols);
 // Used later for short circuiting
 void mark_first_and_or_nodes(ASTNode* node, OpType new_op);
 
 void parse_global(ASTNode* node, SymbolTable* symbols);
 
-void parse_static_assignment(ASTNode* node, SymbolTable* symbols);
+// Parse declaration and possible initialization of static variable
+void parse_static_declaration(ASTNode* node, SymbolTable* symbols);
+
+// Parse declaration and possible initialization of array variable
+void parse_array_declaration(ASTNode* node, SymbolTable* symbols);
 
 // <function_call> ::= <identifier> "(" <expression ...> ")"
 void parse_func_call(ASTNode* node,  SymbolTable* symbols);
@@ -234,9 +243,11 @@ void parse_error(char* error_message);
 void parse_error_unexpected_symbol(enum TokenType expected, enum TokenType recieved);
 
 bool is_const_expression(ASTNode* node, SymbolTable* symbols);
+bool is_valid_const_assignment(ASTNode* node, SymbolTable* symbols);
 
-// Evaluate a constant expression
 char* evaluate_const_expression(ASTNode* node, SymbolTable* symbols);
+// Evaluate a constant expression
+char* evaluate_const_assignment(ASTNode* node, SymbolTable* symbols);
 
 // Various helpers
 

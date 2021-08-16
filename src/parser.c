@@ -313,7 +313,13 @@ void parse_single_statement(ASTNode* node, SymbolTable* symbols) {
         symbol_table_insert_var(symbols, var);
 
         if (var.type.is_static) { // Static 
-            parse_static_assignment(node, symbols);
+            parse_static_declaration(node, symbols);
+            node->type = AST_NULL_STMT;
+            return;
+        }
+        if (accept(TK_DL_OPENBRACKET)) { // Array type
+            parse_array_declaration(node, symbols);
+            expect(TK_DL_SEMICOLON);
             node->type = AST_NULL_STMT;
             return;
         }
@@ -474,6 +480,32 @@ void parse_expression(ASTNode* node, SymbolTable* symbols, int min_precedence) {
     }
 }
 
+void parse_binary_op_indexing(ASTNode* node, SymbolTable* symbols) {
+    // Turn current node into deref unop, then rhs into binop of add lhs, rhs
+    // a[b] -> *(a+b)
+    ASTNode* lhs = ast_node_new(AST_EXPR, 1);
+    char* ident = prev_token().string_repr;
+    lhs->expr_type = EXPR_VAR;
+    lhs->var = symbol_table_lookup_var(symbols, ident);
+    lhs->cast_type = lhs->var.type;
+    expect(TK_DL_OPENBRACKET);
+    ASTNode* rhs = ast_node_new(AST_EXPR, 1);
+    parse_expression(rhs, symbols, 1);
+    ASTNode* add_binop = ast_node_new(AST_EXPR, 1);
+    add_binop->expr_type = EXPR_BINOP;
+    add_binop->op_type = BOP_ADD;
+    add_binop->rhs = rhs;
+    add_binop->lhs = lhs;
+    add_binop->cast_type = return_wider_type(rhs->cast_type, lhs->cast_type);
+    node->expr_type = EXPR_UNOP;
+    node->op_type = UOP_DEREF;
+    node->rhs = add_binop;
+    node->cast_type = add_binop->cast_type;
+    node->cast_type.bytes = node->cast_type.ptr_value_bytes;
+    node->cast_type.ptr_level -= 1;
+    node->next = ast_node_new(AST_END, 1);
+}
+
 void parse_expression_atom(ASTNode* node,  SymbolTable* symbols) {
     // Isolate atom
     if (accept_literal()) { // Literal
@@ -486,6 +518,11 @@ void parse_expression_atom(ASTNode* node,  SymbolTable* symbols) {
             token_go_back(1);
             parse_func_call(node, symbols);
         }  
+        else if (accept(TK_DL_OPENBRACKET)) { // Indexing, needs special handling
+            token_go_back(1);
+            parse_binary_op_indexing(node, symbols);
+            expect(TK_DL_CLOSEBRACKET);
+        }
         else { // Variable
             node->expr_type = EXPR_VAR;
             node->var = symbol_table_lookup_var(symbols, ident);
@@ -512,7 +549,7 @@ void parse_expression_atom(ASTNode* node,  SymbolTable* symbols) {
     }
     else if (accept(TK_DL_CLOSEPAREN) || accept(TK_DL_SEMICOLON)) { 
         // Only scenario this triggers is with a null expression, ex
-        // () or ;.
+        // () or ;
         node->type = AST_NULL_STMT;
         node->next = ast_node_new(AST_END, 1);
         token_go_back(1);
@@ -603,11 +640,11 @@ void parse_global(ASTNode* node, SymbolTable* symbols) {
         token_go_back(1);
         parse_expression(node, symbols, 1);
         expect(TK_DL_SEMICOLON);
-        if (!is_const_expression(node, symbols)) {
+        if (!is_valid_const_assignment(node, symbols)) {
                 parse_error("Non-constant global expression found");
         }
         Variable* inserted_var = symbol_table_lookup_var_ptr(symbols, ident);
-        inserted_var->const_expr = evaluate_const_expression(node, symbols);
+        inserted_var->const_expr = evaluate_const_assignment(node, symbols);
         inserted_var->is_undefined = false;
     }
     else {
@@ -622,11 +659,11 @@ void parse_global(ASTNode* node, SymbolTable* symbols) {
         if (accept(TK_OP_ASSIGN)) {
             token_go_back(2);
             parse_expression(node, symbols, 1);
-            if (!is_const_expression(node, symbols)) {
+            if (!is_valid_const_assignment(node, symbols)) {
                 parse_error("Non-constant global expression found");
             }
             Variable* inserted_var = symbol_table_lookup_var_ptr(symbols, ident);
-            inserted_var->const_expr = evaluate_const_expression(node, symbols);
+            inserted_var->const_expr = evaluate_const_assignment(node, symbols);
             inserted_var->is_undefined = false;
         }
         expect(TK_DL_SEMICOLON);
@@ -634,7 +671,7 @@ void parse_global(ASTNode* node, SymbolTable* symbols) {
     node->type = AST_NULL_STMT; // This is just a virtual node
 }
 
-void parse_static_assignment(ASTNode* node, SymbolTable* symbols) {
+void parse_static_declaration(ASTNode* node, SymbolTable* symbols) {
     char* ident = prev_token().value.string;
     Variable* var = symbol_table_lookup_var_ptr(symbols, ident);
 
@@ -644,10 +681,10 @@ void parse_static_assignment(ASTNode* node, SymbolTable* symbols) {
         node->type = AST_EXPR;
         node->top_level_expr = true;
         parse_expression(node, symbols, 1);
-        if (!is_const_expression(node, symbols)) {
+        if (!is_valid_const_assignment(node, symbols)) {
             parse_error("Attempted to initialize static variable with non-const value!");
         }
-        var->const_expr = evaluate_const_expression(node, symbols);
+        var->const_expr = evaluate_const_assignment(node, symbols);
         var->is_undefined = false;
         expect(TK_DL_SEMICOLON);
     }
@@ -658,6 +695,28 @@ void parse_static_assignment(ASTNode* node, SymbolTable* symbols) {
         parse_single_statement(node, symbols);
         return;
     }
+}
+
+void parse_array_declaration(ASTNode* node, SymbolTable* symbols) {
+    token_go_back(1);
+    char* ident = prev_token().value.string;
+    Variable* var = symbol_table_lookup_var_ptr(symbols, ident);
+    var->type.is_array = true;
+    var->type.ptr_level++;
+    var->type.ptr_value_bytes = var->type.bytes;
+    var->type.bytes = 8;
+    // Allocate stackspace for array
+    ASTNode* temp_node = ast_node_new(AST_EXPR, 1);
+    expect(TK_DL_OPENBRACKET);
+    parse_expression(temp_node, symbols, 1);
+    if (!is_const_expression(temp_node, symbols)) {
+        parse_error("Attempted to declare array with non-const size!");
+    }
+    char* const_expr = evaluate_const_expression(temp_node, symbols);
+    var->type.array_size = atoi(const_expr);
+    symbols->cur_stack_offset += var->type.bytes * var->type.array_size;
+    var->stack_offset = symbols->cur_stack_offset;
+    expect(TK_DL_CLOSEBRACKET);
 }
 
 void parse_func_call(ASTNode* node, SymbolTable* symbols) {
@@ -833,16 +892,25 @@ void parse_error_unexpected_symbol(enum TokenType expected, enum TokenType recie
     parse_error(buff);
 }
 
+
 bool is_const_expression(ASTNode* node, SymbolTable* symbols) {
+    return (node->type == AST_EXPR && 
+            node->expr_type == EXPR_LITERAL);
+}
+
+bool is_valid_const_assignment(ASTNode* node, SymbolTable* symbols) {
     return (node->type == AST_EXPR && 
             node->expr_type == EXPR_BINOP && 
             node->op_type == BOP_ASSIGN &&
-            node->lhs->expr_type == EXPR_VAR &&
-            node->rhs->expr_type == EXPR_LITERAL);
+            is_const_expression(node->rhs, symbols));
 }
 
-// Evaluate a constant expression
 char* evaluate_const_expression(ASTNode* node, SymbolTable* symbols) {
+    return node->literal;
+}
+
+// Evaluate a constant assignment expression
+char* evaluate_const_assignment(ASTNode* node, SymbolTable* symbols) {
     return node->rhs->literal;
 }
 
@@ -853,6 +921,8 @@ char* evaluate_const_expression(ASTNode* node, SymbolTable* symbols) {
 // The higher the number, the higher the precedence
 int get_binary_operator_precedence(OpType type) {
     switch (type) {
+            case BOP_INDEX:
+                return 14;
             case BOP_DIV:         // /
             case BOP_MUL:         // *
             case BOP_MOD:         // %
@@ -1047,6 +1117,8 @@ OpType token_type_to_bop_type(enum TokenType type) {
             return BOP_ASSIGN_BITOR;
         case TK_OP_ASSIGN_BITXOR:
             return BOP_ASSIGN_BITXOR;
+        case TK_DL_OPENBRACKET:
+            return BOP_INDEX;
         default:
             parse_error("Unsupported binary operation encountered while parsing");
             return 0;

@@ -8,9 +8,6 @@ TODO:
         Improve function arg handling:
             Save on stack
 
-        Implement static values
-        Floating point logical operators
-
         Arrays
 
         Structs, enums, unions
@@ -30,7 +27,6 @@ TODO:
             Keep track of function argument types in the function object, for call arg casting
             Improve handling of calling convention, currently can't handle certain edge cases
             This restructuring will be necessary for easier struct implemention
-        Initial support of variable keyword arguments. Just enough to make calling printf work properly
 
     Types:
         Floating point:
@@ -40,13 +36,6 @@ TODO:
             Initializer lists would be nice to have
         Constants:
             Just ignore the keyword for now
-        Static:
-            If a variable is static, treat it basically identically to global,
-            except no extern. The only difference is in scoping. It behaves
-            like a normal scope
-            Maybe I should refactor how I treat globals. Keep the declarations in the tree perhaps?
-            That way I can create globals/statics as they are encountered, not by analyzing
-            the symbol tree
     
     Tokenizer:
         Fix nested strings within comments, comments within strings, escape characters etc

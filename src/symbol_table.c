@@ -98,16 +98,12 @@ Variable* symbol_table_lookup_var_ptr(SymbolTable* table, char* var_name) {
 Variable symbol_table_insert_var(SymbolTable* table, Variable var) {
     table->var_count++;
     if (table->var_count > table->var_max_count) {
-        symbol_table_vars_realloc(table, table->var_max_count*2);
+        symbol_table_vars_realloc(table, table->var_max_count*2); 
     }
     if (!table->is_global) { // 0 -> 2. 1 -> 4, 2->4, 3->6
-        if (ALIGN_ON_STACK) { // The cur_stack_offset needs to be a multiple of var.type.bytes
-            // Integer ceil divide. (int) ceil(x/y) = (x + y - 1) / y
-            table->cur_stack_offset = ((table->cur_stack_offset + var.type.bytes - 1)/var.type.bytes + 1) * var.type.bytes;
-        }
-        else {
-            table->cur_stack_offset += var.type.bytes;
-        }
+        // The cur_stack_offset needs to be a multiple of var.type.bytes
+        // Integer ceil divide. (int) ceil(x/y) = (x + y - 1) / y
+        table->cur_stack_offset = ((table->cur_stack_offset + var.type.bytes - 1)/var.type.bytes + 1) * var.type.bytes;
         var.stack_offset = table->cur_stack_offset;
     }
     var.is_global = table->is_global;

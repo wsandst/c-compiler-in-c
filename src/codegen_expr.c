@@ -7,8 +7,11 @@ void gen_asm_expr(ASTNode* node, AsmContext ctx) {
     }
     else if (node->expr_type == EXPR_VAR) {
         char* sp2 = var_to_stack_ptr(&node->var);
-        // Handle various variable type sizes
-        if (node->var.type.type == TY_INT || node->var.type.ptr_level > 0) {
+        // Handle various variable types
+        if (node->var.type.is_array) {
+            asm_addf(&ctx, "lea rax, [rbp-%d]", node->var.stack_offset);
+        }
+        else if (node->var.type.type == TY_INT || node->var.type.ptr_level > 0) {
             char* move_instr = get_move_instr_for_var_type(node->var.type);
             asm_addf(&ctx, "%s, %s", move_instr, sp2);
             free(move_instr);
@@ -345,8 +348,8 @@ void gen_asm_binary_op_assign_int(ASTNode* node, AsmContext ctx) {
     }
     else if (node->expr_type == EXPR_UNOP && node->op_type == UOP_DEREF) {
         node->var.type.bytes = node->var.type.ptr_value_bytes;
-        char* reg_str = get_reg_width_str(node->var.type, RAX);
-        char* addr_size_str = bytes_to_addr_size(node->var.type);
+        char* reg_str = get_reg_width_str(node->cast_type, RAX);
+        char* addr_size_str = bytes_to_addr_size(node->cast_type);
         asm_addf(&ctx, "mov %s [r12], %s", addr_size_str, reg_str);
         free(addr_size_str);
     }
@@ -544,6 +547,7 @@ void gen_asm_unary_op_ptr(ASTNode* node, AsmContext ctx) {
             break;
         case UOP_DEREF: // Deref from pointer to pointer
             asm_add_com(&ctx, "; Op: * (deref)");
+            asm_addf(&ctx, "mov r12, rax");
             asm_addf(&ctx, "mov rax, qword [rax]");
             break;
         case UOP_CAST:
