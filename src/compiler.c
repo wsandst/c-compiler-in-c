@@ -8,7 +8,7 @@ TODO:
         Improve function arg handling:
             Save on stack
 
-        Arrays
+        Array initializers
 
         Structs, enums, unions
 
@@ -30,9 +30,8 @@ TODO:
 
     Types:
         Floating point:
-            Operators left: ++, --, logical
+            Operators left: ++, --
         Arrays:
-            Array variable type, make space on stack etc
             Initializer lists would be nice to have
         Constants:
             Just ignore the keyword for now

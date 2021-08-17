@@ -229,7 +229,7 @@ void parse_program(ASTNode* node, SymbolTable* symbols) {
             parse_token = cur_parse_token;
             parse_func(node, symbols);
         }
-        else if (accept(TK_DL_SEMICOLON) || accept(TK_OP_ASSIGN)) { // Global declaration
+        else { // Global declaration
             parse_token = cur_parse_token;
             parse_global(node, symbols);
         }
@@ -441,7 +441,11 @@ void parse_expression(ASTNode* node, SymbolTable* symbols, int min_precedence) {
     parse_expression_atom(node, symbols);
 
     while(true) {
-        if (accept_binop()) { 
+        if (accept(TK_DL_OPENBRACKET)) { // Indexing, needs special handling
+            parse_binary_op_indexing(node, symbols);
+            expect(TK_DL_CLOSEBRACKET);
+        }
+        else if (accept_binop()) { 
             OpType op_type = token_type_to_bop_type(prev_token().type);
             int op_precedence = get_binary_operator_precedence(op_type);
             if (op_precedence < min_precedence) {
@@ -484,11 +488,7 @@ void parse_binary_op_indexing(ASTNode* node, SymbolTable* symbols) {
     // Turn current node into deref unop, then rhs into binop of add lhs, rhs
     // a[b] -> *(a+b)
     ASTNode* lhs = ast_node_new(AST_EXPR, 1);
-    char* ident = prev_token().string_repr;
-    lhs->expr_type = EXPR_VAR;
-    lhs->var = symbol_table_lookup_var(symbols, ident);
-    lhs->cast_type = lhs->var.type;
-    expect(TK_DL_OPENBRACKET);
+    ast_node_copy(lhs, node);
     ASTNode* rhs = ast_node_new(AST_EXPR, 1);
     parse_expression(rhs, symbols, 1);
     ASTNode* add_binop = ast_node_new(AST_EXPR, 1);
@@ -518,11 +518,6 @@ void parse_expression_atom(ASTNode* node,  SymbolTable* symbols) {
             token_go_back(1);
             parse_func_call(node, symbols);
         }  
-        else if (accept(TK_DL_OPENBRACKET)) { // Indexing, needs special handling
-            token_go_back(1);
-            parse_binary_op_indexing(node, symbols);
-            expect(TK_DL_CLOSEBRACKET);
-        }
         else { // Variable
             node->expr_type = EXPR_VAR;
             node->var = symbol_table_lookup_var(symbols, ident);
@@ -656,6 +651,12 @@ void parse_global(ASTNode* node, SymbolTable* symbols) {
         var.name = ident;
         var.is_undefined = true;
         symbol_table_insert_var(symbols, var);
+        if (accept(TK_DL_OPENBRACKET)) { // Array type
+            parse_array_declaration(node, symbols);
+            expect(TK_DL_SEMICOLON);
+            node->type = AST_NULL_STMT;
+            return;
+        }
         if (accept(TK_OP_ASSIGN)) {
             token_go_back(2);
             parse_expression(node, symbols, 1);
@@ -690,6 +691,13 @@ void parse_static_declaration(ASTNode* node, SymbolTable* symbols) {
     }
     else {
         var->is_undefined = true;
+        var->type.is_static = true;
+        if (accept(TK_DL_OPENBRACKET)) { // Array type
+            parse_array_declaration(node, symbols);
+            expect(TK_DL_SEMICOLON);
+            node->type = AST_NULL_STMT;
+            return;
+        }
         expect(TK_DL_SEMICOLON);
         // We can reuse this node, assignment is just virtual
         parse_single_statement(node, symbols);
@@ -716,6 +724,9 @@ void parse_array_declaration(ASTNode* node, SymbolTable* symbols) {
     var->type.array_size = atoi(const_expr);
     symbols->cur_stack_offset += var->type.bytes * var->type.array_size;
     var->stack_offset = symbols->cur_stack_offset;
+    if (symbols->is_global) {
+        var->is_global = true;
+    }
     expect(TK_DL_CLOSEBRACKET);
 }
 

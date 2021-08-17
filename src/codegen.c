@@ -279,29 +279,21 @@ void gen_asm_global_symbols(SymbolTable* symbols, AsmContext ctx) {
     // The variables in this scope are always global
     // .data section, globals with constants
     asm_add_sectionf(&ctx, ctx.asm_data_src, "; Global variables");
-    int undefined_count = 0;
     for (size_t i = 0; i < symbols->var_count; i++) {
         Variable var = symbols->vars[i];
-        if (!var.is_undefined && !var.type.is_static) {
+        if (var.type.is_array) {
+            asm_add_sectionf(&ctx, ctx.asm_bss_src, "global %s", var.name);
+            asm_add_sectionf(&ctx, ctx.asm_bss_src, "%s: resq %d", var.name, var.type.array_size);
+        }
+        else if (!var.is_undefined && !var.type.is_static) {
             asm_add_sectionf(&ctx, ctx.asm_data_src, "global %s", var.name);
             asm_add_sectionf(&ctx, ctx.asm_data_src, "%s: dq %s", var.name, var.const_expr);
         }
-        else {
-            undefined_count++;
+        else if (var.is_undefined && !var.type.is_static) {
+            asm_add_sectionf(&ctx, ctx.asm_bss_src, "global %s", var.name);
+            asm_add_sectionf(&ctx, ctx.asm_bss_src, "%s: resq 1 ", var.name);
         }
     }   
-    // .bss section, uninitialized globals
-    if (undefined_count) { // Only add .bss if necessary
-        asm_add_newline(&ctx, ctx.asm_text_src);
-        asm_add_sectionf(&ctx, ctx.asm_bss_src, "section .bss");
-        for (size_t i = 0; i < symbols->var_count; i++) {
-            Variable var = symbols->vars[i];
-            if (var.is_undefined && !var.type.is_static) {
-                asm_add_sectionf(&ctx, ctx.asm_bss_src, "global %s", var.name);
-                asm_add_sectionf(&ctx, ctx.asm_bss_src, "%s: resq 1 ", var.name);
-            }
-        }   
-    }
     gen_asm_symbols(symbols, ctx);
 }
 
@@ -311,13 +303,17 @@ void gen_asm_symbols(SymbolTable* symbols, AsmContext ctx) {
     {
         Variable var = symbols->vars[i];
         if (var.type.is_static) {
-            if (!var.is_undefined) {
+            if (var.type.is_array) {
+            asm_add_sectionf(&ctx, ctx.asm_bss_src, "global %s", var.name);
+            asm_add_sectionf(&ctx, ctx.asm_bss_src, "%s.%ds: resq %d", var.name, var.unique_id, var.type.array_size);
+            }
+            else if (!var.is_undefined) {
                 asm_add_sectionf(&ctx, ctx.asm_data_src, "; Static variable");
                 asm_add_sectionf(&ctx, ctx.asm_data_src, "%s.%ds: dq %s", var.name, var.unique_id, var.const_expr);
             }
             else {
                 asm_add_sectionf(&ctx, ctx.asm_bss_src, "; Uninitialized static variable");
-                asm_add_sectionf(&ctx, ctx.asm_bss_src, "%s.%ds: resq", var.name, var.unique_id);
+                asm_add_sectionf(&ctx, ctx.asm_bss_src, "%s.%ds: resq 1", var.name, var.unique_id);
             }
         }
     }
