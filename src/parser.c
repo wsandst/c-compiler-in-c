@@ -84,12 +84,12 @@ void expect(enum TokenType type) {
     }
 }
 
-void expect_type() {
-    if (accept_type()) {
+void expect_type(SymbolTable* symbols) {
+    if (accept_type(symbols)) {
         return;
     }
     else {
-        parse_error("Unexpected symbol");
+        parse_error("Unexpected symbol, expected a type qualifier");
     }
 }
 
@@ -129,7 +129,7 @@ bool accept_binop() {
 }
 
 // Accept variable/function type: float, double, char, short, int, long
-bool accept_type() {
+bool accept_type(SymbolTable* symbols) {
     accept(TK_KW_CONST);
     latest_parsed_var_type.is_static = false;
     latest_parsed_var_type.is_extern = false;
@@ -184,6 +184,9 @@ bool accept_type() {
         latest_parsed_var_type.type = TY_VOID;
         latest_parsed_var_type.bytes = 1;
     }
+    else if (accept_object_type(symbols)) {
+
+    }
     // Add user defined types here as well
     else {
         return false;
@@ -210,6 +213,28 @@ bool accept_type() {
     return true;
 }
 
+bool accept_object_type(SymbolTable* symbols) {
+    if (accept(TK_IDENT)) { // Typedef
+        char* ident = prev_token().string_repr;
+        Object* typedef_obj = symbol_table_lookup_object(symbols, ident, OBJ_TYPEDEF);
+        if (typedef_obj != NULL) {
+            latest_parsed_var_type = typedef_obj->typedef_type;
+            return true;
+        }
+    }
+    else if (accept(TK_KW_STRUCT)) { // Struct
+
+    }
+    else if (accept(TK_KW_ENUM)) { // Enum
+
+    }
+    else {
+        return false;
+    }
+    token_go_back(1);
+    return false;
+}
+
 bool accept_literal() {
     return accept(TK_LINT) || accept(TK_LFLOAT) || accept(TK_LCHAR) || accept(TK_LSTRING);
 }
@@ -226,14 +251,20 @@ void parse_program(ASTNode* node, SymbolTable* symbols) {
         parse_program(node, symbols);
         return;
     }
-    // Must either be a function or a global variable
+    // Must either be a function, object, typedef or global variable
     if (accept(TK_IDENT)) { // Global assignment
         token_go_back(1);
         parse_global(node, symbols);
     }
+    else if (accept(TK_KW_TYPEDEF)) {
+        parse_typedef(node, symbols);
+        // We can reuse this node, typedef is only symbolic
+        parse_program(node, symbols);
+        return;
+    }
     else {
         Token* cur_parse_token = parse_token;
-        expect_type();
+        expect_type(symbols);
         expect(TK_IDENT);
         if (accept(TK_DL_OPENPAREN)) { // Function
             parse_token = cur_parse_token;
@@ -251,7 +282,7 @@ void parse_program(ASTNode* node, SymbolTable* symbols) {
 void parse_func(ASTNode* node, SymbolTable* symbols) {
     node->type = AST_FUNC;
     Function func;
-    expect_type();
+    expect_type(symbols);
     expect(TK_IDENT);
     char* ident = prev_token().string_repr;
     func.name = ident;
@@ -271,7 +302,7 @@ void parse_func(ASTNode* node, SymbolTable* symbols) {
             continue;
         }
         Variable var; 
-        expect_type();
+        expect_type(symbols);
         var.type = latest_parsed_var_type;
         // Check for func(void) arg
         if (latest_parsed_var_type.type == TY_VOID && latest_parsed_var_type.ptr_level == 0) {
@@ -310,7 +341,7 @@ void parse_single_statement(ASTNode* node, SymbolTable* symbols) {
         parse_single_statement(node, symbols);
         return;
     }
-    else if (accept_type()) { // Variable declaration
+    else if (accept_type(symbols)) { // Variable declaration
         // Declaration is just connected to the symbol table,
         // no actual node needed
 
@@ -342,7 +373,7 @@ void parse_single_statement(ASTNode* node, SymbolTable* symbols) {
         }
         else {
             expect(TK_DL_SEMICOLON);
-            // We can reuse this node, assignment is just virtual
+            // We can reuse this node, def is just virtual
             parse_single_statement(node, symbols);
             return;
         }
@@ -404,6 +435,12 @@ void parse_single_statement(ASTNode* node, SymbolTable* symbols) {
         // We don't do any checks if the label exists here, would
         // require two passes. Let the assembler handle it
         node->literal = str_add("G", prev_token().string_repr);
+    }
+    else if (accept(TK_KW_TYPEDEF)) {
+        parse_typedef(node, symbols);
+        // We can reuse this node, typedef is only symbolic
+        parse_single_statement(node, symbols);
+        return;
     }
     else if (accept(TK_DL_OPENBRACE)) { // Scope begin
         parse_scope(node, symbols);
@@ -537,7 +574,7 @@ void parse_expression_atom(ASTNode* node,  SymbolTable* symbols) {
         }
     }
     else if (accept(TK_DL_OPENPAREN)) {
-        if (!accept_type()) { // Just normal parenthesis
+        if (!accept_type(symbols)) { // Just normal parenthesis
             parse_expression(node, symbols, 1);
             expect(TK_DL_CLOSEPAREN);
         }
@@ -586,7 +623,7 @@ void parse_unary_op(ASTNode* node, SymbolTable* symbols) {
         // will provide the most memory used. This needs to be passed up,
         // will help with implicit conversions later as well. Should be in the op node
         expect(TK_DL_OPENPAREN);
-        if (accept_type()) {
+        if (accept_type(symbols)) {
             node->rhs->cast_type = latest_parsed_var_type;
             expect(TK_DL_CLOSEPAREN);
         }
@@ -661,7 +698,7 @@ void parse_global(ASTNode* node, SymbolTable* symbols) {
         node->type = AST_NULL_STMT; // Declaration is virtual
     }
     else {
-        accept_type();
+        accept_type(symbols);
         Variable var;
         var.type = latest_parsed_var_type;
         expect(TK_IDENT);
@@ -934,19 +971,32 @@ void parse_default_case(ASTNode* node, SymbolTable* symbols) {
     node->label = label;
 }
 
+void parse_typedef(ASTNode* node, SymbolTable* symbols) {
+    expect_type(symbols);
+    expect(TK_IDENT);
+    Object object;
+    object.name = prev_token().string_repr;
+    object.type = OBJ_TYPEDEF;
+    object.typedef_type = latest_parsed_var_type;
+    symbol_table_insert_object(symbols, object);
+    expect(TK_DL_SEMICOLON);
+}
+
 void parse_error(char* error_message) {
     static char* RED_COLOR_STR = "\033[31;1m";
     static char* RESET_COLOR_STR = "\033[0m";
     fprintf(stderr, "%sParse error:%s %s\n", RED_COLOR_STR, RESET_COLOR_STR, error_message);
-    fprintf(stderr, "At line %d |  %s %s%s%s %s    (at token: \"%s\")\n", 
-            parse_token->src_line,
-            (parse_token - 1)->string_repr,
-            RED_COLOR_STR,
-            parse_token->string_repr,
-            RESET_COLOR_STR,
-            (parse_token + 1)->string_repr,
-            token_type_to_string(parse_token->type)
-    );
+    // Pretty debug info
+    fprintf(stderr, "At line %d |    ", parse_token->src_line);
+    Token* prev_token = parse_token - 1;
+    Token* next_token = parse_token + 1;
+    if (parse_token->src_line == prev_token->src_line) {
+        fprintf(stderr, "%s ", prev_token->string_repr);
+    } 
+    fprintf(stderr, "%s%s%s ", RED_COLOR_STR, parse_token->string_repr, RESET_COLOR_STR);
+    if (parse_token->src_line == next_token->src_line) {
+        fprintf(stderr, "%s\n", next_token->string_repr);
+    } 
     // We are not manually freeing the memory here, 
     // but as the program is exiting it is fine
     exit(1); 

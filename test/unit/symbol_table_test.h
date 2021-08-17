@@ -171,16 +171,16 @@ void test_symbol_table_objects() {
     assert(table->object_max_count == 4);
 
     // Lookup
-    assert(symbol_table_lookup_object(table, "obj1").type == 1);
-    assert(symbol_table_lookup_object(table, "obj2").type == 2);
-    assert(symbol_table_lookup_object(table, "obj3").type == 3);
+    assert(symbol_table_lookup_object(table, "obj1", 1)->type == 1);
+    assert(symbol_table_lookup_object(table, "obj2", 2)->type == 2);
+    assert(symbol_table_lookup_object(table, "obj3", 3)->type == 3);
 
     obj.name = "obj4";
     obj.type = 4;
     symbol_table_insert_object(child, obj);
-    assert(symbol_table_lookup_object(child, "obj4").type == 4);
+    assert(symbol_table_lookup_object(child, "obj4", 4)->type == 4);
     // Check going up a scope
-    assert(symbol_table_lookup_object(child, "obj1").type == 1);
+    assert(symbol_table_lookup_object(child, "obj1", 1)->type == 1);
     // symbol_table_lookup_var(child, "novar"); // This will correctly error!
     symbol_table_free(table);
 }

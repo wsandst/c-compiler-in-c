@@ -17,12 +17,24 @@
 
 typedef enum LiteralType LiteralType;
 typedef enum VarTypeEnum VarTypeEnum;
+typedef enum ObjectTypeEnum ObjectTypeEnum;
 typedef struct VarType VarType;
 typedef struct Variable Variable;
 typedef struct Function Function;
 typedef struct ValueLabel ValueLabel;
 typedef struct Object Object;
 typedef struct SymbolTable SymbolTable;
+
+/*
+Enums:
+We just throw a bunch of const variables everywhere
+enum xxx
+struct xxx
+lookup_structs()
+lookup_enums()
+lookup_typedefs()
+
+*/
 
 enum LiteralType {
     LT_INT,
@@ -38,9 +50,6 @@ enum VarTypeEnum {
   TY_FLOAT,
   TY_ENUM,
   TY_STRUCT,
-  //TY_UNION,
-  //TY_ARRAY,
-  //TY_FUNC,
 };
 
 struct VarType {
@@ -90,15 +99,15 @@ struct ValueLabel { // Switch case labels
 };
 
 enum ObjectTypeEnum {
-    STRUCT,
-    UNION,
-    ENUM,
-    TYPEDEF,
+    OBJ_STRUCT,
+    OBJ_ENUM,
+    OBJ_TYPEDEF,
 };
 
 struct Object { // Structs, unions, enums, typedefs etc
     char* name;
     enum ObjectTypeEnum type;
+    VarType typedef_type;
 };
 
 // This is a tree of tables
@@ -191,7 +200,7 @@ void symbol_table_labels_realloc(SymbolTable* table, int new_size);
 
 // ================= Objects ===================
 
-Object symbol_table_lookup_object(SymbolTable* table, char* object_name);
+Object* symbol_table_lookup_object(SymbolTable* table, char* object_name, ObjectTypeEnum type);
 
 Object symbol_table_insert_object(SymbolTable* table, Object object);
 

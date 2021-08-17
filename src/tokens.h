@@ -98,6 +98,7 @@ enum TokenType {
     TK_KW_EXTERN,
     TK_KW_STATIC,
     TK_KW_STRUCT, 
+    TK_KW_ENUM,
     TK_KW_UNION, 
     TK_KW_INT, 
     TK_KW_FLOAT, 

@@ -8,7 +8,11 @@ TODO:
         Improve function arg handling:
             Save on stack
 
-        Structs, enums, unions
+        Structs, enums
+
+        Structs:
+            Typedefs
+            Enums
 
 
     Refactoring:
@@ -57,7 +61,7 @@ int main(int argc, char *argv[]) {
 
     // Step 1: Preprocessing + Tokenization
     Tokens tokens = preprocess_first(src_path);
-    //tokens_print(&tokens);
+    //tokens_pretty_print(&tokens);
 
     // Step 2: AST Parsing
     SymbolTable* symbols = symbol_table_new();

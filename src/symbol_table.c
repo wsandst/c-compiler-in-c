@@ -231,23 +231,21 @@ void symbol_table_labels_realloc(SymbolTable* table, int new_size) {
 
 // ================= Objects ===================
 
-Object symbol_table_lookup_object(SymbolTable* table, char* object_name) {
+Object* symbol_table_lookup_object(SymbolTable* table, char* object_name, ObjectTypeEnum type) {
     // Linear search for now, should be a hashtable later
     for (size_t i = 0; i < table->object_count; i++)
     {
         Object* object = &table->objects[i];
-        if (strcmp(object->name, object_name) == 0) {
+        if (object->type == type && strcmp(object->name, object_name) == 0) {
             // Found it!
-            return *object;
+            return object;
         }
     }
     if (table->is_global) {
-        // The referenced object is not declared anywhere up
-        // to the global scope, error!
-        symbol_error2(object_name, "object referenced but never declared!");
+        return NULL;
     }
     // We did not find the object in this scope, go up a scope
-    return symbol_table_lookup_object(table->parent, object_name);
+    return symbol_table_lookup_object(table->parent, object_name, type);
 }
 
 Object symbol_table_insert_object(SymbolTable* table, Object object) {

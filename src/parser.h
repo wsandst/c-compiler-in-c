@@ -233,6 +233,8 @@ void parse_case(ASTNode* node, SymbolTable* symbols);
 // <default_case> ::= "default" ":"
 void parse_default_case(ASTNode* node, SymbolTable* symbols);
 
+void parse_typedef(ASTNode* node, SymbolTable* symbols);
+
 // Print a parse error to stderr and exit the program
 void parse_error(char* error_message);
 void parse_error_unexpected_symbol(enum TokenType expected, enum TokenType recieved);
@@ -249,10 +251,6 @@ char* evaluate_const_assignment(ASTNode* node, SymbolTable* symbols);
 // Return the previous token parsed
 Token prev_token();
 
-// Make sure the current token matches the sent in token, else
-// send an error message and exit the program
-void expect(TokenType type);
-
 // Return true or false whether the current token matches the sent in token
 bool accept(TokenType type);
 // Accept any token within this range
@@ -263,10 +261,18 @@ bool accept_unop_type();
 bool accept_post_unop();
 // Accept a binary operator Token type
 bool accept_binop_type();
-// Accept a variable/fd type
-bool accept_type();
+// Accept a variable type
+bool accept_type(SymbolTable* symbols);
+// Accept a typedef/struct/enum type
+bool accept_object_type(SymbolTable* symbols);
 // Accept a literal
 bool accept_literal();
+
+// Make sure the current token matches the sent in token, else
+// send an error message and exit the program
+void expect(TokenType type);
+// Expect a variable type
+void expect_type(SymbolTable* symbols);
 
 // Get precedence of binary operator
 int get_binary_operator_precedence(OpType type);

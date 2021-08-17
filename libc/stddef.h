@@ -9,8 +9,7 @@
 #define _size_t
 #define __SIZE_T
 #define __size_t
-//typedef __SIZE_TYPE__ size_t;
-#define size_t int
+typedef unsigned long int size_t;
 #endif
 
 #ifndef NULL
