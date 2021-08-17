@@ -95,9 +95,6 @@ void expect_type() {
 
 bool accept(TokenType type) {
     if (parse_token->type == type) {
-        /*if (parse_token->string_repr != NULL) {
-            printf("%s\n", parse_token->string_repr);
-        } */
         //printf("%s (%s)\n", token_type_to_string(parse_token->type), parse_token->string_repr);
         parse_token++;
         return true;
@@ -314,13 +311,11 @@ void parse_single_statement(ASTNode* node, SymbolTable* symbols) {
 
         if (var.type.is_static) { // Static 
             parse_static_declaration(node, symbols);
-            node->type = AST_NULL_STMT;
             return;
         }
         if (accept(TK_DL_OPENBRACKET)) { // Array type
             parse_array_declaration(node, symbols);
             expect(TK_DL_SEMICOLON);
-            node->type = AST_NULL_STMT;
             return;
         }
 
@@ -501,8 +496,10 @@ void parse_binary_op_indexing(ASTNode* node, SymbolTable* symbols) {
     node->op_type = UOP_DEREF;
     node->rhs = add_binop;
     node->cast_type = add_binop->cast_type;
-    node->cast_type.bytes = node->cast_type.ptr_value_bytes;
     node->cast_type.ptr_level -= 1;
+    if (node->cast_type.ptr_level == 0) {
+        node->cast_type.bytes = node->cast_type.ptr_value_bytes;
+    }
     node->next = ast_node_new(AST_END, 1);
 }
 
@@ -640,7 +637,9 @@ void parse_global(ASTNode* node, SymbolTable* symbols) {
         }
         Variable* inserted_var = symbol_table_lookup_var_ptr(symbols, ident);
         inserted_var->const_expr = evaluate_const_assignment(node, symbols);
+        inserted_var->const_expr_type = node->rhs->literal_type;
         inserted_var->is_undefined = false;
+        node->type = AST_NULL_STMT; // Declaration is virtual
     }
     else {
         accept_type();
@@ -650,11 +649,11 @@ void parse_global(ASTNode* node, SymbolTable* symbols) {
         char* ident = prev_token().value.string;
         var.name = ident;
         var.is_undefined = true;
+        var.is_global = true;
         symbol_table_insert_var(symbols, var);
         if (accept(TK_DL_OPENBRACKET)) { // Array type
             parse_array_declaration(node, symbols);
             expect(TK_DL_SEMICOLON);
-            node->type = AST_NULL_STMT;
             return;
         }
         if (accept(TK_OP_ASSIGN)) {
@@ -665,11 +664,12 @@ void parse_global(ASTNode* node, SymbolTable* symbols) {
             }
             Variable* inserted_var = symbol_table_lookup_var_ptr(symbols, ident);
             inserted_var->const_expr = evaluate_const_assignment(node, symbols);
+            inserted_var->const_expr_type = node->rhs->literal_type;
             inserted_var->is_undefined = false;
         }
         expect(TK_DL_SEMICOLON);
+        node->type = AST_NULL_STMT; // This is just a virtual node
     }
-    node->type = AST_NULL_STMT; // This is just a virtual node
 }
 
 void parse_static_declaration(ASTNode* node, SymbolTable* symbols) {
@@ -686,8 +686,10 @@ void parse_static_declaration(ASTNode* node, SymbolTable* symbols) {
             parse_error("Attempted to initialize static variable with non-const value!");
         }
         var->const_expr = evaluate_const_assignment(node, symbols);
+        var->const_expr_type = node->rhs->literal_type;
         var->is_undefined = false;
         expect(TK_DL_SEMICOLON);
+        node->type = AST_NULL_STMT;
     }
     else {
         var->is_undefined = true;
@@ -695,24 +697,27 @@ void parse_static_declaration(ASTNode* node, SymbolTable* symbols) {
         if (accept(TK_DL_OPENBRACKET)) { // Array type
             parse_array_declaration(node, symbols);
             expect(TK_DL_SEMICOLON);
-            node->type = AST_NULL_STMT;
             return;
         }
         expect(TK_DL_SEMICOLON);
         // We can reuse this node, assignment is just virtual
         parse_single_statement(node, symbols);
-        return;
+        node->type = AST_NULL_STMT;
     }
 }
 
 void parse_array_declaration(ASTNode* node, SymbolTable* symbols) {
     token_go_back(1);
+    node->type = AST_NULL_STMT; // Declarations are virtual
     char* ident = prev_token().value.string;
     Variable* var = symbol_table_lookup_var_ptr(symbols, ident);
     var->type.is_array = true;
     var->type.ptr_level++;
-    var->type.ptr_value_bytes = var->type.bytes;
+    if (var->type.ptr_value_bytes == 0) {
+        var->type.ptr_value_bytes = var->type.bytes;
+    }
     var->type.bytes = 8;
+    var->type.array_has_initializer = false;
     // Allocate stackspace for array
     ASTNode* temp_node = ast_node_new(AST_EXPR, 1);
     expect(TK_DL_OPENBRACKET);
@@ -728,6 +733,28 @@ void parse_array_declaration(ASTNode* node, SymbolTable* symbols) {
         var->is_global = true;
     }
     expect(TK_DL_CLOSEBRACKET);
+
+    if (accept(TK_OP_ASSIGN)) { // Initializer
+        var->type.array_has_initializer = true;
+        node->var = *var;
+        parse_array_initializer(node, symbols);
+    }
+}
+
+void parse_array_initializer(ASTNode* node, SymbolTable* symbols) {
+    expect(TK_DL_OPENBRACE);
+    node->type = AST_INIT;
+    node->args = ast_node_new(AST_EXPR, 1);
+    ASTNode* arg_node = node->args;
+    while (!(accept(TK_DL_CLOSEBRACE)) || prev_token().type == TK_DL_OPENBRACE) { // Go through initializer args
+        parse_expression(arg_node, symbols, 1);
+        if (!is_const_expression(arg_node, symbols)) {
+            parse_error("Non-constant element found in array initializer!");
+        }
+        arg_node->next = ast_node_new(AST_END, 1);
+        arg_node = arg_node->next;
+        accept(TK_DL_COMMA);
+    }
 }
 
 void parse_func_call(ASTNode* node, SymbolTable* symbols) {

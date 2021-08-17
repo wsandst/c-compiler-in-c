@@ -1,65 +1,103 @@
-// Merge sort
-
-void printf(char* string, int value);
-void* malloc(int size);
-void free(void* ptr);
-int rand();
+/* Merge Sort, copied from geeksforgeeks */
+#include <stdio.h>
+#include <stdlib.h>
  
-int count = 100;
-
-// function to sort the subsection a[i .. j] of the array a[]
-void merge_sort(int i, int j, int* a, int* aux) {
-    if (j <= i) {
-        return;     // the subsection is empty or a single element
-    }
-    int mid = (i + j) / 2;
-
-    // left sub-array is a[i .. mid]
-    // right sub-array is a[mid + 1 .. j]
-    
-    merge_sort(i, mid, a, aux);     // sort the left sub-array recursively
-    merge_sort(mid + 1, j, a, aux);     // sort the right sub-array recursively
-
-    int pointer_left = i;       // pointer_left points to the beginning of the left sub-array
-    int pointer_right = mid + 1;        // pointer_right points to the beginning of the right sub-array
-    int k;      // k is the loop counter
-
-    // we loop from i to j to fill each element of the final merged array
-    for (k = i; k <= j; k++) {
-        if (pointer_left == mid + 1) {      // left pointer has reached the limit
-            *(aux + k) = *(a + pointer_right);
-            pointer_right++;
-        } else if (pointer_right == j + 1) {        // right pointer has reached the limit
-            *(aux + k) = *(a + pointer_left);
-            pointer_left++;
-        } else if (*(a + pointer_left) < *(a + pointer_right)) {        // pointer left points to smaller element
-            *(aux + k) = *(a + pointer_left);
-            pointer_left++;
-        } else {        // pointer right points to smaller element
-            *(aux + k) = *(a + pointer_right);
-            pointer_right++;
+// Merges two subarrays of arr[].
+// First subarray is arr[l..m]
+// Second subarray is arr[m+1..r]
+void merge(int* arr, int l, int m, int r)
+{
+    int i;
+    int j;
+    int k;
+    int n1 = m - l + 1;
+    int n2 = r - m;
+ 
+    /* create temp arrays */
+    int* L = malloc(n1*sizeof(int));
+    int* R = malloc(n2*sizeof(int));
+ 
+    /* Copy data to temp arrays L[] and R[] */
+    for (i = 0; i < n1; i++)
+        L[i] = arr[l + i];
+    for (j = 0; j < n2; j++)
+        R[j] = arr[m + 1 + j];
+ 
+    /* Merge the temp arrays back into arr[l..r]*/
+    i = 0; // Initial index of first subarray
+    j = 0; // Initial index of second subarray
+    k = l; // Initial index of merged subarray
+    while (i < n1 && j < n2) {
+        if (L[i] <= R[j]) {
+            arr[k] = L[i];
+            i++;
         }
+        else {
+            arr[k] = R[j];
+            j++;
+        }
+        k++;
+    }
+ 
+    /* Copy the remaining elements of L[], if there
+    are any */
+    while (i < n1) {
+        arr[k] = L[i];
+        i++;
+        k++;
+    }
+ 
+    /* Copy the remaining elements of R[], if there
+    are any */
+    while (j < n2) {
+        arr[k] = R[j];
+        j++;
+        k++;
     }
 
-    for (k = i; k <= j; k++) {      // copy the elements from aux[] to a[]
-        *(a+k) = *(aux+k);
+    free(R);
+    free(L);
+}
+ 
+/* l is for left index and r is right index of the
+sub-array of arr to be sorted */
+void mergeSort(int* arr, int l, int r)
+{
+    if (l < r) {
+        // Same as (l+r)/2, but avoids overflow for
+        // large l and h
+        int m = l + (r - l) / 2;
+ 
+        // Sort first and second halves
+        mergeSort(arr, l, m);
+        mergeSort(arr, m + 1, r);
+ 
+        merge(arr, l, m, r);
     }
 }
-
-void randomize_array(int* ptr, int n) {
-    for(int i = 0; i < n; i++) {
-		*ptr = rand() % 100;
-		ptr++;
-	}
+ 
+/* UTILITY FUNCTIONS */
+/* Function to print an array */
+void printArray(int* A, int size)
+{
+    int i;
+    for (i = 0; i < size; i++)
+        printf("%d ", A[i]);
+    printf("\n");
 }
-
-int main() {
-    int* a = malloc(sizeof(int)*count);
-    int* aux = malloc(sizeof(int)*count);
-
-    randomize_array(a, count);
-
-    merge_sort(0, count-1, a, aux);
-
-    return *(a + count/6);
+ 
+/* Driver code */
+int main()
+{
+    int arr[6] = { 12, 11, 13, 5, 6, 7 };
+    int arr_size = 6;
+ 
+    printf("Given array is \n");
+    printArray(arr, arr_size);
+ 
+    mergeSort(arr, 0, arr_size - 1);
+ 
+    printf("\nSorted array is \n");
+    printArray(arr, arr_size);
+    return 0;
 }

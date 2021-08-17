@@ -184,11 +184,10 @@ void gen_asm_unary_op_int(ASTNode* node, AsmContext ctx) {
             break;
         case UOP_DEREF: { // Deref from int pointer
             asm_add_com(&ctx, "; Op: * (deref)");
-            char* addr_size = bytes_to_addr_size(node->cast_type);
+            char* addr_size = bytes_to_addr_width(node->cast_type.bytes);
             char* move_instr = get_move_instr_for_var_type(node->cast_type);
             asm_addf(&ctx, "mov r12, rax"); // Save rax for potential deref assignment
             asm_addf(&ctx, "%s, %s [rax]", move_instr, addr_size); 
-            free(addr_size); 
             free(move_instr);
             break;
         }
@@ -349,9 +348,8 @@ void gen_asm_binary_op_assign_int(ASTNode* node, AsmContext ctx) {
     else if (node->expr_type == EXPR_UNOP && node->op_type == UOP_DEREF) {
         node->var.type.bytes = node->var.type.ptr_value_bytes;
         char* reg_str = get_reg_width_str(node->cast_type, RAX);
-        char* addr_size_str = bytes_to_addr_size(node->cast_type);
+        char* addr_size_str = bytes_to_addr_width(node->cast_type.bytes);
         asm_addf(&ctx, "mov %s [r12], %s", addr_size_str, reg_str);
-        free(addr_size_str);
     }
     else {
         codegen_error("Only variables can be assigned to");
@@ -406,12 +404,11 @@ void gen_asm_unary_op_float(ASTNode* node, AsmContext ctx) {
             break;
         case UOP_DEREF: { // Deref from int pointer
             asm_add_com(&ctx, "; fOp: * (deref)");
-            char* addr_size = bytes_to_addr_size(node->cast_type);
+            char* addr_size = bytes_to_addr_width(node->cast_type.bytes);
             char* move_instr = get_move_instr_for_var_type(node->cast_type);
             asm_addf(&ctx, "mov r12, rax"); // Save rax for potential deref assignment
             asm_addf(&ctx, "%s, %s [rax]", move_instr, addr_size);
             asm_addf(&ctx, "movq xmm0, rax");
-            free(addr_size);
             free(move_instr);
             break;
         }
@@ -685,9 +682,10 @@ void gen_asm_binary_op_ptr(ASTNode* node, AsmContext ctx) {
 void gen_asm_binary_op_load_ptr_size(ASTNode* node, AsmContext ctx) {
     // Multiply rbx with pointer size
     // We need to check for type here. Only multiply if int
-    char buf[64];
-    snprintf(buf, 63, "%d", node->cast_type.ptr_value_bytes);
-    asm_addf(&ctx, "imul rbx, %s", buf);
+    //char buf[64];
+    //snprintf(buf, 63, "%d", node->cast_type.ptr_value_bytes);
+    int bytes = get_deref_var_type(node->cast_type).bytes;
+    asm_addf(&ctx, "imul rbx, %d", bytes);
 }
 
 // Short circuiting

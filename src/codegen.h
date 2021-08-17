@@ -50,6 +50,8 @@ void asm_add_section(AsmContext* ctx, StrVector* section, int n, ...);
 void asm_addf(AsmContext* ctx, char* format_string, ...);
 // Add to a specific assembly src section, like the .data section, formatted
 void asm_add_sectionf(AsmContext* ctx, StrVector* section, char* format_string, ...);
+// Add to a specific assembly src section, like the .data section, formatted, without a newline
+void asm_add_wn_sectionf(AsmContext* ctx, StrVector* section, char* format_string, ...);
 // Add assembly comment
 void asm_add_com(AsmContext* ctx, char* str);
 // Add a newline with proper indentation
@@ -76,11 +78,15 @@ char* get_next_cstring_label_str(AsmContext* ctx);
 // Get the corresponding byte size register, eg 2, RAX -> AX
 char* get_reg_width_str(VarType var_type, RegisterEnum reg);
 // Get the address size corresponding to bytes, ex 8->qword or 4->dword
-char* bytes_to_addr_size(VarType var_type);
+char* bytes_to_addr_width(int bytes);
+// Get the value size corresponding to bytes, ex 1->db, 2->dw, etc...
+char* bytes_to_data_width(int bytes);
 // Get stack adress of a variable, ex qword [rbp - 8]
 char* var_to_stack_ptr(Variable* var);
 // Get the corresponding move instr for a certain memory size, ex movzx for 2
 char* get_move_instr_for_var_type(VarType var_type);
+// Get deref type of variable type
+VarType get_deref_var_type(VarType var_type);
 
 // ============= ASM Generation ================
 
@@ -95,6 +101,15 @@ void gen_asm_global_symbols(SymbolTable* symbols, AsmContext ctx);
 
 // Generate assembly for certain symbols (static etc)
 void gen_asm_symbols(SymbolTable* symbols, AsmContext ctx);
+
+// Generate assembly for a global variable declaration
+void gen_asm_global_variable(Variable var, AsmContext* ctx);
+
+// Generate assembly for a static variable declaration
+void gen_asm_static_variable(Variable var, AsmContext* ctx);
+
+// Generate assembly for an array initializer
+void gen_asm_array_initializer(ASTNode* node, AsmContext ctx);
 
 // Generate assembly for a function definition
 void gen_asm_func(ASTNode* node, AsmContext ctx);

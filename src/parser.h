@@ -15,7 +15,6 @@ typedef enum OpType OpType;
 typedef enum UnaryOpType UnaryOpType;
 typedef enum ASTNodeType ASTNodeType;
 typedef enum ExprType ExprType;
-typedef enum LiteralType LiteralType;
 typedef struct ASTNode ASTNode;
 typedef struct AST AST;
 
@@ -79,7 +78,7 @@ enum ASTNodeType {
     AST_CASE,       // Case
     AST_GOTO,       // Goto
     AST_LABEL,      // Label
-    //AST_COMMA,    // ,
+    AST_INIT,       // Initializer list
 
     AST_STMT,       // Statement
     AST_END,        // End of scope/loop etc
@@ -92,13 +91,6 @@ enum ExprType {
     EXPR_LITERAL,
     EXPR_VAR,
     EXPR_FUNC_CALL,
-};
-
-enum LiteralType {
-    LT_INT,
-    LT_FLOAT,
-    LT_STRING,
-    LT_CHAR,
 };
 
 struct ASTNode {
@@ -202,6 +194,9 @@ void parse_static_declaration(ASTNode* node, SymbolTable* symbols);
 
 // Parse declaration and possible initialization of array variable
 void parse_array_declaration(ASTNode* node, SymbolTable* symbols);
+
+// Parse array initializers, etc a[5] = {1, 2, 3, 4, 5}
+void parse_array_initializer(ASTNode* node, SymbolTable* symbols);
 
 // <function_call> ::= <identifier> "(" <expression ...> ")"
 void parse_func_call(ASTNode* node,  SymbolTable* symbols);

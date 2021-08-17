@@ -56,6 +56,15 @@ void asm_add_sectionf(AsmContext* ctx, StrVector* section, char* format_string, 
     asm_add(section, buf);
 }
 
+void asm_add_wn_sectionf(AsmContext* ctx, StrVector* section, char* format_string, ...) {
+    va_list vl;
+    va_start(vl, format_string);
+    static char buf[256];
+    vsnprintf(buf, 255, format_string, vl);
+    va_end(vl);
+    asm_add(section, buf);
+}
+
 void asm_add_com(AsmContext* ctx, char* comment) {
     if (INCLUDE_COMMENTS) {
         asm_add_newline(ctx, ctx->asm_text_src);
@@ -89,18 +98,34 @@ char* offset_to_stack_ptr(int offset, char* prefix) {
 }
 
 // Get the address size corresponding to bytes, ex 8->qword or 4->dword
-char* bytes_to_addr_size(VarType var_type) {
-    switch (var_type.bytes) {
+char* bytes_to_addr_width(int bytes) {
+    switch (bytes) {
         case 8:
-            return str_copy("qword");
+            return "qword";
         case 4:
-            return str_copy("dword");
+            return "dword";
         case 2:
-            return str_copy("word");
+            return "word";
         case 1:
-            return str_copy("byte");
+            return "byte";
         default:
-            return str_copy("error");
+            return "error";
+    }
+}
+
+// Get the value size corresponding to bytes, ex 1->db, 2->dw, etc...
+char* bytes_to_data_width(int bytes) {
+    switch (bytes) {
+        case 8:
+            return "dq";
+        case 4:
+            return "dd";
+        case 2:
+            return "dw";
+        case 1:
+            return "db";
+        default:
+            return "error";
     }
 }
 
@@ -157,6 +182,14 @@ char* get_move_instr_for_var_type(VarType var_type) {
         return str_copy("movzx rax"); // Zeroes the upper unused bits
     }
     return NULL;
+}
+
+VarType get_deref_var_type(VarType var_type) {
+    var_type.ptr_level--;
+    if (var_type.ptr_level == 0) {
+        var_type.bytes = var_type.ptr_value_bytes;
+    }
+    return var_type;
 }
 
 char* get_label_str(int label) {
@@ -281,19 +314,11 @@ void gen_asm_global_symbols(SymbolTable* symbols, AsmContext ctx) {
     asm_add_sectionf(&ctx, ctx.asm_data_src, "; Global variables");
     for (size_t i = 0; i < symbols->var_count; i++) {
         Variable var = symbols->vars[i];
-        if (var.type.is_array) {
-            asm_add_sectionf(&ctx, ctx.asm_bss_src, "global %s", var.name);
-            asm_add_sectionf(&ctx, ctx.asm_bss_src, "%s: resq %d", var.name, var.type.array_size);
-        }
-        else if (!var.is_undefined && !var.type.is_static) {
-            asm_add_sectionf(&ctx, ctx.asm_data_src, "global %s", var.name);
-            asm_add_sectionf(&ctx, ctx.asm_data_src, "%s: dq %s", var.name, var.const_expr);
-        }
-        else if (var.is_undefined && !var.type.is_static) {
-            asm_add_sectionf(&ctx, ctx.asm_bss_src, "global %s", var.name);
-            asm_add_sectionf(&ctx, ctx.asm_bss_src, "%s: resq 1 ", var.name);
+        if (!var.type.is_static) {
+            gen_asm_global_variable(var, &ctx);
         }
     }   
+    asm_add_sectionf(&ctx, ctx.asm_data_src, "; Static variables");
     gen_asm_symbols(symbols, ctx);
 }
 
@@ -303,18 +328,7 @@ void gen_asm_symbols(SymbolTable* symbols, AsmContext ctx) {
     {
         Variable var = symbols->vars[i];
         if (var.type.is_static) {
-            if (var.type.is_array) {
-            asm_add_sectionf(&ctx, ctx.asm_bss_src, "global %s", var.name);
-            asm_add_sectionf(&ctx, ctx.asm_bss_src, "%s.%ds: resq %d", var.name, var.unique_id, var.type.array_size);
-            }
-            else if (!var.is_undefined) {
-                asm_add_sectionf(&ctx, ctx.asm_data_src, "; Static variable");
-                asm_add_sectionf(&ctx, ctx.asm_data_src, "%s.%ds: dq %s", var.name, var.unique_id, var.const_expr);
-            }
-            else {
-                asm_add_sectionf(&ctx, ctx.asm_bss_src, "; Uninitialized static variable");
-                asm_add_sectionf(&ctx, ctx.asm_bss_src, "%s.%ds: resq 1", var.name, var.unique_id);
-            }
+            gen_asm_static_variable(var, &ctx);
         }
     }
     
@@ -323,6 +337,54 @@ void gen_asm_symbols(SymbolTable* symbols, AsmContext ctx) {
         gen_asm_symbols(symbol_table_get_child(symbols, i), ctx);
     }
     
+}
+
+void gen_asm_global_variable(Variable var, AsmContext* ctx) {
+    if (var.type.array_has_initializer) { // This is handled by the AST_INIT node instead
+        return;
+    }
+    if (var.type.is_array) {
+        asm_add_sectionf(ctx, ctx->asm_bss_src, "global %s", var.name);
+        asm_add_sectionf(ctx, ctx->asm_bss_src, "%s: resq %d", var.name, var.type.array_size);
+    }
+    else if (!var.is_undefined) {
+        if (var.const_expr_type == LT_STRING) { // String
+            char* label_name = get_next_cstring_label_str(ctx);
+            asm_add_sectionf(ctx, ctx->asm_rodata_src, "%s: db `%s`, 0", label_name, var.const_expr);
+            asm_add_sectionf(ctx, ctx->asm_data_src, "%s: dq %s", var.name, label_name);
+        }
+        else {
+            asm_add_sectionf(ctx, ctx->asm_data_src, "%s: dq %s", var.name, var.const_expr);
+        }
+    }
+    else {
+        asm_add_sectionf(ctx, ctx->asm_data_src, "; Uninitialized global variable");
+        asm_add_sectionf(ctx, ctx->asm_data_src, "%s: dq 0", var.name);
+    }
+}
+
+void gen_asm_static_variable(Variable var, AsmContext* ctx) {
+    if (var.type.array_has_initializer) { // This is handled by the AST_INIT node instead
+        return;
+    }
+    if (var.type.is_array) {
+        asm_add_sectionf(ctx, ctx->asm_bss_src, "global %s", var.name);
+        asm_add_sectionf(ctx, ctx->asm_bss_src, "%s.%ds: resq %d", var.name, var.unique_id, var.type.array_size);
+    }
+    else if (!var.is_undefined) {
+        if (var.const_expr_type == LT_STRING) { // String
+            char* label_name = get_next_cstring_label_str(ctx);
+            asm_add_sectionf(ctx, ctx->asm_rodata_src, "%s: db `%s`, 0", label_name, var.const_expr);
+            asm_add_sectionf(ctx, ctx->asm_data_src, "%s.%ds: dq %s", var.name, var.unique_id, label_name);
+        }
+        else {
+            asm_add_sectionf(ctx, ctx->asm_data_src, "%s.%ds: dq %s", var.name, var.unique_id, var.const_expr);
+        }
+    }
+    else {
+        asm_add_sectionf(ctx, ctx->asm_data_src, "; Uninitialized static variable");
+        asm_add_sectionf(ctx, ctx->asm_data_src, "%s.%ds: dq 0", var.name, var.unique_id);
+    }
 }
 
 void gen_asm(ASTNode* node, AsmContext ctx) {
@@ -374,6 +436,10 @@ void gen_asm(ASTNode* node, AsmContext ctx) {
             break;
         case AST_GOTO:
             asm_addf(&ctx, "jmp .L%s ; Goto", node->literal);
+            gen_asm(node->next, ctx);
+            break;
+        case AST_INIT:
+            gen_asm_array_initializer(node, ctx);
             gen_asm(node->next, ctx);
             break;
         case AST_END:
@@ -558,6 +624,76 @@ void gen_asm_func(ASTNode* node, AsmContext ctx) {
     asm_addf(&ctx, "ret");
     free(ctx.func_return_label);
     gen_asm(node->next, ctx);
+}
+
+void gen_asm_array_initializer(ASTNode* node, AsmContext ctx) {
+    // If this is a global or a static initializer, we can initialize when defining the asm variable
+    if (node->var.is_global || node->var.type.is_static) {
+        asm_add_newline(&ctx, ctx.asm_data_src);
+        ASTNode* arg_node = node->args;
+        if (node->var.type.is_static) {
+            asm_add_wn_sectionf(&ctx, ctx.asm_data_src, 
+                    "%s.%ds: %s ", 
+                    node->var.name, 
+                    node->var.unique_id, 
+                    bytes_to_data_width(get_deref_var_type(node->var.type).bytes)
+            );
+        }
+        else {
+            asm_add_wn_sectionf(&ctx, ctx.asm_data_src, 
+                    "%s: %s ", 
+                    node->var.name, 
+                    bytes_to_data_width(get_deref_var_type(node->var.type).bytes)
+            );
+        }
+        for (size_t i = 0; i < node->var.type.array_size; i++)
+        {
+            if (arg_node->type != AST_END) { // Grab the argument value
+                if (arg_node->literal_type == LT_STRING) {
+                    char* label_name = get_next_cstring_label_str(&ctx);
+                    asm_add_sectionf(&ctx, ctx.asm_rodata_src, "%s: db `%s`, 0", label_name, arg_node->literal);
+                    asm_add_wn_sectionf(&ctx, ctx.asm_data_src, "%s, ", label_name);
+                }
+                else {
+                    asm_add_wn_sectionf(&ctx, ctx.asm_data_src, "%s, ", arg_node->literal);
+                }
+                arg_node = arg_node->next;
+            }
+            else {
+                asm_add_wn_sectionf(&ctx, ctx.asm_data_src, "0, ");
+            }
+        }
+        asm_add_newline(&ctx, ctx.asm_data_src);
+    }
+    else { // Otherwise, we have to move the values into the array
+        asm_add_com(&ctx, "; Array initializer");
+        int stack_ptr = node->var.stack_offset;
+        VarType deref_type = get_deref_var_type(node->var.type);
+        int end_stack_ptr = node->var.stack_offset - deref_type.bytes * node->var.type.array_size;
+        ASTNode* arg_node = node->args;
+        char* addr_size = bytes_to_addr_width(deref_type.bytes);
+        while (stack_ptr > end_stack_ptr)
+        {
+            if (arg_node->type != AST_END) { // Grab the argument value
+                if (arg_node->literal_type == LT_STRING) {
+                    char* label_name = get_next_cstring_label_str(&ctx);
+                    asm_add_sectionf(&ctx, ctx.asm_rodata_src, "%s: db `%s`, 0", label_name, arg_node->literal);
+                    
+                    asm_addf(&ctx, "lea rax, [%s]", label_name); 
+                    asm_addf(&ctx, "mov %s [rbp-%d], rax", addr_size, stack_ptr); 
+                
+                }
+                else {
+                    asm_addf(&ctx, "mov %s [rbp-%d], %s", addr_size, stack_ptr, arg_node->literal); 
+                }
+                arg_node = arg_node->next;
+            }
+            else { // Out of arguments, set to 0
+                asm_addf(&ctx, "mov %s [rbp-%d], 0", addr_size, stack_ptr);
+            }
+            stack_ptr -= deref_type.bytes;
+        }
+    }
 }
 
 // Generate assembly for an if conditional node

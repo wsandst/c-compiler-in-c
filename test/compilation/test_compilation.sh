@@ -36,7 +36,7 @@ do
         if [ $? -ne 0 ]; then
             echo -e "${RED}VALGRIND FAIL ${CLEAR}"
             failed_test=true
-            #exit 1
+            exit 1
         fi
     else
         ./build/ccompiler $i

@@ -1,9 +1,6 @@
-// Insertion sort
-
-void printf(char* string, int value);
-void* malloc(int size);
-void free(void* ptr);
-int rand();
+// Insertion sort using only pointers
+#include <stdio.h>
+#include <stdlib.h>
 
 int count = 100;
 

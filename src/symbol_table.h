@@ -15,6 +15,7 @@
 
 #include "util/string_helpers.h"
 
+typedef enum LiteralType LiteralType;
 typedef enum VarTypeEnum VarTypeEnum;
 typedef struct VarType VarType;
 typedef struct Variable Variable;
@@ -22,6 +23,13 @@ typedef struct Function Function;
 typedef struct ValueLabel ValueLabel;
 typedef struct Object Object;
 typedef struct SymbolTable SymbolTable;
+
+enum LiteralType {
+    LT_INT,
+    LT_FLOAT,
+    LT_STRING,
+    LT_CHAR,
+};
 
 enum VarTypeEnum {
   TY_VOID,
@@ -45,6 +53,7 @@ struct VarType {
     bool is_static;
     bool is_array;
     int array_size;
+    bool array_has_initializer;
 };
 
 // Variable object
@@ -57,6 +66,7 @@ struct Variable {
     bool is_undefined;
     bool is_dereferenced_ptr;
     char* const_expr;
+    LiteralType const_expr_type;
     int unique_id;
 };
 
