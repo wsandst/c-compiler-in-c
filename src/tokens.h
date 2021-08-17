@@ -112,14 +112,8 @@ typedef struct Tokens Tokens;
 
 struct Token {
     enum TokenType type;
-    union value {
-        char* string;
-        long int ivalue;
-        float fvalue;
-        double dvalue;
-        char cvalue;
-    } value;
     int src_pos;
+    int src_line;
     char* string_repr;
     bool requires_string_free;
 };
@@ -135,9 +129,13 @@ struct Tokens {
 Tokens tokens_new(int size);
 
 // Free the Token object
-void tokens_free(Tokens *tokens);
+void tokens_free(Tokens* tokens);
 
-Token* tokens_get(Tokens *tokens, int i);
+// Get a token from index i in Tokens
+Token* tokens_get(Tokens* tokens, int i);
+
+// Set a token at index i in Tokens
+void tokens_set(Tokens* tokens, int i, TokenType type, char* string_repr, bool requires_free, int line);
 
 // Remove NULL elements from the token array
 void tokens_trim(Tokens* tokens);

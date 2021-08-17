@@ -1,3 +1,4 @@
+// Implicit casting
 
 int main() {
     double z = 1.5;

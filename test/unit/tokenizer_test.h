@@ -76,7 +76,7 @@ void test_tokenizer_preprocessor() {
     assert(tokens_get(&tokens, 0)->type == TK_PREPROCESSOR);
     assert(tokens_get(&tokens, 1)->type == TK_PREPROCESSOR);
     assert(tokens_get(&tokens, 2)->type == TK_EOF); // Last token should always be EOF
-    assert(strcmp(tokens_get(&tokens, 1)->value.string, "#include test") == 0);
+    assert(strcmp(tokens_get(&tokens, 1)->string_repr, "#include test") == 0);
     assert(tokens.size == 3);
     tokens_free(&tokens);
 }
@@ -87,7 +87,7 @@ void test_tokenizer_comments() {
     "/*\n*/";
     Tokens tokens = tokenize(src);
     assert(tokens_get(&tokens, 0)->type == TK_COMMENT);
-    assert(strcmp(tokens_get(&tokens, 1)->value.string, "#define") == 0);
+    assert(strcmp(tokens_get(&tokens, 1)->string_repr, "#define") == 0);
     assert(tokens_get(&tokens, 1)->type == TK_PREPROCESSOR);
     assert(tokens_get(&tokens, 2)->type == TK_KW_WHILE);
     assert(tokens_get(&tokens, 3)->type == TK_COMMENT);
@@ -105,15 +105,15 @@ void test_tokenizer_strings() {
     Tokens tokens = tokenize(src);
     assert(tokens_get(&tokens, 0)->type == TK_COMMENT);
     assert(tokens_get(&tokens, 1)->type == TK_LSTRING);
-    assert(strcmp(tokens_get(&tokens, 1)->value.string, "hello") == 0);
+    assert(strcmp(tokens_get(&tokens, 1)->string_repr, "hello") == 0);
     assert(tokens_get(&tokens, 2)->type == TK_LSTRING);
-    assert(strcmp(tokens_get(&tokens, 2)->value.string, "hello\\\"") == 0);
+    assert(strcmp(tokens_get(&tokens, 2)->string_repr, "hello\\\"") == 0);
     assert(tokens_get(&tokens, 3)->type == TK_LCHAR);
-    assert(strcmp(tokens_get(&tokens, 3)->value.string, "c") == 0);
+    assert(strcmp(tokens_get(&tokens, 3)->string_repr, "c") == 0);
     assert(tokens_get(&tokens, 4)->type == TK_LCHAR);
-    assert(strcmp(tokens_get(&tokens, 4)->value.string, "\\n") == 0);
+    assert(strcmp(tokens_get(&tokens, 4)->string_repr, "\\n") == 0);
     assert(tokens_get(&tokens, 5)->type == TK_LCHAR);
-    assert(strcmp(tokens_get(&tokens, 5)->value.string, "\\\"") == 0);
+    assert(strcmp(tokens_get(&tokens, 5)->string_repr, "\\\"") == 0);
     tokens_free(&tokens);
 }
 
@@ -212,11 +212,11 @@ void test_tokenizer_idents() {
     assert(tokens_get(&tokens, 5)->type == TK_IDENT);
     assert(tokens_get(&tokens, 6)->type == TK_IDENT);
     assert(tokens_get(&tokens, 7)->type == TK_IDENT);
-    assert(strcmp(tokens_get(&tokens, 7)->value.string, "_a") == 0);
+    assert(strcmp(tokens_get(&tokens, 7)->string_repr, "_a") == 0);
     assert(tokens_get(&tokens, 8)->type == TK_IDENT);
-    assert(strcmp(tokens_get(&tokens, 8)->value.string, "_") == 0);
+    assert(strcmp(tokens_get(&tokens, 8)->string_repr, "_") == 0);
     assert(tokens_get(&tokens, 9)->type == TK_IDENT);
-    assert(strcmp(tokens_get(&tokens, 10)->value.string, "abc_efg") == 0);
+    assert(strcmp(tokens_get(&tokens, 10)->string_repr, "abc_efg") == 0);
     assert(tokens_get(&tokens, 10)->type == TK_IDENT);
     tokens_free(&tokens);
 }

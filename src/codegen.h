@@ -96,21 +96,6 @@ char* generate_assembly(AST* ast, SymbolTable* symbols);
 // Generate assembly from the node. Used recursively
 void gen_asm(ASTNode* node, AsmContext ctx);
 
-// Generate globals in the data and bss section
-void gen_asm_global_symbols(SymbolTable* symbols, AsmContext ctx);
-
-// Generate assembly for certain symbols (static etc)
-void gen_asm_symbols(SymbolTable* symbols, AsmContext ctx);
-
-// Generate assembly for a global variable declaration
-void gen_asm_global_variable(Variable var, AsmContext* ctx);
-
-// Generate assembly for a static variable declaration
-void gen_asm_static_variable(Variable var, AsmContext* ctx);
-
-// Generate assembly for an array initializer
-void gen_asm_array_initializer(ASTNode* node, AsmContext ctx);
-
 // Generate assembly for a function definition
 void gen_asm_func(ASTNode* node, AsmContext ctx);
 
@@ -153,6 +138,19 @@ void gen_asm_unary_op(ASTNode* node, AsmContext ctx);
 void gen_asm_binary_op(ASTNode* node, AsmContext ctx);
 // Generate assembly for the unary op '&' on any type
 void gen_asm_unary_op_address(ASTNode* node, AsmContext ctx);
+
+// =============== Codegen declarations ====================
+
+// Generate globals in the data and bss section
+void gen_asm_global_symbols(SymbolTable* symbols, AsmContext ctx);
+// Generate assembly for certain symbols (static etc)
+void gen_asm_symbols(SymbolTable* symbols, AsmContext ctx);
+// Generate assembly for a global variable declaration
+void gen_asm_global_variable(Variable var, AsmContext* ctx);
+// Generate assembly for a static variable declaration
+void gen_asm_static_variable(Variable var, AsmContext* ctx);
+// Generate assembly for an array initializer
+void gen_asm_array_initializer(ASTNode* node, AsmContext ctx);
 
 // =============== Integer operations ===============
 // Generate assembly for an integer unary op expression node

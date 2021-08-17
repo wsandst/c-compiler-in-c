@@ -1,4 +1,4 @@
-
+// Test for stack alignment
 
 int main() {
     unsigned char x1 = 1;

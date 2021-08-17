@@ -8,8 +8,6 @@ TODO:
         Improve function arg handling:
             Save on stack
 
-        Array initializers
-
         Structs, enums, unions
 
 
@@ -32,7 +30,11 @@ TODO:
         Floating point:
             Operators left: ++, --
         Arrays:
-            Initializer lists would be nice to have
+            Infer array size from initializer size
+            Treat x[] as *x
+            These are connected. int x[] is equivalent with int* x;
+            sizeof array
+            sizeof self. Might even work currently?
         Constants:
             Just ignore the keyword for now
     

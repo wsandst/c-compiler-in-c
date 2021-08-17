@@ -194,6 +194,19 @@ bool accept_type() {
         latest_parsed_var_type.ptr_value_bytes = latest_parsed_var_type.bytes;
         latest_parsed_var_type.bytes = 8;
     }
+    // Check for ending [] which implies a pointer level
+    if (accept(TK_IDENT)) {
+        if(accept(TK_DL_OPENBRACKET)) {
+            if (accept(TK_DL_CLOSEBRACKET)) {
+                latest_parsed_var_type.ptr_value_bytes = latest_parsed_var_type.bytes;
+                latest_parsed_var_type.bytes = 8;
+                latest_parsed_var_type.ptr_level++;
+                token_go_back(1);
+            }
+            token_go_back(1);
+        }
+        token_go_back(1);
+    }
     return true;
 }
 
@@ -240,7 +253,7 @@ void parse_func(ASTNode* node, SymbolTable* symbols) {
     Function func;
     expect_type();
     expect(TK_IDENT);
-    char* ident = prev_token().value.string;
+    char* ident = prev_token().string_repr;
     func.name = ident;
     func.return_type = latest_parsed_var_type;;
     func.is_defined = false;
@@ -305,7 +318,7 @@ void parse_single_statement(ASTNode* node, SymbolTable* symbols) {
         Variable var;
         var.type = latest_parsed_var_type;
         expect(TK_IDENT);
-        char* ident = prev_token().value.string;
+        char* ident = prev_token().string_repr;
         var.name = ident;
         symbol_table_insert_var(symbols, var);
 
@@ -470,6 +483,7 @@ void parse_expression(ASTNode* node, SymbolTable* symbols, int min_precedence) {
                 node->rhs = rhs;
                 node->cast_type.type = TY_INT;
                 node->cast_type.ptr_level = 0;
+                node->cast_type.is_array = false;
                 node->cast_type.bytes = 8;
             };
         }
@@ -497,6 +511,7 @@ void parse_binary_op_indexing(ASTNode* node, SymbolTable* symbols) {
     node->rhs = add_binop;
     node->cast_type = add_binop->cast_type;
     node->cast_type.ptr_level -= 1;
+    node->cast_type.is_array = false;
     if (node->cast_type.ptr_level == 0) {
         node->cast_type.bytes = node->cast_type.ptr_value_bytes;
     }
@@ -571,14 +586,17 @@ void parse_unary_op(ASTNode* node, SymbolTable* symbols) {
         // will provide the most memory used. This needs to be passed up,
         // will help with implicit conversions later as well. Should be in the op node
         expect(TK_DL_OPENPAREN);
-        expect_type();
+        if (accept_type()) {
+            node->rhs->cast_type = latest_parsed_var_type;
+            expect(TK_DL_CLOSEPAREN);
+        }
+        else {
+            token_go_back(1);
+            parse_expression_atom(node->rhs, symbols);
+        }
+        node->rhs->type = AST_END;
         node->cast_type.type = TY_INT;
         node->cast_type.bytes = 8;
-        expect(TK_DL_CLOSEPAREN);
-        node->rhs->type = AST_END;
-        node->rhs->cast_type = latest_parsed_var_type;
-        // This is a weird unop, no operand. Should I make a normal var rhs here with nothing but
-        // the cast_type? Or ist AST_END fine?§3    
     }
     else {
         parse_expression_atom(node->rhs, symbols);
@@ -599,6 +617,7 @@ void parse_unary_op(ASTNode* node, SymbolTable* symbols) {
                 node->var.is_dereferenced_ptr = true;
             }
             node->cast_type.ptr_level -= 1;
+            node->cast_type.is_array = false;
         }
     }
 }
@@ -628,7 +647,7 @@ void parse_literal(ASTNode* node,  SymbolTable* symbols) {
 
 void parse_global(ASTNode* node, SymbolTable* symbols) {
     if (accept(TK_IDENT)) { // Definition of already declared global variable
-        char* ident = prev_token().value.string;
+        char* ident = prev_token().string_repr;
         token_go_back(1);
         parse_expression(node, symbols, 1);
         expect(TK_DL_SEMICOLON);
@@ -646,7 +665,7 @@ void parse_global(ASTNode* node, SymbolTable* symbols) {
         Variable var;
         var.type = latest_parsed_var_type;
         expect(TK_IDENT);
-        char* ident = prev_token().value.string;
+        char* ident = prev_token().string_repr;
         var.name = ident;
         var.is_undefined = true;
         var.is_global = true;
@@ -673,7 +692,7 @@ void parse_global(ASTNode* node, SymbolTable* symbols) {
 }
 
 void parse_static_declaration(ASTNode* node, SymbolTable* symbols) {
-    char* ident = prev_token().value.string;
+    char* ident = prev_token().string_repr;
     Variable* var = symbol_table_lookup_var_ptr(symbols, ident);
 
     if (accept(TK_OP_ASSIGN)) { // Def and assignment
@@ -709,7 +728,7 @@ void parse_static_declaration(ASTNode* node, SymbolTable* symbols) {
 void parse_array_declaration(ASTNode* node, SymbolTable* symbols) {
     token_go_back(1);
     node->type = AST_NULL_STMT; // Declarations are virtual
-    char* ident = prev_token().value.string;
+    char* ident = prev_token().string_repr;
     Variable* var = symbol_table_lookup_var_ptr(symbols, ident);
     var->type.is_array = true;
     var->type.ptr_level++;
@@ -916,7 +935,18 @@ void parse_default_case(ASTNode* node, SymbolTable* symbols) {
 }
 
 void parse_error(char* error_message) {
-    fprintf(stderr, "Parse error: %s (token: \"%s\")\n", error_message, token_type_to_string(parse_token->type));
+    static char* RED_COLOR_STR = "\033[31;1m";
+    static char* RESET_COLOR_STR = "\033[0m";
+    fprintf(stderr, "%sParse error:%s %s\n", RED_COLOR_STR, RESET_COLOR_STR, error_message);
+    fprintf(stderr, "At line %d |  %s %s%s%s %s    (at token: \"%s\")\n", 
+            parse_token->src_line,
+            (parse_token - 1)->string_repr,
+            RED_COLOR_STR,
+            parse_token->string_repr,
+            RESET_COLOR_STR,
+            (parse_token + 1)->string_repr,
+            token_type_to_string(parse_token->type)
+    );
     // We are not manually freeing the memory here, 
     // but as the program is exiting it is fine
     exit(1); 

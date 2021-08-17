@@ -1,3 +1,6 @@
+/*
+Implementation of code generation functionality related to expressions 
+*/
 #include "codegen.h"
 
 // Generate assembly for an expression node
@@ -176,7 +179,12 @@ void gen_asm_unary_op_int(ASTNode* node, AsmContext ctx) {
             break;
         case UOP_SIZEOF:
             asm_add_com(&ctx, "; Op: sizeof");
-            asm_addf(&ctx, "mov rax, %d", node->rhs->cast_type.bytes);
+            if (node->rhs->cast_type.is_array) {
+                asm_addf(&ctx, "mov rax, %d", node->rhs->cast_type.array_size);
+            }
+            else {
+                asm_addf(&ctx, "mov rax, %d", node->rhs->cast_type.bytes);
+            }
             break;
         case UOP_CAST:
             asm_add_com(&ctx, "; Op: cast");
