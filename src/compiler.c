@@ -12,12 +12,10 @@ TODO:
         Refactor constant expression handling:
             Everything is very fragmented currently, handling of globals/cases/enums should be
             the same, not different as it is currently
+        Refactor function calling
 
     Functions, proper calling convention:
-        The function argument handling needs to be improved:
-            Improve handling of calling convention, currently can't handle certain edge cases
         Variadic function definitions, not just declarations/calling:
-            I can sorta cheat here if I don't allow fp values to the variadic functions
             https://blog.nelhage.com/2010/10/amd64-and-va_arg/
             Just recreate that struct with va_start, push the registers to stack, pass it by pointer
 
@@ -29,13 +27,10 @@ TODO:
             Treat x[] as *x
             These are connected. int x[] is equivalent with int* x;
             char* x = {"a", "b", "c"} should work if char x[] works, same construct
-    
-    Tokenizer:
-        Fix nested strings within comments, comments within strings, escape characters etc
 
     Intentional deficits:
-        Constants are not constant
-        Only literals are allowed for constant expressions
+        Constants expressions are not evaluated
+        Only literals are allowed for constant certain expressions
         Variable length arrays are not implemented
         Comma operator and ternary operator is not implemented
         Certain float operators have been skipped

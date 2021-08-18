@@ -83,8 +83,9 @@ void test_tokenizer_preprocessor() {
 
 void test_tokenizer_comments() {
     // Comments
-    char* src = "//#define\n #define \n while // hello \n/*test */ \n while /* \n if \n */while\n"
-    "/*\n*/";
+    char* src = 
+        "//#define\n #define \n while // hello \n/*test */ \n while /* \n if \n */while\n /**/ /**/\n \"// \\\"/* */\" \n /*\n*/";
+    // \"// /* */\"
     Tokens tokens = tokenize(src);
     assert(tokens_get(&tokens, 0)->type == TK_COMMENT);
     assert(strcmp(tokens_get(&tokens, 1)->string_repr, "#define") == 0);
@@ -96,6 +97,9 @@ void test_tokenizer_comments() {
     assert(tokens_get(&tokens, 6)->type == TK_COMMENT);
     assert(tokens_get(&tokens, 7)->type == TK_KW_WHILE);
     assert(tokens_get(&tokens, 8)->type == TK_COMMENT);
+    assert(tokens_get(&tokens, 9)->type == TK_COMMENT);
+    assert(tokens_get(&tokens, 10)->type == TK_LSTRING);
+    assert(tokens_get(&tokens, 11)->type == TK_COMMENT);
     tokens_free(&tokens);
 }
 

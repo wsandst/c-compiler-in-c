@@ -126,81 +126,52 @@ void tokenize_preprocessor(Tokens *tokens, StrVector *str_split) {
     }
 }
 
-// We do not handle the edge case of a // or /* */ inside a string literal ""
-/* */
 void tokenize_comments(Tokens *tokens, StrVector *str_split) {
     int src_pos = 0;
-    bool seeking_block_comment_end = false;
     int comment_src_pos;
-    char* zero_from;
-    bool zero_from_start = false;
-    char* block_comment_str;
+    bool seeking_block_comment_end = false;
+    bool is_inside_string = false;
     for (size_t i = 0; i < str_split->size; i++) {
         char* str = str_split->elems[i];
-        // Block comments
-        int block_comment_index = str_contains(str, "/*");
-        if (block_comment_index) {
+
+        while (*str) {
             if (!seeking_block_comment_end) {
-                zero_from = str + block_comment_index - 1;
-                comment_src_pos = src_pos + block_comment_index - 1;
-            }
-            seeking_block_comment_end = true;
-        }
-        if (seeking_block_comment_end) {
-            int block_comment_end = str_contains(str, "*/");
-            if (block_comment_end) {
-                // Found the end
-                if (zero_from_start) {
-                    str_fill(str, block_comment_end + 1, ' ');
-                    char* substr = str_substr(str, block_comment_end+1);
-                    char* added_str = str_add(block_comment_str, substr);
-                    free(substr);
-                    free(block_comment_str);
-                    block_comment_str = added_str;
+                // We need to ignore comments inside strings
+                if (*str != '\\' && *str == '\"') {
+                    is_inside_string = !is_inside_string;
                 }
-                else {
-                    block_comment_str = str_substr(zero_from, block_comment_end - (zero_from - str) + 1);
-                    str_fill(zero_from, block_comment_end - (zero_from - str) + 1, ' ');
+                // Check for start of multiline comment
+                else if (!is_inside_string && *str == '/' && *(str + 1) == '*') {
+                    comment_src_pos = src_pos;
+                    *str = ' ';
+                    src_pos++;
+                    str++;
+                    *str = ' ';
+                    seeking_block_comment_end = true;
                 }
-                tokens_set(tokens, comment_src_pos, TK_COMMENT, block_comment_str, true, i);
-                seeking_block_comment_end = false;
-                zero_from_start = false;
-            }
-            else if (!zero_from_start) {
-                // Zero from zero_from to the end of the str
-                block_comment_str = str_substr(zero_from, str - zero_from + strlen(str));
-                str_fill(zero_from, str - zero_from + strlen(str), ' ');
-                zero_from_start = true;
-                src_pos += strlen(str);
-                continue;
+                // Check for single line comment
+                else if (!is_inside_string && *str == '/' && *(str + 1) == '/') {
+                    // Single line comment, can clear out to end of line
+                    tokens_set(tokens, src_pos, TK_COMMENT, 
+                            str_substr(str, strlen(str)), true, i);
+                    str_fill(str, strlen(str), ' ');
+                }
             }
             else {
-                // This is all a block comment
-                // Add to the string repr
-                char* substr = str_substr(str, strlen(str));
-                char* added_str1 = str_add(block_comment_str, substr);
-                char* added_str2 = str_add(added_str1, "\n");
-                free(substr);
-                free(added_str1);
-                free(block_comment_str);
-                block_comment_str = added_str2;
-                // Zero out the contents
-                str_fill(str, strlen(str), ' ');
-                src_pos += strlen(str);
-                continue;
+                // Check for end of multiline comment
+                if (*str == '*' && *(str +1) == '/') {
+                    tokens_set(tokens, comment_src_pos, TK_COMMENT, "BLOCK COMMENT N/A", false, i);
+                    seeking_block_comment_end = false;
+                    *str = ' ';
+                    str++;
+                    src_pos++;
+                }
+                *str = ' ';
             }
-        }
 
-        // Single line comments
-        int comment_index = str_contains(str, "//");
-        if (comment_index) {
-            int comment_src_pos = src_pos + comment_index + 1;
-            char* comment_start = str + comment_index - 1;
-            tokens_set(tokens, comment_src_pos, TK_COMMENT, 
-                    str_substr(comment_start, strlen(comment_start)), true, i);
-            str_fill(comment_start, strlen(comment_start), ' ');
+            str++;
+            src_pos++;
         }
-        src_pos += strlen(str);
     }
 }
 
