@@ -23,19 +23,6 @@ void asm_add(StrVector* src, char* str) {
     str_vec_push(src, str);
 }
 
-void asm_add_section(AsmContext* ctx, StrVector* section, int n, ...) {
-    asm_add_newline(ctx, section);
-    char* str;
-    va_list vl;
-    va_start(vl, n);
-    for (int i = 0; i < n; i++)
-    {
-        str = va_arg(vl, char*);
-        asm_add(section, str);
-    }
-    va_end(vl);
-}
-
 void asm_addf(AsmContext* ctx, char* format_string, ...) {
     va_list vl;
     va_start(vl, format_string);
@@ -372,94 +359,148 @@ void gen_asm_func_call(ASTNode* node, AsmContext ctx) {
     Return: RAX 
     */
     static char *reg_strs[6] = {"rdi", "rsi", "rdx", "rcx", "r8", "r9"};
-    static char *freg_strs[4] = {"xmm0", "xmm1", "xmm2", "xmm3"};
+    static char *float_reg_strs[8] = {"xmm0", "xmm1", "xmm2", "xmm3", "xmm4", "xmm5", "xmm6", "xmm7"};
     asm_add_com(&ctx, "; Expression function call");
 
-    // Limitation: This way of doing it breaks with 
-    // the combination of ints>6 and floats>0 
-    // or floats>4 and ints>0
-    // This can be fixed by storing every argument temporarily as stack variables,
-    // then putting that into the registers at the end
-    ASTNode* current_arg = node->args_end->prev;
-    Variable* current_func_def_arg = node->func.params + node->func.def_param_count - 1;
+    // Count general and floating point parameters
+    Variable* current_func_def_arg = node->func.params;
+    ASTNode* current_arg = node->args;
+    int float_arg_count = 0;
+    int int_arg_count = 0;
+    for (int i = 0; i < node->func.call_param_count; i++) {
+        VarType arg_type = current_func_def_arg->type;
+        if (i > node->func.def_param_count) { // Variadic, use argument type
+            arg_type = current_arg->cast_type;
+        } 
+        if (arg_type.type == TY_FLOAT && arg_type.ptr_level == 0) {
+            float_arg_count++;
+        }
+        else {
+            int_arg_count++;
+        }
+        current_arg = current_arg->next;
+        if (i < (node->func.def_param_count-1)) {
+            current_func_def_arg++;
+        }
+    }
+
+    // Add non-register arguments to the stack
+    current_arg = node->args_end->prev;
+    current_func_def_arg = node->func.params + node->func.def_param_count - 1;
+    int temp_float_param_count = float_arg_count;
+    int temp_int_param_count = int_arg_count;
     for (int i = node->func.call_param_count; i > 0; i--) {
         VarType arg_type = current_func_def_arg->type;
-        gen_asm(current_arg, ctx);
-        // Cast function parameter if necessary
         if (i > node->func.def_param_count) {
             // Variadic argument, we don't want to cast
             arg_type = current_arg->cast_type;
         } 
+        if (arg_type.type == TY_FLOAT && arg_type.ptr_level == 0) {
+            if (temp_float_param_count > 8) {
+                gen_asm(current_arg, ctx);
+                gen_asm_unary_op_cast(ctx, arg_type, current_arg->cast_type);
+                asm_addf(&ctx, "movq rax, xmm0");
+                asm_addf(&ctx, "push rax");
+            }
+            temp_float_param_count--;
+        }
         else {
-            gen_asm_unary_op_cast(ctx, arg_type, current_arg->cast_type);
+            if (temp_int_param_count > 6) {
+                // Cast function parameter if necessary
+                gen_asm(current_arg, ctx);
+                gen_asm_unary_op_cast(ctx, arg_type, current_arg->cast_type);
+                asm_addf(&ctx, "push rax");
+            }
+            temp_int_param_count--;
         }
         if (current_func_def_arg > node->func.params) {
             current_func_def_arg--;
         }
-        // Integer/pointer argument
-        if (arg_type.ptr_level > 0 || arg_type.type == TY_INT) {
-            asm_addf(&ctx, "push rax");
+        current_arg = current_arg->prev;
+    }
+
+    // Push up to 8 floating point args, used for passing to regs
+    current_arg = node->args_end->prev;
+    current_func_def_arg = node->func.params + node->func.def_param_count - 1;
+    temp_float_param_count = float_arg_count;
+    for (int i = node->func.call_param_count; i > 0; i--) {
+        VarType arg_type = current_func_def_arg->type;
+        if (i > node->func.def_param_count) {
+            // Variadic argument, we don't want to cast
+            arg_type = current_arg->cast_type;
+        } 
+        if (arg_type.type == TY_FLOAT && arg_type.ptr_level == 0) {
+            if (temp_float_param_count <= 8) {
+                gen_asm(current_arg, ctx);
+                gen_asm_unary_op_cast(ctx, arg_type, current_arg->cast_type);
+                asm_addf(&ctx, "movq rax, xmm0");
+                asm_addf(&ctx, "push rax");
+            }
+            temp_float_param_count--;
         }
-        // Floating point argument
-        else if (arg_type.type == TY_FLOAT) {
-            asm_addf(&ctx, "movq rax, xmm0");
-            asm_addf(&ctx, "push rax");
-        }
-        else { // Struct etc
-            codegen_error("Unsupported function argument type encountered!");
+        if (current_func_def_arg > node->func.params) {
+            current_func_def_arg--;
         }
         current_arg = current_arg->prev;
     }
-    int int_arg_count = 0;
-    int float_arg_count = 0;
-    current_arg = node->args;
-    for (int i = 0; i < node->func.call_param_count; i++) {
-        VarType arg_type; 
-        if (i >= node->func.def_param_count) {
-            // Variadic argument, use the node type
+
+    // Push up to 6 int args, used for passing to regs
+    current_arg = node->args_end->prev;
+    current_func_def_arg = node->func.params + node->func.def_param_count - 1;
+    temp_int_param_count = int_arg_count;
+    for (int i = node->func.call_param_count; i > 0; i--) {
+        VarType arg_type = current_func_def_arg->type;
+        if (i > node->func.def_param_count) {
+            // Variadic argument, we don't want to cast
             arg_type = current_arg->cast_type;
         } 
-        else {
-            arg_type = current_func_def_arg->type;
-            current_func_def_arg++;
-        }
-        // Integer/pointer argument
-        if (arg_type.ptr_level > 0 || arg_type.type == TY_INT) {
-            if (int_arg_count < 6) { // Pass by register
-                asm_addf(&ctx, "pop rax");
-                asm_addf(&ctx, "mov %s, rax", reg_strs[int_arg_count]);
+        if (!(arg_type.type == TY_FLOAT && arg_type.ptr_level == 0)) {
+            if (temp_int_param_count <= 6) {
+                gen_asm(current_arg, ctx);
+                gen_asm_unary_op_cast(ctx, arg_type, current_arg->cast_type);
+                asm_addf(&ctx, "push rax");
             }
-            int_arg_count++;
+            temp_int_param_count--;
         }
-        // Floating point argument
-        else if (arg_type.type == TY_FLOAT) {
-            if (float_arg_count < 4) { // Pass by register
-                asm_addf(&ctx, "pop rax");
-                asm_addf(&ctx, "movq %s, rax", freg_strs[float_arg_count]);
-            }
-            // Otherwise, we pass by stack, which is already 
-            float_arg_count++;
+        if (current_func_def_arg > node->func.params) {
+            current_func_def_arg--;
         }
-        else { // Struct etc
-            codegen_error("Unsupported function argument type encountered!");
-        }
-        if ((float_arg_count > 4 && int_arg_count) || (float_arg_count && int_arg_count > 6)) {
-            codegen_error("Unsupported combination of floats and integer function arguments!");
-        }
-        current_arg = current_arg->next;
+        current_arg = current_arg->prev;
     }
-    int pop_count = max(int_arg_count - 6, 0) + max(float_arg_count - 4, 0);
-    
-    // If variadic we need to pass floating vector reg count into AL
-    if (node->func.is_variadic && float_arg_count > 0) {
-        asm_addf(&ctx, "mov al, %d", min(4, float_arg_count));
+
+    /* 
+    Stack now looks like this:
+    | TOP RSP
+    | ------
+    | INT REGS (up to first 6)
+    | FLOAT REGS (up to first 8)
+    | REST OF ARGS
+    | ...
+    -----
+    */
+
+    // Pop INT REGS parameters into their respective function regs
+    int min_int_pop = min(int_arg_count, 6);
+    for (int i = 0; i < min_int_pop; i++) {
+        asm_addf(&ctx, "pop rax");
+        asm_addf(&ctx, "mov %s, rax", reg_strs[i]);
+    }
+    // Pop FLOAT REGS parameters into their respective function regs
+    int min_float_pop = min(float_arg_count, 8);
+    for (int i = 0; i < min_float_pop; i++) {
+        asm_addf(&ctx, "pop rax");
+        asm_addf(&ctx, "movq %s, rax", float_reg_strs[i]);
+    }
+    if (node->func.is_variadic) { 
+        // Pass floating point reg count in AL in variadic functions
+        asm_addf(&ctx, "mov al, %d", min_float_pop);
     }
 
     asm_addf(&ctx, "call %s", node->func.name);
 
-    for (int i = 0; i < pop_count; i++) {
-        asm_addf(&ctx, "add rsp, 8");
-    }
+    // Restore the stack space used by REST OF ARGS
+    int pop_count = max(int_arg_count - 6, 0) + max(float_arg_count - 8, 0);
+    asm_addf(&ctx, "add rsp, %d", pop_count*8);
 }
 
 void gen_asm_func(ASTNode* node, AsmContext ctx) {
@@ -472,7 +513,7 @@ void gen_asm_func(ASTNode* node, AsmContext ctx) {
     Return: RAX 
     */
     static RegisterEnum arg_regs[6] = {RDI, RSI, RDX, RCX, R8, R9};
-    static char *float_reg_strs[4] = {"xmm0", "xmm1", "xmm2", "xmm3"};
+    static char *float_reg_strs[8] = {"xmm0", "xmm1", "xmm2", "xmm3", "xmm4", "xmm5", "xmm6", "xmm7"};
     Variable* param = node->func.params;
     ctx.func_return_label = str_copy(get_next_label_str(&ctx));
     asm_set_indent(&ctx, 0);
@@ -488,6 +529,7 @@ void gen_asm_func(ASTNode* node, AsmContext ctx) {
     asm_add_com(&ctx, "; Store passed function arguments");
     int int_arg_count = 0;
     int float_arg_count = 0;
+    int stack_arg_count = 0;
     for (int i = 0; i < node->func.def_param_count; i++) {
         char* param_ptr = var_to_stack_ptr(param);
         if (param->type.type == TY_INT || param->type.ptr_level > 0) {
@@ -496,20 +538,22 @@ void gen_asm_func(ASTNode* node, AsmContext ctx) {
                 asm_addf(&ctx, "mov %s, %s", param_ptr, reg_str);
             }
             else { // Pass by stack
-                asm_addf(&ctx, "mov rax, qword [rbp+%d]", 8*(int_arg_count-6+2));
+                asm_addf(&ctx, "mov rax, qword [rbp+%d]", 8*(stack_arg_count+2));
                 char* reg_str = get_reg_width_str(param->type, RAX);
                 asm_addf(&ctx, "mov %s, %s", param_ptr, reg_str);
+                stack_arg_count++;
             }
             int_arg_count++;
         }
         else if (param->type.type == TY_FLOAT) {
-            if (float_arg_count < 4) {
+            if (float_arg_count < 8) {
                 asm_addf(&ctx, "movq %s, %s", param_ptr, float_reg_strs[float_arg_count]);
             }
             else {
-                asm_addf(&ctx, "mov rax, qword [rbp+%d]", 8*(float_arg_count-4+2));
+                asm_addf(&ctx, "mov rax, qword [rbp+%d]", 8*(stack_arg_count+2));
                 char* reg_str = get_reg_width_str(param->type, RAX);
                 asm_addf(&ctx, "mov %s, %s", param_ptr, reg_str);
+                stack_arg_count++;
             }
             float_arg_count++;
         }

@@ -88,6 +88,8 @@ struct Function {
     VarType return_type;
     int def_param_count;
     int call_param_count;
+    int call_int_param_count;
+    int call_float_param_count;
     Variable* params;
     int stack_space_used;
     bool is_defined; // Has this function been defined? Otherwise, declare as extern

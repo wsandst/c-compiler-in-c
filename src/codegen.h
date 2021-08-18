@@ -44,8 +44,6 @@ typedef enum RegisterEnum RegisterEnum;
 // ============= ASM writing related =============
 // Add a str to the assembly src
 void asm_add(StrVector* src, char* str);
-// Add to a specific assembly src section, like the .data section
-void asm_add_section(AsmContext* ctx, StrVector* section, int n, ...);
 // Add assembly using a format string, also adds newline and indentation
 void asm_addf(AsmContext* ctx, char* format_string, ...);
 // Add to a specific assembly src section, like the .data section, formatted

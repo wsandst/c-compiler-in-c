@@ -16,7 +16,10 @@ TODO:
     Functions, proper calling convention:
         The function argument handling needs to be improved:
             Improve handling of calling convention, currently can't handle certain edge cases
-        Variadic function definitions, not just declarations/calling
+        Variadic function definitions, not just declarations/calling:
+            I can sorta cheat here if I don't allow fp values to the variadic functions
+            https://blog.nelhage.com/2010/10/amd64-and-va_arg/
+            Just recreate that struct with va_start, push the registers to stack, pass it by pointer
 
     Structs:
 
