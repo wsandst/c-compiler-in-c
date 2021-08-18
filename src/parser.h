@@ -268,6 +268,11 @@ bool accept_object_type(SymbolTable* symbols);
 // Accept a literal
 bool accept_literal();
 
+// Parse an enum type (and definition if there)
+void parse_enum(SymbolTable* symbols);
+// Parse a struct type (and definition if there)
+void parse_struct(SymbolTable* symbols);
+
 // Make sure the current token matches the sent in token, else
 // send an error message and exit the program
 void expect(TokenType type);

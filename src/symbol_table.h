@@ -37,6 +37,7 @@ lookup_typedefs()
 */
 
 enum LiteralType {
+    LT_NONE,
     LT_INT,
     LT_FLOAT,
     LT_STRING,
@@ -74,8 +75,10 @@ struct Variable {
     bool is_global;
     bool is_undefined;
     bool is_dereferenced_ptr;
+    bool is_enum_member;
     char* const_expr;
     LiteralType const_expr_type;
+    bool is_constant;
     int unique_id;
 };
 
@@ -148,6 +151,8 @@ struct SymbolTable {
 void symbol_error(char* error_message);
 void symbol_error2(char* symbol_name, char* error_message);
 
+Variable variable_new();
+
 SymbolTable* symbol_table_new();
 
 void symbol_table_init(SymbolTable* table);
@@ -164,7 +169,7 @@ Variable symbol_table_lookup_var(SymbolTable* table, char* var_name);
 Variable* symbol_table_lookup_var_ptr(SymbolTable* table, char* var_name);
 
 // Insert a variable in this scope of the symbol table
-Variable symbol_table_insert_var(SymbolTable* table, Variable var);
+Variable* symbol_table_insert_var(SymbolTable* table, Variable var);
 
 void symbol_table_vars_realloc(SymbolTable* table, int new_size);
 

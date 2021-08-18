@@ -222,17 +222,47 @@ bool accept_object_type(SymbolTable* symbols) {
             return true;
         }
     }
-    else if (accept(TK_KW_STRUCT)) { // Struct
-
-    }
     else if (accept(TK_KW_ENUM)) { // Enum
-
+        parse_enum(symbols);
+        return true;
+    }
+    else if (accept(TK_KW_STRUCT)) { // Struct
+        
     }
     else {
         return false;
     }
     token_go_back(1);
     return false;
+}
+
+void parse_enum(SymbolTable* symbols) {
+    accept(TK_IDENT); // Named enum
+    if (accept(TK_DL_OPENBRACE)) { // This is a definition
+        // Go through the args
+        int enum_value = 0;
+        static char buf[64];
+        while (!(accept(TK_DL_CLOSEBRACE)) || prev_token().type == TK_DL_OPENBRACE) {
+            accept(TK_IDENT);
+            char* ident = prev_token().string_repr;
+            Variable var = variable_new(); // Create a variable to map the value
+            snprintf(buf, 64, "%d", enum_value);
+            var.name = ident;
+            var.is_enum_member = 0;
+            var.const_expr = str_copy(buf);
+            var.const_expr_type = LT_INT;
+            var.type.bytes = 8;
+            var.type.type = TY_INT;
+            Variable* var_ptr = symbol_table_insert_var(symbols, var);
+            var_ptr->is_constant = true;
+            accept(TK_DL_COMMA);
+            enum_value++;
+        }
+    }
+    latest_parsed_var_type.bytes = 8;
+    latest_parsed_var_type.type = TY_INT;
+    latest_parsed_var_type.ptr_level = 0;
+    latest_parsed_var_type.is_array = 0;
 }
 
 bool accept_literal() {
@@ -265,14 +295,21 @@ void parse_program(ASTNode* node, SymbolTable* symbols) {
     else {
         Token* cur_parse_token = parse_token;
         expect_type(symbols);
-        expect(TK_IDENT);
-        if (accept(TK_DL_OPENPAREN)) { // Function
-            parse_token = cur_parse_token;
-            parse_func(node, symbols);
+        if (accept(TK_IDENT)) {
+            if (accept(TK_DL_OPENPAREN)) { // Function
+                parse_token = cur_parse_token;
+                parse_func(node, symbols);
+            }
+            else { // Global declaration
+                parse_token = cur_parse_token;
+                parse_global(node, symbols);
+            }
         }
-        else { // Global declaration
-            parse_token = cur_parse_token;
-            parse_global(node, symbols);
+        else {
+            expect(TK_DL_SEMICOLON);
+            // We can reuse this node, some form of symbolic type definition
+            parse_program(node, symbols);
+            return;
         }
     }
     node->next = ast_node_new(AST_END, 1);
@@ -341,39 +378,43 @@ void parse_single_statement(ASTNode* node, SymbolTable* symbols) {
         parse_single_statement(node, symbols);
         return;
     }
-    else if (accept_type(symbols)) { // Variable declaration
-        // Declaration is just connected to the symbol table,
-        // no actual node needed
+    else if (accept_type(symbols)) { // Variable declaration or struct/enum definition
 
-        // Add to symbol table
-        Variable var;
-        var.type = latest_parsed_var_type;
-        expect(TK_IDENT);
-        char* ident = prev_token().string_repr;
-        var.name = ident;
-        symbol_table_insert_var(symbols, var);
+        if (accept(TK_IDENT)) { // Variable declaration
+            Variable var;
+            var.type = latest_parsed_var_type;
+            char* ident = prev_token().string_repr;
+            var.name = ident;
+            symbol_table_insert_var(symbols, var);
 
-        if (var.type.is_static) { // Static 
-            parse_static_declaration(node, symbols);
-            return;
-        }
-        if (accept(TK_DL_OPENBRACKET)) { // Array type
-            parse_array_declaration(node, symbols);
-            expect(TK_DL_SEMICOLON);
-            return;
-        }
+            if (var.type.is_static) { // Static 
+                parse_static_declaration(node, symbols);
+                return;
+            }
+            if (accept(TK_DL_OPENBRACKET)) { // Array type
+                parse_array_declaration(node, symbols);
+                expect(TK_DL_SEMICOLON);
+                return;
+            }
 
-        if (accept(TK_OP_ASSIGN)) { // Def and assignment
-            // Treat this as an expresison
-            token_go_back(2); // Go back to ident token
-            node->type = AST_EXPR;
-            node->top_level_expr = true;
-            parse_expression(node, symbols, 1);
-            expect(TK_DL_SEMICOLON);
+            if (accept(TK_OP_ASSIGN)) { // Def and assignment
+                // Treat this as an expresison
+                token_go_back(2); // Go back to ident token
+                node->type = AST_EXPR;
+                node->top_level_expr = true;
+                parse_expression(node, symbols, 1);
+                expect(TK_DL_SEMICOLON);
+            }
+            else {
+                expect(TK_DL_SEMICOLON);
+                // We can reuse this node, def is just virtual
+                parse_single_statement(node, symbols);
+                return;
+            }
         }
-        else {
+        else { // Only struct/enum definition. This is purely virtual
             expect(TK_DL_SEMICOLON);
-            // We can reuse this node, def is just virtual
+            // We can reuse this node, as this action is symbolic
             parse_single_statement(node, symbols);
             return;
         }
@@ -952,10 +993,22 @@ void parse_switch(ASTNode* node, SymbolTable* symbols) {
 
 void parse_case(ASTNode* node, SymbolTable* symbols) {
     node->type = AST_CASE;
-    expect(TK_LINT);
     ValueLabel label;
-    label.value = prev_token().string_repr;
     label.is_default_case = false;
+    if (accept(TK_LINT)) {
+        label.value = prev_token().string_repr;
+    } 
+    // Constant variable, this should really be handled as an expression
+    else if (accept(TK_IDENT)) {
+        Variable* var = symbol_table_lookup_var_ptr(symbols, prev_token().string_repr);
+        if (var == NULL) {
+            parse_error("Non-constant switch case variable value encountered!");
+        }
+        label.value = var->const_expr;
+    }
+    else {
+        parse_error("Expected integer literal or enum literal for switch case value");
+    }
 
     label = symbol_table_insert_label(symbols, label);
     node->label = label;

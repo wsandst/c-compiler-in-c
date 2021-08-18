@@ -1,7 +1,7 @@
 [![Build Status](https://travis-ci.com/wsandst/c-compiler-in-c.svg?branch=main)](https://travis-ci.com/wsandst/c-compiler-in-c)
-# Simple C Compiler written in C
-This project is a C compiler, written completely in C. The aim of the project is to eventually have a working compiler which can compile itself. For this reason, no external dependencies are used. The compiler generates x86-64 executables.
-The compiler uses a handwritten tokenizer, a recursive decent parser and a code generator which generates NASM assembly.
+# C Compiler written in C
+This project is a C compiler, written completely in C. The aim of the project create a compiler which can compile itself. For this reason, no external dependencies are used. The compiler generates Linux x86-64 executables.
+The compiler uses a handwritten tokenizer, a recursive decent parser and a code generator which generates NASM assembly. GCC is then used as a linker. The compiler includes headers for commonly used parts of the C standard library, which have been modified from GCC to accommodate for fewer macro features. These headers can be found under `clib/`
 
 ## Supported constructs
 * Variables
@@ -14,13 +14,14 @@ The compiler uses a handwritten tokenizer, a recursive decent parser and a code 
     * Parenthesis
     * Operator precedence, associativity
     * Logical short circuiting
-    * Floating point operations, excluding logical
+    * Most floating point operations
     * Pointer operations
 * Functions
     * Integer function arguments
     * Float function arguments
     * Issues with large amounts of mixed integer and float args
     * Return values (integer/float)
+    * Variadic function calling (no support for variadic function implementations yet)
 * Loops
     * While loops
     * Do while loops
@@ -35,7 +36,10 @@ The compiler uses a handwritten tokenizer, a recursive decent parser and a code 
     * Integers (8, 16, 32, 64 bit)
     * Floats (64 bit)
     * Pointers
+    * Arrays
     * Type casting (explicit and implicit)
+    * Typedefs
+    * Enums
 * Preprocessor
     * Includes (normal and STL includes)
     * Pragma once

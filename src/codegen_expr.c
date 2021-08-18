@@ -11,7 +11,10 @@ void gen_asm_expr(ASTNode* node, AsmContext ctx) {
     else if (node->expr_type == EXPR_VAR) {
         char* sp2 = var_to_stack_ptr(&node->var);
         // Handle various variable types
-        if (node->var.type.is_array) {
+        if (node->var.is_constant) { // Constant
+            asm_addf(&ctx, "mov rax, %s", node->var.const_expr);
+        }
+        else if (node->var.type.is_array) {
             asm_addf(&ctx, "lea rax, [rbp-%d]", node->var.stack_offset);
         }
         else if (node->var.type.type == TY_INT || node->var.type.ptr_level > 0) {

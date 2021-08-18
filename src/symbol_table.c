@@ -32,6 +32,13 @@ void symbol_table_free(SymbolTable* table) {
     if (table->children_max_count != 0) {
         free(table->children_ptrs);
     }
+    for (size_t i = 0; i < table->var_count; i++)
+    {
+        if (table->vars[i].is_constant) {
+            free(table->vars[i].const_expr);
+        }
+    }
+    
     free(table->vars);
     free(table->funcs); // We need to free the func params as well
     free(table->labels);
@@ -62,6 +69,17 @@ void symbol_table_children_realloc(SymbolTable* table, int new_size) {
 
 SymbolTable* symbol_table_get_child(SymbolTable* table, int index) {
     return table->children_ptrs[index];
+}
+
+Variable variable_new() {
+    Variable var;
+    var.type.ptr_level = 0;
+    var.type.is_array = 0;
+    var.type.is_static = false;
+    var.is_global = false;
+    var.type.array_has_initializer = false;
+    var.is_undefined = false;
+    return var;
 }
 
 // ================ Variables ==================
@@ -95,7 +113,7 @@ Variable* symbol_table_lookup_var_ptr(SymbolTable* table, char* var_name) {
 // Insert a variable in this scope of the symbol table
 // I should probably do a lookup first and give errors incase of redeclaration
 // but this works for now
-Variable symbol_table_insert_var(SymbolTable* table, Variable var) {
+Variable* symbol_table_insert_var(SymbolTable* table, Variable var) {
     table->var_count++;
     if (table->var_count > table->var_max_count) {
         symbol_table_vars_realloc(table, table->var_max_count*2); 
@@ -109,8 +127,9 @@ Variable symbol_table_insert_var(SymbolTable* table, Variable var) {
     var.is_global = table->is_global;
     static int unique_id = 0;
     var.unique_id = unique_id++;
+    var.is_constant = false;
     table->vars[table->var_count-1] = var;
-    return var;
+    return table->vars + table->var_count - 1;
 }
 
 void symbol_table_vars_realloc(SymbolTable* table, int new_size) {
