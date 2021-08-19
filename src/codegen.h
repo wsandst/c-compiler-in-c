@@ -34,8 +34,20 @@ struct AsmContext {
 };
 
 enum RegisterEnum {
-    RAX, RBX, RCX, RDX, RSI, RDI,
-    R8, R9, R10, R11, R12, R13, R14, R15,
+    RAX,
+    RBX,
+    RCX,
+    RDX,
+    RSI,
+    RDI,
+    R8,
+    R9,
+    R10,
+    R11,
+    R12,
+    R13,
+    R14,
+    R15,
 };
 
 typedef struct AsmContext AsmContext;

@@ -4,12 +4,11 @@
 // Convert integers to actual int values (do this in code gen)
 // Code generation
 
-
 // Linked list used for freeing memory correctly
-static ASTNode *ast_node_mem_end = NULL;
-static ASTNode *ast_node_mem_start;
+static ASTNode* ast_node_mem_end = NULL;
+static ASTNode* ast_node_mem_start;
 
-ASTNode *ast_node_new(ASTNodeType type, int count) {
+ASTNode* ast_node_new(ASTNodeType type, int count) {
     ASTNode* node = calloc(count, sizeof(ASTNode));
     node->type = type;
 
@@ -25,12 +24,12 @@ ASTNode *ast_node_new(ASTNodeType type, int count) {
     return node;
 }
 
-void ast_node_free(ASTNode *ast_node) {
+void ast_node_free(ASTNode* ast_node) {
     // Keep the nodes in a linked list, to allow for easy freeing
     if (ast_node->next_mem != NULL) {
         ast_node_free(ast_node->next_mem);
     }
-    if(ast_node->type == AST_LABEL || ast_node->type == AST_GOTO) {
+    if (ast_node->type == AST_LABEL || ast_node->type == AST_GOTO) {
         // These have allocated strings which are not freed anywhere else
         free(ast_node->literal);
     }
@@ -52,7 +51,7 @@ void ast_free(AST* ast) {
     ast_node_free(ast_node_mem_start);
 }
 
-// Current token being parsed, global simplifies code a lot 
+// Current token being parsed, global simplifies code a lot
 static Token* parse_token;
 static VarType latest_parsed_var_type;
 static Function latest_func;
@@ -61,7 +60,7 @@ AST parse(Tokens* tokens, SymbolTable* global_symbols) {
     parse_token = tokens_get(tokens, 0);
     // Setup initial AST
     AST ast;
-    ASTNode *program_node = ast_node_new(AST_PROGRAM, 1);
+    ASTNode* program_node = ast_node_new(AST_PROGRAM, 1);
     ast.program = program_node;
     program_node->body = ast_node_new(AST_END, 1);
 
@@ -115,9 +114,9 @@ bool accept_range(TokenType from_token, TokenType to_token) {
 }
 
 bool accept_unop() {
-    return (accept(TK_OP_MINUS) || accept(TK_OP_NOT) || accept(TK_OP_COMPL) 
-        || accept(TK_OP_INCR) || accept(TK_OP_DECR) || accept(TK_OP_SIZEOF)
-        || accept(TK_OP_BITAND) || accept(TK_OP_MULT));
+    return (accept(TK_OP_MINUS) || accept(TK_OP_NOT) || accept(TK_OP_COMPL) ||
+            accept(TK_OP_INCR) || accept(TK_OP_DECR) || accept(TK_OP_SIZEOF) ||
+            accept(TK_OP_BITAND) || accept(TK_OP_MULT));
 }
 
 bool accept_post_unop() {
@@ -185,7 +184,6 @@ bool accept_type(SymbolTable* symbols) {
         latest_parsed_var_type.bytes = 1;
     }
     else if (accept_object_type(symbols)) {
-
     }
     // Add user defined types here as well
     else {
@@ -199,7 +197,7 @@ bool accept_type(SymbolTable* symbols) {
     }
     // Check for ending [] which implies a pointer level
     if (accept(TK_IDENT)) {
-        if(accept(TK_DL_OPENBRACKET)) {
+        if (accept(TK_DL_OPENBRACKET)) {
             if (accept(TK_DL_CLOSEBRACKET)) {
                 latest_parsed_var_type.ptr_value_bytes = latest_parsed_var_type.bytes;
                 latest_parsed_var_type.bytes = 8;
@@ -227,7 +225,6 @@ bool accept_object_type(SymbolTable* symbols) {
         return true;
     }
     else if (accept(TK_KW_STRUCT)) { // Struct
-        
     }
     else {
         return false;
@@ -323,7 +320,8 @@ void parse_func(ASTNode* node, SymbolTable* symbols) {
     expect(TK_IDENT);
     char* ident = prev_token().string_repr;
     func.name = ident;
-    func.return_type = latest_parsed_var_type;;
+    func.return_type = latest_parsed_var_type;
+    ;
     func.is_defined = false;
     func.is_variadic = false;
 
@@ -338,11 +336,12 @@ void parse_func(ASTNode* node, SymbolTable* symbols) {
             func.is_variadic = true;
             continue;
         }
-        Variable var; 
+        Variable var;
         expect_type(symbols);
         var.type = latest_parsed_var_type;
         // Check for func(void) arg
-        if (latest_parsed_var_type.type == TY_VOID && latest_parsed_var_type.ptr_level == 0) {
+        if (latest_parsed_var_type.type == TY_VOID &&
+            latest_parsed_var_type.ptr_level == 0) {
             continue;
         }
         // Normal function argument
@@ -387,7 +386,7 @@ void parse_single_statement(ASTNode* node, SymbolTable* symbols) {
             var.name = ident;
             symbol_table_insert_var(symbols, var);
 
-            if (var.type.is_static) { // Static 
+            if (var.type.is_static) { // Static
                 parse_static_declaration(node, symbols);
                 return;
             }
@@ -514,7 +513,8 @@ void parse_scope(ASTNode* node, SymbolTable* symbols) {
     // Make a new child symbol table for this scope
     node->type = AST_SCOPE;
     node->body = ast_node_new(AST_STMT, 1);
-    SymbolTable* scope_symbols = symbol_table_create_child(symbols, symbols->cur_stack_offset);
+    SymbolTable* scope_symbols = symbol_table_create_child(symbols,
+                                                           symbols->cur_stack_offset);
     parse_statement(node->body, scope_symbols);
     node->next = ast_node_new(AST_END, 1);
 }
@@ -526,12 +526,12 @@ void parse_expression(ASTNode* node, SymbolTable* symbols, int min_precedence) {
 
     parse_expression_atom(node, symbols);
 
-    while(true) {
+    while (true) {
         if (accept(TK_DL_OPENBRACKET)) { // Indexing, needs special handling
             parse_binary_op_indexing(node, symbols);
             expect(TK_DL_CLOSEBRACKET);
         }
-        else if (accept_binop()) { 
+        else if (accept_binop()) {
             OpType op_type = token_type_to_bop_type(prev_token().type);
             int op_precedence = get_binary_operator_precedence(op_type);
             if (op_precedence < min_precedence) {
@@ -546,12 +546,13 @@ void parse_expression(ASTNode* node, SymbolTable* symbols, int min_precedence) {
             node->rhs = ast_node_new(AST_EXPR, 1);
             node->expr_type = EXPR_BINOP;
             node->op_type = op_type;
-            int new_min_precedence = op_precedence + !is_binary_operation_assignment(op_type);
+            int new_min_precedence = op_precedence +
+                                     !is_binary_operation_assignment(op_type);
             parse_expression(node->rhs, symbols, new_min_precedence);
             // LHS and RHS is now defined. Put the widest variable type in the op
             // for possible implicit casts
             node->cast_type = return_wider_type(node->rhs->cast_type, node->lhs->cast_type);
-            if(is_binary_operation_logical(op_type)) {
+            if (is_binary_operation_logical(op_type)) {
                 // Logical operator, we need to implicitly cast to integer
                 // We do this by creating a cast unary op
                 ASTNode* rhs = ast_node_new(AST_EXPR, 1);
@@ -596,7 +597,7 @@ void parse_binary_op_indexing(ASTNode* node, SymbolTable* symbols) {
     node->next = ast_node_new(AST_END, 1);
 }
 
-void parse_expression_atom(ASTNode* node,  SymbolTable* symbols) {
+void parse_expression_atom(ASTNode* node, SymbolTable* symbols) {
     // Isolate atom
     if (accept_literal()) { // Literal
         token_go_back(1);
@@ -607,7 +608,7 @@ void parse_expression_atom(ASTNode* node,  SymbolTable* symbols) {
         if (accept(TK_DL_OPENPAREN)) { // Function call
             token_go_back(1);
             parse_func_call(node, symbols);
-        }  
+        }
         else { // Variable
             node->expr_type = EXPR_VAR;
             node->var = symbol_table_lookup_var(symbols, ident);
@@ -632,7 +633,7 @@ void parse_expression_atom(ASTNode* node,  SymbolTable* symbols) {
     else if (accept_unop()) { // Unary operation
         parse_unary_op(node, symbols);
     }
-    else if (accept(TK_DL_CLOSEPAREN) || accept(TK_DL_SEMICOLON)) { 
+    else if (accept(TK_DL_CLOSEPAREN) || accept(TK_DL_SEMICOLON)) {
         // Only scenario this triggers is with a null expression, ex
         // () or ;
         node->type = AST_NULL_STMT;
@@ -682,14 +683,14 @@ void parse_unary_op(ASTNode* node, SymbolTable* symbols) {
         if (node->op_type == UOP_ADDR) { // This changes cast_type
             if (node->cast_type.ptr_level == 1) {
                 node->cast_type.ptr_value_bytes = node->cast_type.bytes;
-            } 
+            }
             node->cast_type.ptr_level += 1;
         }
-        else if(node->op_type == UOP_DEREF) {
+        else if (node->op_type == UOP_DEREF) {
             if (node->cast_type.ptr_level == 0) {
                 parse_error("Attempting to dereference non-pointer type!");
-            } 
-            else if(node->cast_type.ptr_level == 1) {
+            }
+            else if (node->cast_type.ptr_level == 1) {
                 node->cast_type.bytes = node->cast_type.ptr_value_bytes;
                 node->var = node->rhs->var;
                 node->var.is_dereferenced_ptr = true;
@@ -700,7 +701,7 @@ void parse_unary_op(ASTNode* node, SymbolTable* symbols) {
     }
 }
 
-void parse_literal(ASTNode* node,  SymbolTable* symbols) {
+void parse_literal(ASTNode* node, SymbolTable* symbols) {
     node->expr_type = EXPR_LITERAL;
     node->literal = parse_token->string_repr;
     node->cast_type.bytes = 0;
@@ -730,7 +731,7 @@ void parse_global(ASTNode* node, SymbolTable* symbols) {
         parse_expression(node, symbols, 1);
         expect(TK_DL_SEMICOLON);
         if (!is_valid_const_assignment(node, symbols)) {
-                parse_error("Non-constant global expression found");
+            parse_error("Non-constant global expression found");
         }
         Variable* inserted_var = symbol_table_lookup_var_ptr(symbols, ident);
         inserted_var->const_expr = evaluate_const_assignment(node, symbols);
@@ -843,7 +844,8 @@ void parse_array_initializer(ASTNode* node, SymbolTable* symbols) {
     node->type = AST_INIT;
     node->args = ast_node_new(AST_EXPR, 1);
     ASTNode* arg_node = node->args;
-    while (!(accept(TK_DL_CLOSEBRACE)) || prev_token().type == TK_DL_OPENBRACE) { // Go through initializer args
+    while (!(accept(TK_DL_CLOSEBRACE)) ||
+           prev_token().type == TK_DL_OPENBRACE) { // Go through initializer args
         parse_expression(arg_node, symbols, 1);
         if (!is_const_expression(arg_node, symbols)) {
             parse_error("Non-constant element found in array initializer!");
@@ -863,7 +865,8 @@ void parse_func_call(ASTNode* node, SymbolTable* symbols) {
     node->cast_type = node->func.return_type; // Return type
     ASTNode* arg_node = node->args;
     int arg_count = 0;
-    while (!(accept(TK_DL_CLOSEPAREN) || prev_token().type == TK_DL_CLOSEPAREN)) { // Go through argument expressions
+    while (!(accept(TK_DL_CLOSEPAREN) ||
+             prev_token().type == TK_DL_CLOSEPAREN)) { // Go through argument expressions
         parse_expression(arg_node, symbols, 1);
         arg_node->next = ast_node_new(AST_END, 1);
         arg_node->next->prev = arg_node;
@@ -935,7 +938,8 @@ void parse_for_loop(ASTNode* node, SymbolTable* symbols) {
     // We need a new scope for the for variable declaration
     node->type = AST_SCOPE;
     node->body = ast_node_new(AST_STMT, 1);
-    SymbolTable* scope_symbols = symbol_table_create_child(symbols, symbols->cur_stack_offset);
+    SymbolTable* scope_symbols = symbol_table_create_child(symbols,
+                                                           symbols->cur_stack_offset);
     node->next = ast_node_new(AST_STMT, 1);
 
     // Set the first statement to the for init statement
@@ -972,7 +976,8 @@ void parse_for_loop(ASTNode* node, SymbolTable* symbols) {
 void parse_switch(ASTNode* node, SymbolTable* symbols) {
     // Create a new switch scope
     node->type = AST_SWITCH;
-    SymbolTable* switch_symbols = symbol_table_create_child(symbols, symbols->cur_stack_offset);
+    SymbolTable* switch_symbols = symbol_table_create_child(symbols,
+                                                            symbols->cur_stack_offset);
     switch_symbols->is_switch_scope = true;
     switch_symbols->label_prefix++;
 
@@ -980,7 +985,7 @@ void parse_switch(ASTNode* node, SymbolTable* symbols) {
     // Get the switch value
     node->cond = ast_node_new(AST_EXPR, 1);
     switch_symbols->cur_stack_offset += 8;
-    parse_expression(node->cond, switch_symbols,1 );
+    parse_expression(node->cond, switch_symbols, 1);
     expect(TK_DL_CLOSEPAREN);
     // Now we can parse the contents
     node->body = ast_node_new(AST_STMT, 1);
@@ -997,7 +1002,7 @@ void parse_case(ASTNode* node, SymbolTable* symbols) {
     label.is_default_case = false;
     if (accept(TK_LINT)) {
         label.value = prev_token().string_repr;
-    } 
+    }
     // Constant variable, this should really be handled as an expression
     else if (accept(TK_IDENT)) {
         Variable* var = symbol_table_lookup_var_ptr(symbols, prev_token().string_repr);
@@ -1038,43 +1043,40 @@ void parse_typedef(ASTNode* node, SymbolTable* symbols) {
 void parse_error(char* error_message) {
     static char* RED_COLOR_STR = "\033[31;1m";
     static char* RESET_COLOR_STR = "\033[0m";
-    fprintf(stderr, "%s:%d: %sParse error:%s %s\n", 
-            parse_token->src_filename, parse_token->src_line+1, RED_COLOR_STR, RESET_COLOR_STR, error_message);
+    fprintf(stderr, "%s:%d: %sParse error:%s %s\n", parse_token->src_filename,
+            parse_token->src_line + 1, RED_COLOR_STR, RESET_COLOR_STR, error_message);
     // Pretty debug info
-    fprintf(stderr, "line %d |    ", parse_token->src_line+1);
+    fprintf(stderr, "line %d |    ", parse_token->src_line + 1);
     Token* prev_token = parse_token - 1;
     Token* next_token = parse_token + 1;
     if (parse_token->src_line == prev_token->src_line) {
         fprintf(stderr, "%s ", prev_token->string_repr);
-    } 
+    }
     fprintf(stderr, "%s%s%s ", RED_COLOR_STR, parse_token->string_repr, RESET_COLOR_STR);
     if (parse_token->src_line == next_token->src_line) {
         fprintf(stderr, "%s\n", next_token->string_repr);
-    } 
-    // We are not manually freeing the memory here, 
+    }
+    // We are not manually freeing the memory here,
     // but as the program is exiting it is fine
-    exit(1); 
+    exit(1);
 }
 
 void parse_error_unexpected_symbol(enum TokenType expected, enum TokenType recieved) {
     char buff[256];
     char* expected_str = token_type_to_string(expected);
     char* recieved_str = token_type_to_string(recieved);
-    snprintf(buff, 255, "Expected symbol '%s', found symbol '%s'", expected_str, recieved_str);
+    snprintf(buff, 255, "Expected symbol '%s', found symbol '%s'", expected_str,
+             recieved_str);
     parse_error(buff);
 }
 
-
 bool is_const_expression(ASTNode* node, SymbolTable* symbols) {
-    return (node->type == AST_EXPR && 
-            node->expr_type == EXPR_LITERAL);
+    return (node->type == AST_EXPR && node->expr_type == EXPR_LITERAL);
 }
 
 bool is_valid_const_assignment(ASTNode* node, SymbolTable* symbols) {
-    return (node->type == AST_EXPR && 
-            node->expr_type == EXPR_BINOP && 
-            node->op_type == BOP_ASSIGN &&
-            is_const_expression(node->rhs, symbols));
+    return (node->type == AST_EXPR && node->expr_type == EXPR_BINOP &&
+            node->op_type == BOP_ASSIGN && is_const_expression(node->rhs, symbols));
 }
 
 char* evaluate_const_expression(ASTNode* node, SymbolTable* symbols) {
@@ -1093,72 +1095,72 @@ char* evaluate_const_assignment(ASTNode* node, SymbolTable* symbols) {
 // The higher the number, the higher the precedence
 int get_binary_operator_precedence(OpType type) {
     switch (type) {
-            case BOP_INDEX:
-                return 14;
-            case BOP_DIV:         // /
-            case BOP_MUL:         // *
-            case BOP_MOD:         // %
-                return 13;
-            case BOP_ADD:         // +
-            case BOP_SUB:         // -
-                return 12;
-            case BOP_LEFTSHIFT:   // <<
-            case BOP_RIGHTSHIFT:  // >>
-                return 11;
-            case BOP_LT:          // <
-            case BOP_LTE:         // <=
-            case BOP_GT:          // <
-            case BOP_GTE:         // <=
-                return 10;
-            case BOP_EQ:          // ==
-            case BOP_NEQ:         // !=
-                return 9;
-            case BOP_BITAND:      // &
-                return 8;
-            case BOP_BITXOR:      // ^
-                return 7;
-            case BOP_BITOR:       // |
-                return 6;
-            case BOP_AND:         // &&
-                return 5;
-            case BOP_OR:          // ||
-                return 4;
-            // 3 = ternary
-            case BOP_ASSIGN:      // =
-            case BOP_ASSIGN_ADD:
-            case BOP_ASSIGN_SUB:
-            case BOP_ASSIGN_MULT:
-            case BOP_ASSIGN_DIV:
-            case BOP_ASSIGN_MOD:
-            case BOP_ASSIGN_LEFTSHIFT:
-            case BOP_ASSIGN_RIGHTSHIFT:
-            case BOP_ASSIGN_BITAND:
-            case BOP_ASSIGN_BITOR:
-            case BOP_ASSIGN_BITXOR:
-                return 2;
-            // 1 = comma
-            default:
-                return 0;
+        case BOP_INDEX:
+            return 14;
+        case BOP_DIV: // /
+        case BOP_MUL: // *
+        case BOP_MOD: // %
+            return 13;
+        case BOP_ADD: // +
+        case BOP_SUB: // -
+            return 12;
+        case BOP_LEFTSHIFT: // <<
+        case BOP_RIGHTSHIFT: // >>
+            return 11;
+        case BOP_LT: // <
+        case BOP_LTE: // <=
+        case BOP_GT: // <
+        case BOP_GTE: // <=
+            return 10;
+        case BOP_EQ: // ==
+        case BOP_NEQ: // !=
+            return 9;
+        case BOP_BITAND: // &
+            return 8;
+        case BOP_BITXOR: // ^
+            return 7;
+        case BOP_BITOR: // |
+            return 6;
+        case BOP_AND: // &&
+            return 5;
+        case BOP_OR: // ||
+            return 4;
+        // 3 = ternary
+        case BOP_ASSIGN: // =
+        case BOP_ASSIGN_ADD:
+        case BOP_ASSIGN_SUB:
+        case BOP_ASSIGN_MULT:
+        case BOP_ASSIGN_DIV:
+        case BOP_ASSIGN_MOD:
+        case BOP_ASSIGN_LEFTSHIFT:
+        case BOP_ASSIGN_RIGHTSHIFT:
+        case BOP_ASSIGN_BITAND:
+        case BOP_ASSIGN_BITOR:
+        case BOP_ASSIGN_BITXOR:
+            return 2;
+        // 1 = comma
+        default:
+            return 0;
     }
 }
 
 // Assignment is right associative, needed for the precedence parsing
 bool is_binary_operation_assignment(OpType type) {
     switch (type) {
-            case BOP_ASSIGN:
-            case BOP_ASSIGN_ADD:
-            case BOP_ASSIGN_SUB:
-            case BOP_ASSIGN_MULT:
-            case BOP_ASSIGN_DIV:
-            case BOP_ASSIGN_MOD:
-            case BOP_ASSIGN_LEFTSHIFT:
-            case BOP_ASSIGN_RIGHTSHIFT:
-            case BOP_ASSIGN_BITAND:
-            case BOP_ASSIGN_BITOR:
-            case BOP_ASSIGN_BITXOR:
-                return true;
-            default:
-                return false;
+        case BOP_ASSIGN:
+        case BOP_ASSIGN_ADD:
+        case BOP_ASSIGN_SUB:
+        case BOP_ASSIGN_MULT:
+        case BOP_ASSIGN_DIV:
+        case BOP_ASSIGN_MOD:
+        case BOP_ASSIGN_LEFTSHIFT:
+        case BOP_ASSIGN_RIGHTSHIFT:
+        case BOP_ASSIGN_BITAND:
+        case BOP_ASSIGN_BITOR:
+        case BOP_ASSIGN_BITXOR:
+            return true;
+        default:
+            return false;
     }
 }
 
@@ -1202,7 +1204,7 @@ OpType token_type_to_pre_uop_type(enum TokenType type) {
             return UOP_NOT;
         case TK_OP_COMPL:
             return UOP_COMPL;
-        case TK_OP_INCR: 
+        case TK_OP_INCR:
             return UOP_PRE_INCR;
         case TK_OP_DECR:
             return UOP_PRE_DECR;
@@ -1219,7 +1221,7 @@ OpType token_type_to_pre_uop_type(enum TokenType type) {
 }
 OpType token_type_to_post_uop_type(enum TokenType type) {
     switch (type) {
-        case TK_OP_INCR: 
+        case TK_OP_INCR:
             return UOP_POST_INCR;
         case TK_OP_DECR:
             return UOP_POST_DECR;

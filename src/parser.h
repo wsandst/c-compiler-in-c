@@ -19,69 +19,69 @@ typedef struct ASTNode ASTNode;
 typedef struct AST AST;
 
 enum OpType {
-    BOP_ADD,                // +
-    BOP_SUB,                // -
-    BOP_MUL,                // *
-    BOP_DIV,                // /
-    BOP_MOD,                // %
-    BOP_BITAND,             // &
-    BOP_BITOR,              // |
-    BOP_BITXOR,             // ^
-    BOP_LEFTSHIFT,          // <<
-    BOP_RIGHTSHIFT,         // >>
-    BOP_EQ,                 // ==
-    BOP_NEQ,                // !=
-    BOP_LT,                 // <
-    BOP_LTE,                // <=
-    BOP_GT,                 // <
-    BOP_GTE,                // <=
-    BOP_AND,                // &&
-    BOP_OR,                 // ||
-    BOP_ASSIGN,             // =
-    BOP_ASSIGN_ADD,         // +=
-    BOP_ASSIGN_SUB,         // -=
-    BOP_ASSIGN_MULT,        // *=
-    BOP_ASSIGN_DIV,         // /=
-    BOP_ASSIGN_MOD,         // %=
-    BOP_ASSIGN_RIGHTSHIFT,  // >>=
-    BOP_ASSIGN_LEFTSHIFT,   // <<=
-    BOP_ASSIGN_BITAND,      // &=
-    BOP_ASSIGN_BITOR,       // |=
-    BOP_ASSIGN_BITXOR,      // ^=
+    BOP_ADD, // +
+    BOP_SUB, // -
+    BOP_MUL, // *
+    BOP_DIV, // /
+    BOP_MOD, // %
+    BOP_BITAND, // &
+    BOP_BITOR, // |
+    BOP_BITXOR, // ^
+    BOP_LEFTSHIFT, // <<
+    BOP_RIGHTSHIFT, // >>
+    BOP_EQ, // ==
+    BOP_NEQ, // !=
+    BOP_LT, // <
+    BOP_LTE, // <=
+    BOP_GT, // <
+    BOP_GTE, // <=
+    BOP_AND, // &&
+    BOP_OR, // ||
+    BOP_ASSIGN, // =
+    BOP_ASSIGN_ADD, // +=
+    BOP_ASSIGN_SUB, // -=
+    BOP_ASSIGN_MULT, // *=
+    BOP_ASSIGN_DIV, // /=
+    BOP_ASSIGN_MOD, // %=
+    BOP_ASSIGN_RIGHTSHIFT, // >>=
+    BOP_ASSIGN_LEFTSHIFT, // <<=
+    BOP_ASSIGN_BITAND, // &=
+    BOP_ASSIGN_BITOR, // |=
+    BOP_ASSIGN_BITXOR, // ^=
     BOP_INDEX,
-    UOP_NEG,                // unary -
-    UOP_ADDR,               // unary &
-    UOP_DEREF,              // unary *
-    UOP_NOT,                // unary !
-    UOP_COMPL,              // unary ~
-    UOP_SIZEOF,             // sizeof
-    UOP_POST_INCR,          // x++
-    UOP_PRE_INCR,           // ++x
-    UOP_POST_DECR,          // x--
-    UOP_PRE_DECR,           // --x
+    UOP_NEG, // unary -
+    UOP_ADDR, // unary &
+    UOP_DEREF, // unary *
+    UOP_NOT, // unary !
+    UOP_COMPL, // unary ~
+    UOP_SIZEOF, // sizeof
+    UOP_POST_INCR, // x++
+    UOP_PRE_INCR, // ++x
+    UOP_POST_DECR, // x--
+    UOP_PRE_DECR, // --x
     UOP_CAST,
 };
 
 enum ASTNodeType {
     AST_PROGRAM,
     AST_EXPR,
-    AST_SCOPE,      // { ... }, scope
+    AST_SCOPE, // { ... }, scope
 
-    AST_FUNC,       // Function def
-    AST_RETURN,     // Return
-    AST_IF,         // If
-    AST_LOOP,       // While, for
-    AST_DO_LOOP,    // Do while
-    AST_BREAK,      // Break
-    AST_CONTINUE,   // Continue
-    AST_SWITCH,     // Switch
-    AST_CASE,       // Case
-    AST_GOTO,       // Goto
-    AST_LABEL,      // Label
-    AST_INIT,       // Initializer list
+    AST_FUNC, // Function def
+    AST_RETURN, // Return
+    AST_IF, // If
+    AST_LOOP, // While, for
+    AST_DO_LOOP, // Do while
+    AST_BREAK, // Break
+    AST_CONTINUE, // Continue
+    AST_SWITCH, // Switch
+    AST_CASE, // Case
+    AST_GOTO, // Goto
+    AST_LABEL, // Label
+    AST_INIT, // Initializer list
 
-    AST_STMT,       // Statement
-    AST_END,        // End of scope/loop etc
+    AST_STMT, // Statement
+    AST_END, // End of scope/loop etc
     AST_NULL_STMT, // Empty statement, used in certain for loops, need to represent it
 };
 
@@ -143,7 +143,7 @@ struct AST {
 void ast_free(AST* ast);
 
 // Constructor, create new AST node
-ASTNode *ast_node_new(ASTNodeType type, int count);
+ASTNode* ast_node_new(ASTNodeType type, int count);
 
 // Destructor, free the AST node
 void ast_node_free(ASTNode* ast_node);
@@ -166,24 +166,24 @@ void parse_program(ASTNode* node, SymbolTable* symbols);
 
 // Parse a function definition
 // <function> ::= <type> <id> "(" <args ...> ")" <scope>
-void parse_func(ASTNode* node,  SymbolTable* symbols);
+void parse_func(ASTNode* node, SymbolTable* symbols);
 
 // Parse a statement, continue with next statement
 // <statement> ::= <keyword> | <expression> | <declaration>
-void parse_statement(ASTNode* node,  SymbolTable* symbols);
+void parse_statement(ASTNode* node, SymbolTable* symbols);
 
 // Parse a single statement, do not continue with next.
 void parse_single_statement(ASTNode* node, SymbolTable* symbols);
 
 // Parse an expression, ex (a + b) + 3
-void parse_expression(ASTNode* node,  SymbolTable* symbols, int min_precedence);
+void parse_expression(ASTNode* node, SymbolTable* symbols, int min_precedence);
 // Parse an expression atom, ex 3 or x or (...)
-void parse_expression_atom(ASTNode* node,  SymbolTable* symbols);
+void parse_expression_atom(ASTNode* node, SymbolTable* symbols);
 // Parse array indexing binop. This needs special handling
 void parse_binary_op_indexing(ASTNode* node, SymbolTable* symbols);
 void parse_unary_op(ASTNode* node, SymbolTable* symbols);
 // Parse a literal
-void parse_literal(ASTNode* node,  SymbolTable* symbols);
+void parse_literal(ASTNode* node, SymbolTable* symbols);
 // Used later for short circuiting
 void mark_first_and_or_nodes(ASTNode* node, OpType new_op);
 
@@ -199,7 +199,7 @@ void parse_array_declaration(ASTNode* node, SymbolTable* symbols);
 void parse_array_initializer(ASTNode* node, SymbolTable* symbols);
 
 // <function_call> ::= <identifier> "(" <expression ...> ")"
-void parse_func_call(ASTNode* node,  SymbolTable* symbols);
+void parse_func_call(ASTNode* node, SymbolTable* symbols);
 
 // Parse a scope/block
 // <scope> ::= "{" <statement ...> "}"

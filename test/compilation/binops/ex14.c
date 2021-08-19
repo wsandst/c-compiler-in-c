@@ -14,4 +14,3 @@ int main() {
     int w = (1 && (1 || increment()));
     return g;
 }
-

@@ -46,8 +46,8 @@ void test_tokenizer_helpers() {
 
     // Token insertion/concatenation
     Tokens tokens1 = tokens_new(4);
-    //tokens_get(&combined_tokens, 
-    //tokens_get(&tokens, 
+    //tokens_get(&combined_tokens,
+    //tokens_get(&tokens,
     tokens_get(&tokens1, 0)->type = 1;
     tokens_get(&tokens1, 1)->type = 2;
     tokens_get(&tokens1, 2)->type = 6;
@@ -83,7 +83,7 @@ void test_tokenizer_preprocessor() {
 
 void test_tokenizer_comments() {
     // Comments
-    char* src = 
+    char* src =
         "//#define\n #define \n while // hello \n/*test */ \n while /* \n if \n */while\n /**/ /**/\n \"// \\\"/* */\" \n /*\n*/";
     // \"// /* */\"
     Tokens tokens = tokenize(src);
@@ -123,9 +123,9 @@ void test_tokenizer_strings() {
 
 void test_tokenizer_keywords() {
     // Keywords
-    char* src = "unsigned.if else while do for break continue return switch case\ndefault " 
-          "goto label typedef struct union const long short signed "
-          "int float double char void hello_int int_hello _int";
+    char* src = "unsigned.if else while do for break continue return switch case\ndefault "
+                "goto label typedef struct union const long short signed "
+                "int float double char void hello_int int_hello _int";
     Tokens tokens = tokenize(src);
     assert(tokens_get(&tokens, 0)->type == TK_KW_UNSIGNED);
     assert(tokens_get(&tokens, 1)->type == TK_DL_DOT);
@@ -163,18 +163,19 @@ void test_tokenizer_keywords() {
 
 void test_tokenizer_ops() {
     // Operations
-    char* src = "|| && >> << == != >= <= + - * / % | & ~ ^ > < ! = ? ++ -- += -= *= /= %= <<= >>= &= |= ^= sizeof";
+    char* src =
+        "|| && >> << == != >= <= + - * / % | & ~ ^ > < ! = ? ++ -- += -= *= /= %= <<= >>= &= |= ^= sizeof";
     Tokens tokens = tokenize(src);
-    assert(tokens_get(&tokens, 0)->type  == TK_OP_OR);
-    assert(tokens_get(&tokens, 1)->type  == TK_OP_AND);
-    assert(tokens_get(&tokens, 2)->type  == TK_OP_RIGHTSHIFT);
-    assert(tokens_get(&tokens, 3)->type  == TK_OP_LEFTSHIFT);
-    assert(tokens_get(&tokens, 4)->type  == TK_OP_EQ);
-    assert(tokens_get(&tokens, 5)->type  == TK_OP_NEQ);
-    assert(tokens_get(&tokens, 6)->type  == TK_OP_GTE);
-    assert(tokens_get(&tokens, 7)->type  == TK_OP_LTE);
-    assert(tokens_get(&tokens, 8)->type  == TK_OP_PLUS);
-    assert(tokens_get(&tokens, 9)->type  == TK_OP_MINUS);
+    assert(tokens_get(&tokens, 0)->type == TK_OP_OR);
+    assert(tokens_get(&tokens, 1)->type == TK_OP_AND);
+    assert(tokens_get(&tokens, 2)->type == TK_OP_RIGHTSHIFT);
+    assert(tokens_get(&tokens, 3)->type == TK_OP_LEFTSHIFT);
+    assert(tokens_get(&tokens, 4)->type == TK_OP_EQ);
+    assert(tokens_get(&tokens, 5)->type == TK_OP_NEQ);
+    assert(tokens_get(&tokens, 6)->type == TK_OP_GTE);
+    assert(tokens_get(&tokens, 7)->type == TK_OP_LTE);
+    assert(tokens_get(&tokens, 8)->type == TK_OP_PLUS);
+    assert(tokens_get(&tokens, 9)->type == TK_OP_MINUS);
     assert(tokens_get(&tokens, 10)->type == TK_OP_MULT);
     assert(tokens_get(&tokens, 11)->type == TK_OP_DIV);
     assert(tokens_get(&tokens, 12)->type == TK_OP_MOD);
@@ -269,13 +270,12 @@ void test_tokenizer_large_src() {
     Tokens tokens = tokens_new(src_length);
 
     StrVector lines = str_split(src, '\n');
-    for (size_t i = 0; i < lines.size; i++)
-    {
+    for (size_t i = 0; i < lines.size; i++) {
         char* new_str = str_strip(lines.elems[i]);
         free(lines.elems[i]);
         lines.elems[i] = new_str;
     }
-    
+
     tokenize_preprocessor(&tokens, &lines);
     tokenize_comments(&tokens, &lines);
     tokenize_strings(&tokens, &lines);
@@ -286,8 +286,7 @@ void test_tokenizer_large_src() {
     tokenize_delims(&tokens, &lines);
 
     // Make sure every token was grabbed, only whitespace should be left
-    for (size_t i = 0; i < lines.size; i++)
-    {
+    for (size_t i = 0; i < lines.size; i++) {
         char* str = lines.elems[i];
         while (*str != '\0') {
             if (*str != ' ' && *str != '\t' && *str != '\n') {
@@ -301,11 +300,11 @@ void test_tokenizer_large_src() {
 
     // Check some tokens manually to make sure everything works as intended
     assert(tokens_get(&tokens, 0)->type == TK_PREPROCESSOR);
-    assert(tokens_get(&tokens, 2)->type  == TK_IDENT);
-    assert(tokens_get(&tokens, tokens.size-1)->type == TK_DL_CLOSEBRACE);
-    assert(tokens_get(&tokens, tokens.size-6)->type == TK_DL_SEMICOLON);
-    assert(tokens_get(&tokens, tokens.size-7)->type == TK_IDENT);
-    assert(tokens_get(&tokens, tokens.size-8)->type == TK_OP_PLUS);
+    assert(tokens_get(&tokens, 2)->type == TK_IDENT);
+    assert(tokens_get(&tokens, tokens.size - 1)->type == TK_DL_CLOSEBRACE);
+    assert(tokens_get(&tokens, tokens.size - 6)->type == TK_DL_SEMICOLON);
+    assert(tokens_get(&tokens, tokens.size - 7)->type == TK_IDENT);
+    assert(tokens_get(&tokens, tokens.size - 8)->type == TK_OP_PLUS);
 
     tokens_free(&tokens);
     str_vec_free(&lines);

@@ -8,7 +8,7 @@
 //      #define (simple replace macros, not functions)
 //      #undef
 //      #ifdef
-//      #ifndef 
+//      #ifndef
 
 #pragma once
 #include <string.h>

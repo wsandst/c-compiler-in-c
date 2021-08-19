@@ -20,7 +20,7 @@ Tokens preprocess(char* filename, PreprocessorTable* table, bool is_stl_file) {
 
     Tokens tokens = tokenize(src);
     tokens_tag_src_filename(&tokens, filename);
-    
+
     preprocess_tokens(&tokens, table);
 
     free(src);
@@ -106,10 +106,10 @@ void preprocess_include(Tokens* tokens, PreprocessorTable* table) {
 
     // Consumed this token, set it to none
     token->type = TK_NONE;
-    
+
     // Send the include file into the preprocessor
     PreprocessorTable next_table = *table;
-    next_table.current_file_index = next_table.elems->size-1;
+    next_table.current_file_index = next_table.elems->size - 1;
 
     Tokens file_tokens = preprocess(file_str, &next_table, is_stl_file);
     tokens_trim(&file_tokens);
@@ -130,7 +130,7 @@ void preprocess_define(Tokens* tokens, PreprocessorTable* table) {
     StrVector str_vec = str_split_on_whitespace(token->string_repr);
     char* define_ident = str_copy(str_vec.elems[1]);
     StrVector str_vec_value = str_vec_slice(&str_vec, 2, str_vec.size);
-    char* define_value = str_vec_join_with_delim(&str_vec_value, ' '); 
+    char* define_value = str_vec_join_with_delim(&str_vec_value, ' ');
 
     Tokens define_value_tokens;
     if (str_vec_value.size > 0) { // Define has a replace value we should use
@@ -270,7 +270,7 @@ int preprocess_scan_for_endif(Token* start_token, PreprocessorTable* table) {
     while (start_token->type != TK_EOF) {
         if (start_token->type == TK_PREPROCESSOR) {
             if (str_startswith(start_token->string_repr, "#ifdef") ||
-                    str_startswith(start_token->string_repr, "#ifndef")) {
+                str_startswith(start_token->string_repr, "#ifndef")) {
                 endifs_left++; // Push
             }
             else if (str_startswith(start_token->string_repr, "#endif")) {
@@ -299,8 +299,7 @@ PreprocessorTable preprocessor_table_new() {
 }
 
 void preprocessor_table_free(PreprocessorTable* table) {
-    for (size_t i = 0; i < table->elems->size; i++)
-    {
+    for (size_t i = 0; i < table->elems->size; i++) {
         PreprocessorItem* item = vec_get(table->elems, i);
         if (item->type == PP_INCLUDED_FILE && item->name != NULL) {
             free(item->name);
@@ -324,8 +323,7 @@ void preprocessor_table_update_current_dir(PreprocessorTable* table, char* filep
 }
 
 PreprocessorItem* preprocessor_table_lookup(PreprocessorTable* table, char* name) {
-    for (size_t i = 0; i < table->elems->size; i++)
-    {
+    for (size_t i = 0; i < table->elems->size; i++) {
         PreprocessorItem* item = vec_get(table->elems, i);
         if (!item->ignore && strcmp(item->name, name) == 0) {
             return item;
@@ -354,6 +352,7 @@ int preprocessor_table_remove(PreprocessorTable* table, char* name) {
 }
 
 void preprocess_error(char* error_message, PreprocessorTable* table) {
-    fprintf(stderr, "Preprocess error: %s (in file \"%s\")\n", error_message, table->current_file);
-    exit(1); 
+    fprintf(stderr, "Preprocess error: %s (in file \"%s\")\n", error_message,
+            table->current_file);
+    exit(1);
 }

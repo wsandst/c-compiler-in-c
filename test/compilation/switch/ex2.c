@@ -2,9 +2,9 @@
 
 int main() {
     int x = 4;
-    switch(x) {
+    switch (x) {
         case 4:
-            switch(x) {
+            switch (x) {
                 case 1:
                     break;
                 case 4:
@@ -16,7 +16,7 @@ int main() {
         case 1:
             return 10;
     }
-    switch(x) {
+    switch (x) {
         case 1:
             break;
         case 4:
@@ -27,4 +27,3 @@ int main() {
     }
     return 1;
 }
-

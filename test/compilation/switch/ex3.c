@@ -2,13 +2,13 @@
 
 int main() {
     int x = 4;
-    switch(x) {
+    switch (x) {
         case 1:
         case 2:
         case 3:
             return 1;
         default:
-            switch(x) {
+            switch (x) {
                 default:
                 case 2:
                 case 10:

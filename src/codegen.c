@@ -4,20 +4,29 @@
 
 const bool INCLUDE_COMMENTS = true;
 
-static char *rax_modifier_strs[4] = {"al", "ax", "eax", "rax"};
-static char *rbx_modifier_strs[4] = {"bl", "bx", "ebx", "rbx"};
-static char *rcx_modifier_strs[4] = {"cl", "cx", "ecx", "rcx"};
-static char *rdx_modifier_strs[4] = {"dl", "dx", "edx", "rdx"};
-static char *rsi_modifier_strs[4] = {"sil", "si", "esi", "rsi"};
-static char *rdi_modifier_strs[4] = {"dil", "di", "edi", "rdi"};
-static char *r8_modifier_strs[4] =  {"r8b", "r8w", "r8d", "r8"};
-static char *r9_modifier_strs[4] =  {"r9b", "r9w", "r9d", "r9"};
+static char* rax_modifier_strs[4] = { "al", "ax", "eax", "rax" };
+static char* rbx_modifier_strs[4] = { "bl", "bx", "ebx", "rbx" };
+static char* rcx_modifier_strs[4] = { "cl", "cx", "ecx", "rcx" };
+static char* rdx_modifier_strs[4] = { "dl", "dx", "edx", "rdx" };
+static char* rsi_modifier_strs[4] = { "sil", "si", "esi", "rsi" };
+static char* rdi_modifier_strs[4] = { "dil", "di", "edi", "rdi" };
+static char* r8_modifier_strs[4] = { "r8b", "r8w", "r8d", "r8" };
+static char* r9_modifier_strs[4] = { "r9b", "r9w", "r9d", "r9" };
 
-static char** register_enum_to_modifier_strs[14] = {
-    rax_modifier_strs, rbx_modifier_strs, rcx_modifier_strs, rdx_modifier_strs,
-    rsi_modifier_strs, rdi_modifier_strs, r8_modifier_strs, r9_modifier_strs, 
-    NULL, NULL, NULL, NULL, NULL, NULL
-};
+static char** register_enum_to_modifier_strs[14] = { rax_modifier_strs,
+                                                     rbx_modifier_strs,
+                                                     rcx_modifier_strs,
+                                                     rdx_modifier_strs,
+                                                     rsi_modifier_strs,
+                                                     rdi_modifier_strs,
+                                                     r8_modifier_strs,
+                                                     r9_modifier_strs,
+                                                     NULL,
+                                                     NULL,
+                                                     NULL,
+                                                     NULL,
+                                                     NULL,
+                                                     NULL };
 
 void asm_add(StrVector* src, char* str) {
     str_vec_push(src, str);
@@ -73,9 +82,9 @@ void asm_set_indent(AsmContext* ctx, int indent) {
 
 void codegen_error(char* error_message) {
     fprintf(stderr, "Codegen error: %s\n", error_message);
-    // We are not manually freeing the memory here, 
+    // We are not manually freeing the memory here,
     // but as the program is exiting it is fine
-    exit(1); 
+    exit(1);
 }
 
 char* offset_to_stack_ptr(int offset, char* prefix) {
@@ -141,7 +150,6 @@ char* var_to_stack_ptr(Variable* var) {
                 return str_copy("error");
                 //codegen_error("Unsupported stack byte length encountered (var_to_stack_ptr)");
         }
-        
     }
     return NULL;
 }
@@ -275,7 +283,7 @@ char* generate_assembly(AST* ast, SymbolTable* symbols) {
 
     // Join the different sections
     char* asm_src_str = asm_context_join_srcs(&ctx);
-    
+
     asm_context_free(&ctx);
 
     return asm_src_str;
@@ -358,8 +366,9 @@ void gen_asm_func_call(ASTNode* node, AsmContext ctx) {
     Callee-saved RBX, RSP, RBP, and R12–R15
     Return: RAX 
     */
-    static char *reg_strs[6] = {"rdi", "rsi", "rdx", "rcx", "r8", "r9"};
-    static char *float_reg_strs[8] = {"xmm0", "xmm1", "xmm2", "xmm3", "xmm4", "xmm5", "xmm6", "xmm7"};
+    static char* reg_strs[6] = { "rdi", "rsi", "rdx", "rcx", "r8", "r9" };
+    static char* float_reg_strs[8] = { "xmm0", "xmm1", "xmm2", "xmm3",
+                                       "xmm4", "xmm5", "xmm6", "xmm7" };
     asm_add_com(&ctx, "; Expression function call");
 
     // Count general and floating point parameters
@@ -371,7 +380,7 @@ void gen_asm_func_call(ASTNode* node, AsmContext ctx) {
         VarType arg_type = current_func_def_arg->type;
         if (i > node->func.def_param_count) { // Variadic, use argument type
             arg_type = current_arg->cast_type;
-        } 
+        }
         if (arg_type.type == TY_FLOAT && arg_type.ptr_level == 0) {
             float_arg_count++;
         }
@@ -379,7 +388,7 @@ void gen_asm_func_call(ASTNode* node, AsmContext ctx) {
             int_arg_count++;
         }
         current_arg = current_arg->next;
-        if (i < (node->func.def_param_count-1)) {
+        if (i < (node->func.def_param_count - 1)) {
             current_func_def_arg++;
         }
     }
@@ -394,7 +403,7 @@ void gen_asm_func_call(ASTNode* node, AsmContext ctx) {
         if (i > node->func.def_param_count) {
             // Variadic argument, we don't want to cast
             arg_type = current_arg->cast_type;
-        } 
+        }
         if (arg_type.type == TY_FLOAT && arg_type.ptr_level == 0) {
             if (temp_float_param_count > 8) {
                 gen_asm(current_arg, ctx);
@@ -428,7 +437,7 @@ void gen_asm_func_call(ASTNode* node, AsmContext ctx) {
         if (i > node->func.def_param_count) {
             // Variadic argument, we don't want to cast
             arg_type = current_arg->cast_type;
-        } 
+        }
         if (arg_type.type == TY_FLOAT && arg_type.ptr_level == 0) {
             if (temp_float_param_count <= 8) {
                 gen_asm(current_arg, ctx);
@@ -453,7 +462,7 @@ void gen_asm_func_call(ASTNode* node, AsmContext ctx) {
         if (i > node->func.def_param_count) {
             // Variadic argument, we don't want to cast
             arg_type = current_arg->cast_type;
-        } 
+        }
         if (!(arg_type.type == TY_FLOAT && arg_type.ptr_level == 0)) {
             if (temp_int_param_count <= 6) {
                 gen_asm(current_arg, ctx);
@@ -491,7 +500,7 @@ void gen_asm_func_call(ASTNode* node, AsmContext ctx) {
         asm_addf(&ctx, "pop rax");
         asm_addf(&ctx, "movq %s, rax", float_reg_strs[i]);
     }
-    if (node->func.is_variadic) { 
+    if (node->func.is_variadic) {
         // Pass floating point reg count in AL in variadic functions
         asm_addf(&ctx, "mov al, %d", min_float_pop);
     }
@@ -500,7 +509,7 @@ void gen_asm_func_call(ASTNode* node, AsmContext ctx) {
 
     // Restore the stack space used by REST OF ARGS
     int pop_count = max(int_arg_count - 6, 0) + max(float_arg_count - 8, 0);
-    asm_addf(&ctx, "add rsp, %d", pop_count*8);
+    asm_addf(&ctx, "add rsp, %d", pop_count * 8);
 }
 
 void gen_asm_func(ASTNode* node, AsmContext ctx) {
@@ -512,8 +521,9 @@ void gen_asm_func(ASTNode* node, AsmContext ctx) {
     Callee-saved RBX, RSP, RBP, and R12–R15
     Return: RAX 
     */
-    static RegisterEnum arg_regs[6] = {RDI, RSI, RDX, RCX, R8, R9};
-    static char *float_reg_strs[8] = {"xmm0", "xmm1", "xmm2", "xmm3", "xmm4", "xmm5", "xmm6", "xmm7"};
+    static RegisterEnum arg_regs[6] = { RDI, RSI, RDX, RCX, R8, R9 };
+    static char* float_reg_strs[8] = { "xmm0", "xmm1", "xmm2", "xmm3",
+                                       "xmm4", "xmm5", "xmm6", "xmm7" };
     Variable* param = node->func.params;
     ctx.func_return_label = str_copy(get_next_label_str(&ctx));
     asm_set_indent(&ctx, 0);
@@ -524,7 +534,8 @@ void gen_asm_func(ASTNode* node, AsmContext ctx) {
     asm_addf(&ctx, "push rbp");
     asm_addf(&ctx, "mov rbp, rsp");
     int stack_space = func_get_aligned_stack_usage(node->func);
-    asm_addf(&ctx, "sub rsp, %d ; Allocate the stack space used by the function", stack_space);
+    asm_addf(&ctx, "sub rsp, %d ; Allocate the stack space used by the function",
+             stack_space);
     // Evaluate arguments
     asm_add_com(&ctx, "; Store passed function arguments");
     int int_arg_count = 0;
@@ -538,7 +549,7 @@ void gen_asm_func(ASTNode* node, AsmContext ctx) {
                 asm_addf(&ctx, "mov %s, %s", param_ptr, reg_str);
             }
             else { // Pass by stack
-                asm_addf(&ctx, "mov rax, qword [rbp+%d]", 8*(stack_arg_count+2));
+                asm_addf(&ctx, "mov rax, qword [rbp+%d]", 8 * (stack_arg_count + 2));
                 char* reg_str = get_reg_width_str(param->type, RAX);
                 asm_addf(&ctx, "mov %s, %s", param_ptr, reg_str);
                 stack_arg_count++;
@@ -550,7 +561,7 @@ void gen_asm_func(ASTNode* node, AsmContext ctx) {
                 asm_addf(&ctx, "movq %s, %s", param_ptr, float_reg_strs[float_arg_count]);
             }
             else {
-                asm_addf(&ctx, "mov rax, qword [rbp+%d]", 8*(stack_arg_count+2));
+                asm_addf(&ctx, "mov rax, qword [rbp+%d]", 8 * (stack_arg_count + 2));
                 char* reg_str = get_reg_width_str(param->type, RAX);
                 asm_addf(&ctx, "mov %s, %s", param_ptr, reg_str);
                 stack_arg_count++;
@@ -591,7 +602,7 @@ void gen_asm_if(ASTNode* node, AsmContext ctx) {
         asm_addf(&ctx, "je %s, ; Conditional false -> Jump to Else", else_label);
         gen_asm(node->body, ctx); // If body
         after_label = str_copy(get_next_label_str(&ctx));
-        asm_addf(&ctx, "jmp %s ; Jump to end of if/else after if", after_label); 
+        asm_addf(&ctx, "jmp %s ; Jump to end of if/else after if", after_label);
         asm_add_com(&ctx, "; Label: Else statement");
         asm_addf(&ctx, "%s: ; Else statement", else_label);
         gen_asm(node->els, ctx); // Else body
@@ -630,7 +641,7 @@ void gen_asm_loop(ASTNode* node, AsmContext ctx) {
     asm_addf(&ctx, "je %s ; Jump to after loop if conditional is false", loop_end_label);
     asm_add_com(&ctx, "; Else, evaluate loop body");
     gen_asm(node->body, ctx);
-    if(node->incr != NULL) { // For loop increment
+    if (node->incr != NULL) { // For loop increment
         asm_addf(&ctx, "%s: ; For continue label", ctx.last_start_label);
         gen_asm(node->incr, ctx);
         free(ctx.last_start_label);
@@ -653,7 +664,8 @@ void gen_asm_do_loop(ASTNode* node, AsmContext ctx) {
     asm_add_com(&ctx, "; Calculating while statement conditional at end");
     gen_asm(node->cond, ctx); // Value now in RAX
     asm_addf(&ctx, "cmp rax, 0");
-    asm_addf(&ctx, "jne %s ; Jump to start if conditional is true, otherwise keep going", while_start_label);
+    asm_addf(&ctx, "jne %s ; Jump to start if conditional is true, otherwise keep going",
+             while_start_label);
     free(while_start_label);
     gen_asm(node->next, ctx);
 }
@@ -680,7 +692,8 @@ void gen_asm_switch(ASTNode* node, AsmContext ctx) {
         else { // Normal cases
             char* case_label_str = get_case_label_str(case_labels->id, case_labels->value);
             asm_addf(&ctx, "cmp rax, %s", case_labels->value);
-            asm_addf(&ctx, "je %s ; Jump to the case label if value is equal", case_label_str);
+            asm_addf(&ctx, "je %s ; Jump to the case label if value is equal",
+                     case_label_str);
             asm_addf(&ctx, "mov rax, rbx"); // Restore rax
         }
         case_labels = case_labels->next;

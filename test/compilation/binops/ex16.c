@@ -11,11 +11,10 @@ int main() {
     if (*str != 'H') {
         return 10;
     }
-    while (*(++str) != 0)
-    {
+    while (*(++str) != 0) {
         putchar(*str);
     }
     --str;
-    
+
     return *str;
 }

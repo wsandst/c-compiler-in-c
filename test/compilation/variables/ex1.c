@@ -1,4 +1,4 @@
-// Declare a variable, assign to it, return it 
+// Declare a variable, assign to it, return it
 
 int main() {
     int x;

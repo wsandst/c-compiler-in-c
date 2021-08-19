@@ -6,7 +6,6 @@
 #include "preprocessor_test.h"
 #include "symbol_table_test.h"
 
-
 int main() {
     printf("[CTEST] Running all unit tests...\n");
     test_vector();

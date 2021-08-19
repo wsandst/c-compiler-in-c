@@ -2,7 +2,7 @@
 
 int main() {
     int x = 0;
-    loop:
+loop:
     if (x < 10) {
         x = x + 1;
         goto loop;

@@ -3,21 +3,21 @@
 static const bool ASSEMBLE_DEBUG = true;
 
 char* load_file_to_string(char* filename) {
-    FILE *file = fopen(filename, "r");
-	if (file == NULL) {
-		printf("The specified source file \"%s\" does not appear to exist\n", filename);
+    FILE* file = fopen(filename, "r");
+    if (file == NULL) {
+        printf("The specified source file \"%s\" does not appear to exist\n", filename);
         exit(1);
-	}
+    }
 
     long size;
-    char *buffer;
+    char* buffer;
 
     fseek(file, 0L, SEEK_END);
     size = ftell(file);
     rewind(file);
 
     // Allocate memory for entire content
-    buffer = calloc(1, size+1);
+    buffer = calloc(1, size + 1);
 
     // Copy the file contents into the buffer
     fread(buffer, size, 1, file);
@@ -26,34 +26,33 @@ char* load_file_to_string(char* filename) {
     return buffer;
 }
 
-void write_string_to_file(char* filename, char *src) {
-    FILE *file = fopen(filename, "wb");
+void write_string_to_file(char* filename, char* src) {
+    FILE* file = fopen(filename, "wb");
     fputs(src, file);
     fclose(file);
 }
 
 // Compile Intel-syntax ASM using NASM and link with gcc
-void compile_asm(char *asm_src, char* executable_name) {
+void compile_asm(char* asm_src, char* executable_name) {
     write_string_to_file("output.asm", asm_src);
     // Includes debug symbols
     char cmd_str[256];
     if (ASSEMBLE_DEBUG) {
-        snprintf(cmd_str, 255, 
-            "nasm -f elf64 -F dwarf -g %1$s.asm && gcc -g -no-pie -o %1$s %1$s.o && rm %1$s.o", 
-            executable_name
-        );
+        snprintf(
+            cmd_str, 255,
+            "nasm -f elf64 -F dwarf -g %1$s.asm && gcc -g -no-pie -o %1$s %1$s.o && rm %1$s.o",
+            executable_name);
         system(cmd_str);
     }
     else {
-        snprintf(cmd_str, 255, 
-            "nasm -f elf64 %1$s.asm && gcc -no-pie -o %1$s %1$s.o && rm %1$s.o", 
-            executable_name
-        );
+        snprintf(cmd_str, 255,
+                 "nasm -f elf64 %1$s.asm && gcc -no-pie -o %1$s %1$s.o && rm %1$s.o",
+                 executable_name);
         system(cmd_str);
     }
 }
 
 char* isolate_file_dir(char* filepath) {
     int index = str_index_of_reverse(filepath, '/');
-    return str_substr(filepath, index+1);
+    return str_substr(filepath, index + 1);
 }

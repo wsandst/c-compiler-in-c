@@ -5,4 +5,3 @@ int main() {
     int y = 7 != 7;
     return x + y;
 }
-

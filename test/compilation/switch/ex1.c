@@ -2,7 +2,7 @@
 
 int main() {
     int x = 4;
-    switch(x) {
+    switch (x) {
         case 1:
             return 1;
         case 2:

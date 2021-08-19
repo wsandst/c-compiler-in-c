@@ -64,7 +64,8 @@ void gen_asm_literal(ASTNode* node, AsmContext ctx) {
     else if (node->literal_type == LT_STRING) {
         asm_set_indent(&ctx, 0);
         char* label_name = get_next_cstring_label_str(&ctx);
-        asm_add_sectionf(&ctx, ctx.asm_rodata_src, "%s: db `%s`, 0", label_name, node->literal);
+        asm_add_sectionf(&ctx, ctx.asm_rodata_src, "%s: db `%s`, 0", label_name,
+                         node->literal);
         asm_set_indent(&ctx, 1);
         asm_addf(&ctx, "lea rax, [%s]", label_name);
     }
@@ -167,7 +168,7 @@ void gen_asm_unary_op_int(ASTNode* node, AsmContext ctx) {
             gen_asm_binary_op_assign_int(node->rhs, ctx);
             asm_addf(&ctx, "pop rax");
             break;
-        case UOP_POST_DECR: // x-- 
+        case UOP_POST_DECR: // x--
             // Decrement and return previous value
             if (node->rhs->expr_type != EXPR_VAR) {
                 codegen_error("Only variables can be decremented to");
@@ -198,7 +199,7 @@ void gen_asm_unary_op_int(ASTNode* node, AsmContext ctx) {
             char* addr_size = bytes_to_addr_width(node->cast_type.bytes);
             char* move_instr = get_move_instr_for_var_type(node->cast_type);
             asm_addf(&ctx, "mov r12, rax"); // Save rax for potential deref assignment
-            asm_addf(&ctx, "%s, %s [rax]", move_instr, addr_size); 
+            asm_addf(&ctx, "%s, %s [rax]", move_instr, addr_size);
             free(move_instr);
             break;
         }
@@ -220,7 +221,8 @@ void gen_asm_binary_op_int(ASTNode* node, AsmContext ctx) {
 
     gen_asm(node->lhs, ctx); // LHS now in RAX
     if (node->lhs->op_type == UOP_DEREF) {
-        asm_addf(&ctx, "push r12"); // Deref address is in r12, we need to save it incase rhs is deref
+        asm_addf(&ctx,
+                 "push r12"); // Deref address is in r12, we need to save it incase rhs is deref
     }
 
     gen_asm_add_short_circuit_jumps(node, ctx); // AND/OR Short circuiting related
@@ -231,7 +233,7 @@ void gen_asm_binary_op_int(ASTNode* node, AsmContext ctx) {
     asm_addf(&ctx, "pop rax"); // LHS now in RAX
     // We are now ready for the binary operation
     switch (node->op_type) { // These are all integer operations
-        case BOP_ASSIGN: 
+        case BOP_ASSIGN:
             // Rest of assignment is handled after the switch
             asm_add_com(&ctx, "; Op: =");
             asm_addf(&ctx, "mov rax, rbx"); // We need the rhs value in rax
@@ -365,7 +367,6 @@ void gen_asm_binary_op_assign_int(ASTNode* node, AsmContext ctx) {
     else {
         codegen_error("Only variables can be assigned to");
     }
-
 }
 
 void gen_asm_binary_op_and_int(ASTNode* node, AsmContext ctx) {
@@ -375,7 +376,8 @@ void gen_asm_binary_op_and_int(ASTNode* node, AsmContext ctx) {
     asm_addf(&ctx, "mov rax, 0");
     asm_addf(&ctx, "setne al");
     if (ctx.and_end_node) { // Add short circuit end jump label
-        asm_addf(&ctx, "%s: ; Logical short circuit end label", ctx.and_short_circuit_label);
+        asm_addf(&ctx, "%s: ; Logical short circuit end label",
+                 ctx.and_short_circuit_label);
         free(ctx.and_short_circuit_label);
     }
 }
@@ -435,23 +437,24 @@ void gen_asm_binary_op_float(ASTNode* node, AsmContext ctx) {
 
     gen_asm(node->lhs, ctx); // LHS now in RAX
     if (node->lhs->op_type == UOP_DEREF) {
-        asm_addf(&ctx, "push r12"); // Deref address is in r12, we need to save it incase rhs is deref
+        asm_addf(&ctx,
+                 "push r12"); // Deref address is in r12, we need to save it incase rhs is deref
     }
     // Check if we need to cast lhs (lhs is int)
-    gen_asm_unary_op_cast(ctx, node->cast_type, node->lhs->cast_type); 
+    gen_asm_unary_op_cast(ctx, node->cast_type, node->lhs->cast_type);
 
     gen_asm_add_short_circuit_jumps(node, ctx); // AND/OR Short circuiting related
     asm_addf(&ctx, "movq rax, xmm0");
     asm_addf(&ctx, "push rax"); // Save RAX
     gen_asm(node->rhs, ctx);
     // Check if we need to cast rhs (rhs is int)
-    gen_asm_unary_op_cast(ctx, node->cast_type, node->rhs->cast_type); 
+    gen_asm_unary_op_cast(ctx, node->cast_type, node->rhs->cast_type);
     asm_addf(&ctx, "movq xmm1, xmm0"); // Move RHS to XMM1
     asm_addf(&ctx, "pop rax"); // LHS now in RAX
     asm_addf(&ctx, "movq xmm0, rax"); // LHS now in XMM0
     // We are now ready for the binary operation
     switch (node->op_type) { // These are all integer operations
-        case BOP_ASSIGN: 
+        case BOP_ASSIGN:
             // Rest of assignment is handled after the switch
             asm_add_com(&ctx, "; fOp: =");
             asm_addf(&ctx, "movq xmm0, xmm1"); // We need the rhs value in rax
@@ -589,7 +592,7 @@ void gen_asm_unary_op_ptr(ASTNode* node, AsmContext ctx) {
             gen_asm_binary_op_assign_int(node->rhs, ctx);
             asm_addf(&ctx, "pop rax");
             break;
-        case UOP_POST_DECR: // x-- 
+        case UOP_POST_DECR: // x--
             asm_add_com(&ctx, "; pOp: -- (post)");
             asm_addf(&ctx, "mov rbx, rax");
             asm_addf(&ctx, "push rax");
@@ -613,7 +616,8 @@ void gen_asm_binary_op_ptr(ASTNode* node, AsmContext ctx) {
 
     gen_asm(node->lhs, ctx); // LHS now in RAX
     if (node->lhs->op_type == UOP_DEREF) {
-        asm_addf(&ctx, "push r12"); // Deref address is in r12, we need to save it incase rhs is deref
+        asm_addf(&ctx,
+                 "push r12"); // Deref address is in r12, we need to save it incase rhs is deref
     }
 
     gen_asm_add_short_circuit_jumps(node, ctx); // AND/OR Short circuiting related
@@ -624,7 +628,7 @@ void gen_asm_binary_op_ptr(ASTNode* node, AsmContext ctx) {
     asm_addf(&ctx, "pop rax"); // LHS now in RAX
     // We are now ready for the binary operation
     switch (node->op_type) { // These are all integer operations
-        case BOP_ASSIGN: 
+        case BOP_ASSIGN:
             // Rest of assignment is handled after the switch
             asm_add_com(&ctx, "; pOp: =");
             asm_addf(&ctx, "mov rax, rbx"); // We need the rhs value in rax
@@ -743,7 +747,7 @@ void gen_asm_add_short_circuit_jumps(ASTNode* node, AsmContext ctx) {
 
 void gen_asm_unary_op_cast(AsmContext ctx, VarType to_type, VarType from_type) {
     // We have value in rax or xmm0
-    if (to_type.ptr_level > 0 && from_type.ptr_level > 0) { 
+    if (to_type.ptr_level > 0 && from_type.ptr_level > 0) {
         // Pointer to pointer
         return; // No need to do anything
     }

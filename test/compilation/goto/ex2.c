@@ -4,6 +4,6 @@ int main() {
     int x = 0;
     goto end;
     x = 5;
-    end:
+end:
     return x;
 }

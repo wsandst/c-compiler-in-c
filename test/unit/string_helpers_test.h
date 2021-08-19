@@ -22,11 +22,11 @@ void test_str_vec() {
     assert(strcmp(vec.elems[0], "hello") == 0);
     assert(strcmp(vec.elems[1], "world") == 0);
     assert(strcmp(vec.elems[2], "test") == 0);
- 
+
     str_vec_push(&vec, "test2");
     assert(strcmp(vec.elems[3], "test2") == 0);
 
-    char *joined_str = str_vec_join(&vec);
+    char* joined_str = str_vec_join(&vec);
     assert(strcmp(joined_str, "helloworldtesttest2") == 0);
     free(joined_str);
 
@@ -137,18 +137,18 @@ void test_string_helper_funcs() {
     }
 
     // Str add
-    char *added_str = str_add("hello ", "world");
+    char* added_str = str_add("hello ", "world");
     assert(strcmp(added_str, "hello world") == 0);
     free(added_str);
 
     // Str multiply
-    char *multiplied_str = str_multiply("a", 5);
+    char* multiplied_str = str_multiply("a", 5);
     assert(strcmp(multiplied_str, "aaaaa") == 0);
     free(multiplied_str);
 
     multiplied_str = str_multiply("a", 0);
     assert(strcmp(multiplied_str, "") == 0);
     free(multiplied_str);
-    
+
     free(test_str);
 }

@@ -9,9 +9,9 @@ int main() {
     putchar(97);
     putchar(121);
     putchar(10);
-    return f2(7); 
+    return f2(7);
 }
 
 int f2(int x) {
-    return x+3;
+    return x + 3;
 }

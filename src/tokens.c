@@ -7,24 +7,23 @@ I don't handle -> correctly. Treat as operator? Or delimiter?
 */
 
 Tokens tokenize(char* src) {
-    int src_length = strlen(src)+1;
+    int src_length = strlen(src) + 1;
     Tokens tokens = tokens_new(src_length);
-    
+
     // Split up src in lines
     //StrVector lines = str_split(src, '\n');
     StrVector lines = str_split_lines(src);
-    for (size_t i = 0; i < lines.size; i++)
-    {
+    for (size_t i = 0; i < lines.size; i++) {
         char* new_str = str_strip(lines.elems[i]);
         free(lines.elems[i]);
         lines.elems[i] = new_str;
     }
 
     // Set last token to EOF
-    tokens_get(&tokens, tokens.size-1)->type = TK_EOF;
+    tokens_get(&tokens, tokens.size - 1)->type = TK_EOF;
 
     //str_vec_print(&lines);
-    
+
     tokenize_comments(&tokens, &lines);
     tokenize_preprocessor(&tokens, &lines);
     tokenize_strings(&tokens, &lines);
@@ -52,11 +51,10 @@ Tokens tokens_new(int size) {
     return tokens;
 }
 
-void tokens_free(Tokens *tokens) {
-    for (size_t i = 0; i < tokens->size; i++)
-    {
+void tokens_free(Tokens* tokens) {
+    for (size_t i = 0; i < tokens->size; i++) {
         Token* t = tokens_get(tokens, i);
-        if(t->requires_string_free) {
+        if (t->requires_string_free) {
             // We get invalid frees here for some reason.
             free(t->string_repr);
         }
@@ -64,20 +62,21 @@ void tokens_free(Tokens *tokens) {
     vec_free(&tokens->elems);
 }
 
-Token* tokens_get(Tokens *tokens, int i) {
+Token* tokens_get(Tokens* tokens, int i) {
     return (Token*) vec_get(&tokens->elems, i);
 }
 
-void tokens_set(Tokens* tokens, int i, TokenType type, char* string_repr, bool requires_free, int line) {
+void tokens_set(Tokens* tokens, int i, TokenType type, char* string_repr,
+                bool requires_free, int line) {
     Token* t = tokens_get(tokens, i);
     t->type = type;
     t->string_repr = string_repr;
     t->requires_string_free = requires_free;
-    t->src_line = line+1;
+    t->src_line = line + 1;
 }
 
 // Remove NULL elements from the Token Array
-void tokens_trim(Tokens *tokens) {
+void tokens_trim(Tokens* tokens) {
     // Count non-none tokens
     int token_count = 0;
     for (size_t i = 0; i < tokens->size; i++) {
@@ -120,7 +119,7 @@ void tokens_tag_src_filename(Tokens* tokens, char* filename) {
     }
 }
 
-void tokenize_preprocessor(Tokens *tokens, StrVector *str_split) {
+void tokenize_preprocessor(Tokens* tokens, StrVector* str_split) {
     int src_pos = 0;
     for (size_t i = 0; i < str_split->size; i++) {
         char* str = str_split->elems[i];
@@ -133,7 +132,7 @@ void tokenize_preprocessor(Tokens *tokens, StrVector *str_split) {
     }
 }
 
-void tokenize_comments(Tokens *tokens, StrVector *str_split) {
+void tokenize_comments(Tokens* tokens, StrVector* str_split) {
     int src_pos = 0;
     int comment_src_pos;
     bool seeking_block_comment_end = false;
@@ -159,15 +158,16 @@ void tokenize_comments(Tokens *tokens, StrVector *str_split) {
                 // Check for single line comment
                 else if (!is_inside_string && *str == '/' && *(str + 1) == '/') {
                     // Single line comment, can clear out to end of line
-                    tokens_set(tokens, src_pos, TK_COMMENT, 
-                            str_substr(str, strlen(str)), true, i);
+                    tokens_set(tokens, src_pos, TK_COMMENT, str_substr(str, strlen(str)),
+                               true, i);
                     str_fill(str, strlen(str), ' ');
                 }
             }
             else {
                 // Check for end of multiline comment
-                if (*str == '*' && *(str +1) == '/') {
-                    tokens_set(tokens, comment_src_pos, TK_COMMENT, "BLOCK COMMENT N/A", false, i);
+                if (*str == '*' && *(str + 1) == '/') {
+                    tokens_set(tokens, comment_src_pos, TK_COMMENT, "BLOCK COMMENT N/A",
+                               false, i);
                     seeking_block_comment_end = false;
                     *str = ' ';
                     str++;
@@ -182,7 +182,7 @@ void tokenize_comments(Tokens *tokens, StrVector *str_split) {
     }
 }
 
-void tokenize_strings(Tokens *tokens, StrVector *str_split) {
+void tokenize_strings(Tokens* tokens, StrVector* str_split) {
     int src_pos = 0;
     for (size_t i = 0; i < str_split->size; i++) {
         char* str = str_split->elems[i];
@@ -193,13 +193,17 @@ void tokenize_strings(Tokens *tokens, StrVector *str_split) {
             s_quote_start = str_contains(str, "\'");
             if (s_quote_start) {
                 char* search_str = str + s_quote_start;
-                while (*search_str != '\'' || (search_str > str && (*(search_str-1) == '\\'))) {
+                while (*search_str != '\'' ||
+                       (search_str > str && (*(search_str - 1) == '\\'))) {
                     search_str++;
                 }
                 int string_src_pos = src_pos + s_quote_start + 1;
-                tokens_set(tokens, string_src_pos, TK_LCHAR, 
-                    str_substr(str+s_quote_start, search_str - (str + s_quote_start)), true, i);
-                str_fill(str+s_quote_start-1, search_str - (str + s_quote_start) + 2, ' ');
+                tokens_set(tokens, string_src_pos, TK_LCHAR,
+                           str_substr(str + s_quote_start,
+                                      search_str - (str + s_quote_start)),
+                           true, i);
+                str_fill(str + s_quote_start - 1, search_str - (str + s_quote_start) + 2,
+                         ' ');
             }
         }
         // Strings, double quotes ""
@@ -208,20 +212,22 @@ void tokenize_strings(Tokens *tokens, StrVector *str_split) {
             quote_start = str_contains(str, "\"");
             if (quote_start) {
                 char* search_str = str + quote_start;
-                while (*search_str != '\"' || (search_str > str && (*(search_str-1) == '\\'))) {
+                while (*search_str != '\"' ||
+                       (search_str > str && (*(search_str - 1) == '\\'))) {
                     search_str++;
                 }
                 int string_src_pos = src_pos + quote_start + 1;
-                tokens_set(tokens, string_src_pos, TK_LSTRING, 
-                    str_substr(str+quote_start, search_str - (str + quote_start)), true, i);
-                str_fill(str+quote_start-1, search_str - (str + quote_start) + 2, ' ');
+                tokens_set(tokens, string_src_pos, TK_LSTRING,
+                           str_substr(str + quote_start, search_str - (str + quote_start)),
+                           true, i);
+                str_fill(str + quote_start - 1, search_str - (str + quote_start) + 2, ' ');
             }
         }
         src_pos += strlen(str);
     }
 }
 
-void tokenize_keywords(Tokens* tokens, StrVector *str_split) {
+void tokenize_keywords(Tokens* tokens, StrVector* str_split) {
     tokenize_keyword(tokens, str_split, "while", TK_KW_WHILE);
     tokenize_keyword(tokens, str_split, "do", TK_KW_DO);
     tokenize_keyword(tokens, str_split, "if", TK_KW_IF);
@@ -254,16 +260,16 @@ void tokenize_keywords(Tokens* tokens, StrVector *str_split) {
     tokenize_keyword(tokens, str_split, "...", TK_KW_VARIADIC_DOTS);
 }
 
-void tokenize_keyword(Tokens* tokens, StrVector *str_split, char* keyword, enum TokenType type) {
+void tokenize_keyword(Tokens* tokens, StrVector* str_split, char* keyword,
+                      enum TokenType type) {
     int src_pos = 0;
     int keyword_length = strlen(keyword);
-    for (size_t i = 0; i < str_split->size; i++)
-    {
+    for (size_t i = 0; i < str_split->size; i++) {
         char* str = str_split->elems[i];
         int match_i = 0;
         while ((match_i = str_contains_word(str, keyword))) {
-            char* start = str + match_i-1;
-            int keyword_src_index = src_pos+match_i-1;
+            char* start = str + match_i - 1;
+            int keyword_src_index = src_pos + match_i - 1;
             str_fill(start, keyword_length, ' ');
             tokens_set(tokens, keyword_src_index, type, keyword, false, i);
         }
@@ -271,7 +277,7 @@ void tokenize_keyword(Tokens* tokens, StrVector *str_split, char* keyword, enum 
     }
 }
 
-void tokenize_ops(Tokens* tokens, StrVector *str_split) {
+void tokenize_ops(Tokens* tokens, StrVector* str_split) {
     // Similar to keywords tokenization, except we want to isolate words
     tokenize_op(tokens, str_split, "sizeof", TK_OP_SIZEOF);
     tokenize_op(tokens, str_split, "+=", TK_OP_ASSIGN_ADD);
@@ -316,24 +322,23 @@ void tokenize_ops(Tokens* tokens, StrVector *str_split) {
     tokenize_op(tokens, str_split, "?", TK_OP_QST);
 }
 
-void tokenize_op(Tokens* tokens, StrVector *str_split, char* op, enum TokenType type) {
+void tokenize_op(Tokens* tokens, StrVector* str_split, char* op, enum TokenType type) {
     int src_pos = 0;
     int op_length = strlen(op);
-    for (size_t i = 0; i < str_split->size; i++)
-    {
+    for (size_t i = 0; i < str_split->size; i++) {
         char* str = str_split->elems[i];
         int match_i = 0;
         while ((match_i = str_contains(str, op))) {
-            char* start = str + match_i-1;
-            int keyword_src_index = src_pos+match_i-1;
+            char* start = str + match_i - 1;
+            int keyword_src_index = src_pos + match_i - 1;
             str_fill(start, op_length, ' ');
             tokens_set(tokens, keyword_src_index, type, op, false, i);
         }
         src_pos += strlen(str);
-    } 
+    }
 }
 
-void tokenize_idents(Tokens *tokens, StrVector *str_split) {
+void tokenize_idents(Tokens* tokens, StrVector* str_split) {
     // Find words (separated by non-alphanum characters) which
     // starts with an alpha char or _, made up of only alphanum characters
     // Make a new version of str_contains_word? str_contains_alpha_word?
@@ -346,7 +351,8 @@ void tokenize_idents(Tokens *tokens, StrVector *str_split) {
         bool prev_is_whitespace = true;
         while (*str != '\0') {
             if (!matching_ident) {
-                if ((isalpha(*str) || *str == '_') && prev_is_whitespace) { // Found start of identifier
+                if ((isalpha(*str) || *str == '_') &&
+                    prev_is_whitespace) { // Found start of identifier
                     matching_ident = true;
                     ident_start = str;
                 }
@@ -354,7 +360,8 @@ void tokenize_idents(Tokens *tokens, StrVector *str_split) {
             else {
                 if (!(isalnum(*str)) && *str != '_') { // Found end of identifier
                     int length = str - ident_start;
-                    tokens_set(tokens, src_pos-length, TK_IDENT, str_substr(ident_start, length), true, i);
+                    tokens_set(tokens, src_pos - length, TK_IDENT,
+                               str_substr(ident_start, length), true, i);
                     str_fill(ident_start, length, ' ');
                     matching_ident = false;
                 }
@@ -370,7 +377,8 @@ void tokenize_idents(Tokens *tokens, StrVector *str_split) {
         }
         if (matching_ident) { // Found end of identifier, line ended
             int length = str - ident_start;
-            tokens_set(tokens, src_pos-length, TK_IDENT, str_substr(ident_start, length), true, i);
+            tokens_set(tokens, src_pos - length, TK_IDENT,
+                       str_substr(ident_start, length), true, i);
             str_fill(ident_start, length, ' ');
             matching_ident = false;
         }
@@ -380,12 +388,12 @@ void tokenize_idents(Tokens *tokens, StrVector *str_split) {
 // Tokenize int and float literals
 // Floats: 1.3f, 1.3, .3
 // Ints: 34312, 0xFAFA, don't do binary for now
-void tokenize_values(Tokens *tokens, StrVector *str_split) {
+void tokenize_values(Tokens* tokens, StrVector* str_split) {
     tokenize_ints(tokens, str_split);
     tokenize_floats(tokens, str_split);
 }
 
-void tokenize_ints(Tokens *tokens, StrVector *str_split) {
+void tokenize_ints(Tokens* tokens, StrVector* str_split) {
     int src_pos = 0;
     char* ident_start;
     bool matching = false;
@@ -407,7 +415,8 @@ void tokenize_ints(Tokens *tokens, StrVector *str_split) {
                 }
                 else if (!isalnum(*str)) { // End of int
                     int length = str - ident_start;
-                    tokens_set(tokens, src_pos-length, TK_LINT, str_substr(ident_start, length), true, i);
+                    tokens_set(tokens, src_pos - length, TK_LINT,
+                               str_substr(ident_start, length), true, i);
                     str_fill(ident_start, length, ' ');
                     matching = false;
                 }
@@ -423,7 +432,8 @@ void tokenize_ints(Tokens *tokens, StrVector *str_split) {
         }
         if (matching) { // Found end of identifier, line ended
             int length = str - ident_start;
-            tokens_set(tokens, src_pos-length, TK_LINT, str_substr(ident_start, length), true, i);
+            tokens_set(tokens, src_pos - length, TK_LINT, str_substr(ident_start, length),
+                       true, i);
             str_fill(ident_start, length, ' ');
             matching = false;
         }
@@ -431,7 +441,7 @@ void tokenize_ints(Tokens *tokens, StrVector *str_split) {
 }
 
 // Very similar to int, except there has to be a dot somewhere, either as first char or somewhere inside
-void tokenize_floats(Tokens *tokens, StrVector *str_split) {
+void tokenize_floats(Tokens* tokens, StrVector* str_split) {
     int src_pos = 0;
     char* ident_start;
     bool matching = false;
@@ -442,7 +452,8 @@ void tokenize_floats(Tokens *tokens, StrVector *str_split) {
         char* str = str_split->elems[i];
         while (*str != '\0') {
             if (!matching) {
-                if ((isdigit(*str) || *str == '.') && prev_is_whitespace) { // Found start of int
+                if ((isdigit(*str) || *str == '.') &&
+                    prev_is_whitespace) { // Found start of int
                     matching = true;
                     ident_start = str;
                     if (*str == '.') {
@@ -460,7 +471,9 @@ void tokenize_floats(Tokens *tokens, StrVector *str_split) {
                 else if (isdigit(*str)) {
                     found_digit = true;
                 }
-                else if (isalpha(*str) || *str == '_' || (!isalpha(*str) && (!found_digit || !found_dot))) { // Invalid character in int
+                else if (isalpha(*str) || *str == '_' ||
+                         (!isalpha(*str) &&
+                          (!found_digit || !found_dot))) { // Invalid character in int
                     matching = false;
                     prev_is_whitespace = false;
                     found_dot = false;
@@ -468,7 +481,8 @@ void tokenize_floats(Tokens *tokens, StrVector *str_split) {
                 }
                 else if (!isalnum(*str)) { // End of int
                     int length = str - ident_start;
-                    tokens_set(tokens, src_pos-length, TK_LFLOAT, str_substr(ident_start, length), true, i);
+                    tokens_set(tokens, src_pos - length, TK_LFLOAT,
+                               str_substr(ident_start, length), true, i);
                     str_fill(ident_start, length, ' ');
                     matching = false;
                     found_dot = false;
@@ -485,7 +499,8 @@ void tokenize_floats(Tokens *tokens, StrVector *str_split) {
         }
         if (matching) { // Found end of identifier, line ended
             int length = str - ident_start;
-            tokens_set(tokens, src_pos-length, TK_LFLOAT, str_substr(ident_start, length), true, i);
+            tokens_set(tokens, src_pos - length, TK_LFLOAT,
+                       str_substr(ident_start, length), true, i);
             str_fill(ident_start, length, ' ');
             matching = false;
             found_dot = false;
@@ -493,7 +508,7 @@ void tokenize_floats(Tokens *tokens, StrVector *str_split) {
     }
 }
 
-void tokenize_delims(Tokens *tokens, StrVector *str_split) {
+void tokenize_delims(Tokens* tokens, StrVector* str_split) {
     int src_pos = 0;
     for (size_t i = 0; i < str_split->size; i++) {
         char* str = str_split->elems[i];
@@ -559,15 +574,15 @@ void tokenize_delims(Tokens *tokens, StrVector *str_split) {
 }
 
 void tokens_print(Tokens* tokens) {
-    for (size_t i = 0; i < tokens->size; i++)
-    {
+    for (size_t i = 0; i < tokens->size; i++) {
         Token* t = tokens_get(tokens, i);
         if (t->type == TK_NONE) {
             continue;
         }
         char* type_str = token_type_to_string(t->type);
         if (t->string_repr != 0) {
-            printf("[T: %-18s free: %d   STR: \"%s\"]\n", type_str, t->requires_string_free, t->string_repr);
+            printf("[T: %-18s free: %d   STR: \"%s\"]\n", type_str,
+                   t->requires_string_free, t->string_repr);
         }
         else {
             printf("[T: %s]\n", type_str);
@@ -589,8 +604,7 @@ Tokens tokens_copy(Tokens* tokens) {
 }
 
 void tokens_pretty_print(Tokens* tokens) {
-    for (size_t i = 0; i < tokens->size; i++)
-    {
+    for (size_t i = 0; i < tokens->size; i++) {
         Token* t = tokens_get(tokens, i);
         if (t->type == TK_DL_CLOSEBRACE) {
             printf("\n");
@@ -598,63 +612,61 @@ void tokens_pretty_print(Tokens* tokens) {
         if (t->string_repr != 0) {
             printf("%s ", t->string_repr);
         }
-        if (t->type == TK_DL_SEMICOLON 
-                || t->type == TK_DL_OPENBRACE
-                || t->type == TK_PREPROCESSOR
-                || t->type == TK_COMMENT) {
+        if (t->type == TK_DL_SEMICOLON || t->type == TK_DL_OPENBRACE ||
+            t->type == TK_PREPROCESSOR || t->type == TK_COMMENT) {
             printf("\n");
         }
     }
 }
 
 char* token_type_to_string(enum TokenType type) {
-    static char *type_strings[] = {
-        "TK_NONE", 
-        "TK_IDENT", 
-        "TK_TYPE", 
-        "TK_COMMENT", 
+    static char* type_strings[] = {
+        "TK_NONE",
+        "TK_IDENT",
+        "TK_TYPE",
+        "TK_COMMENT",
         "TK_PREPROCESSOR",
         "TK_EOF",
-        "TK_LINT", 
-        "TK_LFLOAT", 
-        "TK_LSTRING", 
+        "TK_LINT",
+        "TK_LFLOAT",
+        "TK_LSTRING",
         "TK_LCHAR",
         // Delimiters
-        "TK_DL_SEMICOLON", 
-        "TK_DL_COMMA", 
-        "TK_DL_COLON", 
-        "TK_DL_DOT", 
-        "TK_DL_OPENPAREN", 
-        "TK_DL_CLOSEPAREN", 
-        "TK_DL_OPENBRACE", 
-        "TK_DL_CLOSEBRACE", 
-        "TK_DL_OPENBRACKET", 
+        "TK_DL_SEMICOLON",
+        "TK_DL_COMMA",
+        "TK_DL_COLON",
+        "TK_DL_DOT",
+        "TK_DL_OPENPAREN",
+        "TK_DL_CLOSEPAREN",
+        "TK_DL_OPENBRACE",
+        "TK_DL_CLOSEBRACE",
+        "TK_DL_OPENBRACKET",
         "TK_DL_CLOSEBRACKET",
         // Operations
-        "TK_OP_PLUS", 
-        "TK_OP_MINUS", 
-        "TK_OP_MULT", 
-        "TK_OP_DIV", 
-        "TK_OP_MOD", 
-        "TK_OP_RIGHTSHIFT", 
-        "TK_OP_LEFTSHIFT", 
-        "TK_OP_BITOR", 
+        "TK_OP_PLUS",
+        "TK_OP_MINUS",
+        "TK_OP_MULT",
+        "TK_OP_DIV",
+        "TK_OP_MOD",
+        "TK_OP_RIGHTSHIFT",
+        "TK_OP_LEFTSHIFT",
+        "TK_OP_BITOR",
         "TK_OP_BITAND",
-        "TK_OP_BITXOR", 
-        "TK_OP_COMPL", 
-        "TK_OP_NOT", 
-        "TK_OP_AND", 
-        "TK_OP_OR", 
-        "TK_OP_EQ", 
-        "TK_OP_NEQ", 
-        "TK_OP_GT", 
-        "TK_OP_LT", 
-        "TK_OP_LTE", 
-        "TK_OP_GTE", 
+        "TK_OP_BITXOR",
+        "TK_OP_COMPL",
+        "TK_OP_NOT",
+        "TK_OP_AND",
+        "TK_OP_OR",
+        "TK_OP_EQ",
+        "TK_OP_NEQ",
+        "TK_OP_GT",
+        "TK_OP_LT",
+        "TK_OP_LTE",
+        "TK_OP_GTE",
         "TK_OP_QST",
         "TK_OP_INCR",
         "TK_OP_DECR",
-        "TK_OP_ASSIGN", 
+        "TK_OP_ASSIGN",
         "TK_OP_ASSIGN_ADD",
         "TK_OP_ASSIGN_SUB",
         "TK_OP_ASSIGN_MULT",
@@ -667,36 +679,36 @@ char* token_type_to_string(enum TokenType type) {
         "TK_OP_ASSIGN_BITXOR",
         "TK_OP_SIZEOF",
         // Keywords
-        "TK_KW_IF", 
-        "TK_KW_ELSE", 
-        "TK_KW_WHILE", 
-        "TK_KW_DO", 
-        "TK_KW_FOR", 
-        "TK_KW_BREAK", 
-        "TK_KW_CONTINUE", 
-        "TK_KW_RETURN", 
-        "TK_KW_SWITCH", 
-        "TK_KW_CASE", 
-        "TK_KW_DEFAULT", 
+        "TK_KW_IF",
+        "TK_KW_ELSE",
+        "TK_KW_WHILE",
+        "TK_KW_DO",
+        "TK_KW_FOR",
+        "TK_KW_BREAK",
+        "TK_KW_CONTINUE",
+        "TK_KW_RETURN",
+        "TK_KW_SWITCH",
+        "TK_KW_CASE",
+        "TK_KW_DEFAULT",
         "TK_KW_GOTO",
-        "TK_KW_LABEL", 
-        "TK_KW_TYPEDEF", 
-        "TK_KW_INCLUDE", 
-        "TK_KW_DEFINE", 
-        "TK_KW_CONST", 
-        "TK_KW_LONG", 
-        "TK_KW_SHORT", 
-        "TK_KW_SIGNED", 
-        "TK_KW_UNSIGNED", 
+        "TK_KW_LABEL",
+        "TK_KW_TYPEDEF",
+        "TK_KW_INCLUDE",
+        "TK_KW_DEFINE",
+        "TK_KW_CONST",
+        "TK_KW_LONG",
+        "TK_KW_SHORT",
+        "TK_KW_SIGNED",
+        "TK_KW_UNSIGNED",
         "TK_KW_EXTERN",
         "TK_KW_STATIC",
-        "TK_KW_STRUCT", 
+        "TK_KW_STRUCT",
         "TK_KW_ENUM",
-        "TK_KW_UNION", 
-        "TK_KW_INT", 
-        "TK_KW_FLOAT", 
-        "TK_KW_DOUBLE", 
-        "TK_KW_CHAR", 
+        "TK_KW_UNION",
+        "TK_KW_INT",
+        "TK_KW_FLOAT",
+        "TK_KW_DOUBLE",
+        "TK_KW_CHAR",
         "TK_KW_VOID",
         "TK_KW_VARIADIC_DOTS",
     };

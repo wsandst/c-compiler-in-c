@@ -1,7 +1,7 @@
 
 int test2() {
     int x = (10 * 2);
-    return x/2;
+    return x / 2;
 }
 
 int test() {

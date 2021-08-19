@@ -14,7 +14,7 @@ TODO: Contains word does not check the start of a word, if it is a space or not 
 
 // Represents a String Vector (reallocating array)
 struct StrVector {
-    char **elems;
+    char** elems;
     int size;
     int max_size;
 };
@@ -49,7 +49,7 @@ char* str_vec_join_with_delim(StrVector* str_vec, char delim);
 StrVector str_vec_slice(StrVector* str_vec, int from_index, int to_index);
 
 // Add two string vectors, store result in str_vec1 and free str_vec2
-StrVector* str_vec_add(StrVector *str_vec1, StrVector* str_vec2);
+StrVector* str_vec_add(StrVector* str_vec1, StrVector* str_vec2);
 
 // Split a C string based on a delimiter and return a StrVector
 StrVector str_split(char* str, char delimiter);
@@ -74,7 +74,7 @@ char* str_substr(const char* string, int length);
 char* str_add(char* str1, char* str2);
 
 // Add str to itself, n times
-char* str_multiply(char *str, int n);
+char* str_multiply(char* str, int n);
 
 // Does the string start with the string provided?
 bool str_startswith(char* str, char* match);

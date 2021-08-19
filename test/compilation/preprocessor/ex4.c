@@ -7,14 +7,14 @@
 #define VAL1
 
 int main() {
-    #ifdef VAL1
-        #ifdef VAL2
-            return 1;
-        #endif
-        #ifndef VAL2
-            return 2; // Intended
-        #endif
-        return 3;
-    #endif
+#ifdef VAL1
+#ifdef VAL2
+    return 1;
+#endif
+#ifndef VAL2
+    return 2; // Intended
+#endif
+    return 3;
+#endif
     return 4;
 }

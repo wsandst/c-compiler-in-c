@@ -1,5 +1,5 @@
 // The symbol table represents the various variables and functions in a program
-// Each scope has its own symbol table and is linked to the parent scope. 
+// Each scope has its own symbol table and is linked to the parent scope.
 // Then every scope has an inherent stack offset, which determines local variables location
 // on the stack
 // To find a variable, first search the current scope and traverse all the way to the top
@@ -45,12 +45,12 @@ enum LiteralType {
 };
 
 enum VarTypeEnum {
-  TY_VOID,
-  TY_BOOL,
-  TY_INT,
-  TY_FLOAT,
-  TY_ENUM,
-  TY_STRUCT,
+    TY_VOID,
+    TY_BOOL,
+    TY_INT,
+    TY_FLOAT,
+    TY_ENUM,
+    TY_STRUCT,
 };
 
 struct VarType {
@@ -126,7 +126,7 @@ struct SymbolTable {
     // Vector of pointers to the children. This might be better as a linked list?
     int children_count;
     int children_max_count;
-    SymbolTable** children_ptrs; 
+    SymbolTable** children_ptrs;
 
     // Variable vector. This should later be a hashtable
     int var_count;
@@ -207,7 +207,8 @@ void symbol_table_labels_realloc(SymbolTable* table, int new_size);
 
 // ================= Objects ===================
 
-Object* symbol_table_lookup_object(SymbolTable* table, char* object_name, ObjectTypeEnum type);
+Object* symbol_table_lookup_object(SymbolTable* table, char* object_name,
+                                   ObjectTypeEnum type);
 
 Object symbol_table_insert_object(SymbolTable* table, Object object);
 

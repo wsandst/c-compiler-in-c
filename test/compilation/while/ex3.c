@@ -6,9 +6,9 @@ int main() {
     do {
         x--;
         y++;
-    } while(x > 0);
+    } while (x > 0);
     do {
         y++;
-    } while(x == 100);
+    } while (x == 100);
     return y;
 }

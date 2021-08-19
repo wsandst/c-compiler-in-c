@@ -1,6 +1,5 @@
 // Nested ifs, scopes etc
 
-
 int main() {
     int x = 5;
     if (x != 4) {
