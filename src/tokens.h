@@ -116,6 +116,7 @@ struct Token {
     int src_pos;
     int src_line;
     char* string_repr;
+    char* src_filename;
     bool requires_string_free;
 };
 
@@ -143,6 +144,8 @@ void tokens_trim(Tokens* tokens);
 
 // Necessary to free correctly with tokens_free in some cases
 Tokens tokens_copy(Tokens* tokens);
+
+void tokens_tag_src_filename(Tokens* tokens, char* filename);
 
 void tokens_print(Tokens* tokens);
 

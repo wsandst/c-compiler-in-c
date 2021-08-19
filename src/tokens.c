@@ -9,9 +9,10 @@ I don't handle -> correctly. Treat as operator? Or delimiter?
 Tokens tokenize(char* src) {
     int src_length = strlen(src)+1;
     Tokens tokens = tokens_new(src_length);
-
+    
     // Split up src in lines
-    StrVector lines = str_split(src, '\n');
+    //StrVector lines = str_split(src, '\n');
+    StrVector lines = str_split_lines(src);
     for (size_t i = 0; i < lines.size; i++)
     {
         char* new_str = str_strip(lines.elems[i]);
@@ -111,6 +112,12 @@ Tokens* tokens_insert(Tokens* tokens1, Tokens* tokens2, int tokens1_index) {
     vec_insert(&tokens1->elems, &tokens2->elems, tokens1_index);
     tokens1->size = tokens1->elems.size;
     return tokens1;
+}
+
+void tokens_tag_src_filename(Tokens* tokens, char* filename) {
+    for (size_t i = 0; i < tokens->size; i++) {
+        tokens_get(tokens, i)->src_filename = filename;
+    }
 }
 
 void tokenize_preprocessor(Tokens *tokens, StrVector *str_split) {

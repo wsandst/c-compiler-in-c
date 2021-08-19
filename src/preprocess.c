@@ -1,10 +1,8 @@
 #include "preprocess.h"
 
-Tokens preprocess_first(char* filename) {
-    PreprocessorTable table = preprocessor_table_new();
-    Tokens tokens = preprocess(filename, &table, false);
+Tokens preprocess_first(char* filename, PreprocessorTable* table) {
+    Tokens tokens = preprocess(filename, table, false);
     tokens_trim(&tokens);
-    preprocessor_table_free(&table);
     return tokens;
 }
 
@@ -21,6 +19,7 @@ Tokens preprocess(char* filename, PreprocessorTable* table, bool is_stl_file) {
     preprocessor_table_update_current_dir(table, filename);
 
     Tokens tokens = tokenize(src);
+    tokens_tag_src_filename(&tokens, filename);
     
     preprocess_tokens(&tokens, table);
 

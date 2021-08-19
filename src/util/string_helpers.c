@@ -136,6 +136,25 @@ StrVector str_split(char* str, char delimiter) {
     return str_vec;
 }
 
+StrVector str_split_lines(char* str) {
+    StrVector str_vec = str_vec_new(4);
+    char* start = str;
+    while (*str != '\0') {
+        if (*str == '\n') {
+            int length = str - start;
+            char* word = str_substr(start, length);
+            str_vec_push_no_copy(&str_vec, word);
+            start = str + 1;
+        }
+        str++;
+    }
+    if (start != str) {
+        char* word = str_substr(start, str - start);
+        str_vec_push_no_copy(&str_vec, word);
+    }
+    return str_vec;
+}
+
 // Split a C string based on whitespace and return a StrVector
 StrVector str_split_on_whitespace(char* str) {
     StrVector str_vec = str_vec_new(4);
@@ -214,6 +233,9 @@ char* str_multiply(char* str, int n) {
 // Does the string start with the string provided? Return 0 if not,
 // else return the index
 bool str_startswith(char* str, char* match) {
+    if (*str == '\0') {
+        return false;
+    }
     while (*str == *match || *match == '\0' || *str == '\0') {
         if (*match == '\0' || *str == '\0') {
             return true;
@@ -310,6 +332,9 @@ void str_fill(char* str, int length, char c) {
 }
 
 char* str_strip(char* str) {
+    if (*str == '\0') {
+        return str_copy(str);
+    }
     int length = strlen(str);
     char *start = str;
     char *end = str+length-1;

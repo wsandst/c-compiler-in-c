@@ -1038,9 +1038,10 @@ void parse_typedef(ASTNode* node, SymbolTable* symbols) {
 void parse_error(char* error_message) {
     static char* RED_COLOR_STR = "\033[31;1m";
     static char* RESET_COLOR_STR = "\033[0m";
-    fprintf(stderr, "%sParse error:%s %s\n", RED_COLOR_STR, RESET_COLOR_STR, error_message);
+    fprintf(stderr, "%s:%d: %sParse error:%s %s\n", 
+            parse_token->src_filename, parse_token->src_line+1, RED_COLOR_STR, RESET_COLOR_STR, error_message);
     // Pretty debug info
-    fprintf(stderr, "At line %d |    ", parse_token->src_line);
+    fprintf(stderr, "line %d |    ", parse_token->src_line+1);
     Token* prev_token = parse_token - 1;
     Token* next_token = parse_token + 1;
     if (parse_token->src_line == prev_token->src_line) {

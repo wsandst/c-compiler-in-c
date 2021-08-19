@@ -57,6 +57,9 @@ StrVector str_split(char* str, char delimiter);
 // Split a C string based on whitespace and return a StrVector
 StrVector str_split_on_whitespace(char* str);
 
+// Split a C string based on newlines
+StrVector str_split_lines(char* str);
+
 // ======================== String Helpers =============================
 // IMPORTANT: These all work on C strings. Without a terminating NULL character,
 // many of these functions will crash or loop forever!

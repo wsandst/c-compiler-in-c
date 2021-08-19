@@ -50,7 +50,15 @@ void test_str_vec() {
     assert(added_vec->max_size == 6);
     assert(strcmp(added_vec->elems[2], "cool") == 0);
     assert(strcmp(added_vec->elems[3], "more") == 0);
-    
+
+    StrVector vec3 = str_split_lines("\n\n\n1");
+    assert(vec3.size == 4);
+    assert(vec3.elems[0][0] == '\0');
+    assert(vec3.elems[1][0] == '\0');
+    assert(vec3.elems[2][0] == '\0');
+    assert(vec3.elems[3][0] == '1');
+
+    str_vec_free(&vec3);
     str_vec_free(added_vec);
     str_vec_free(&vec);
 }

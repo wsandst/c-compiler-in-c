@@ -36,6 +36,10 @@ TODO:
         Certain float operators have been skipped
         No function pointers or local functions
 
+    Send the parent filename of a token inside the token somehow
+    Only hard part is how to free correctly
+    Managed strings? Preprocessor table?
+
 */
 
 int main(int argc, char *argv[]) {
@@ -51,7 +55,8 @@ int main(int argc, char *argv[]) {
     printf("Compiling source file \"%s\"\n", src_path);
 
     // Step 1: Preprocessing + Tokenization
-    Tokens tokens = preprocess_first(src_path);
+    PreprocessorTable table = preprocessor_table_new();
+    Tokens tokens = preprocess_first(src_path, &table);
     //tokens_pretty_print(&tokens);
 
     // Step 2: AST Parsing
@@ -66,6 +71,7 @@ int main(int argc, char *argv[]) {
 
     // Free memory
     symbol_table_free(symbols);
+    preprocessor_table_free(&table);
     tokens_free(&tokens);
     ast_free(&ast);
     free(asm_src);

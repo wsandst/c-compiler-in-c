@@ -46,7 +46,7 @@ struct PreprocessorItem {
 };
 
 // Turn the first file into a list of tokens
-Tokens preprocess_first(char* filename);
+Tokens preprocess_first(char* filename, PreprocessorTable* table);
 
 // Turn a file into a list of tokens
 Tokens preprocess(char* filename, PreprocessorTable* table, bool is_stl_file);
