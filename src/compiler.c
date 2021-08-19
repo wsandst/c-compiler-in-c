@@ -20,6 +20,10 @@ TODO:
             Just recreate that struct with va_start, push the registers to stack, pass it by pointer
 
     Structs:
+        Difference between StructType and Struct
+        Or the members are part of VarType and their inherent offset,
+        then the variable just keep track of pos normally
+        Probably better. How do I store members in VarType?
 
     Types:
         Arrays:

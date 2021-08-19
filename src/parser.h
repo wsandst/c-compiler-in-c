@@ -49,6 +49,9 @@ enum OpType {
     BOP_ASSIGN_BITOR, // |=
     BOP_ASSIGN_BITXOR, // ^=
     BOP_INDEX,
+    BOP_MEMBER, // struct member, .
+    BOP_PTR_MEMBER, // struct ptr member, ->
+
     UOP_NEG, // unary -
     UOP_ADDR, // unary &
     UOP_DEREF, // unary *
@@ -181,6 +184,8 @@ void parse_expression(ASTNode* node, SymbolTable* symbols, int min_precedence);
 void parse_expression_atom(ASTNode* node, SymbolTable* symbols);
 // Parse array indexing binop. This needs special handling
 void parse_binary_op_indexing(ASTNode* node, SymbolTable* symbols);
+// Parse struct member access binary operator
+void parse_binary_op_struct_member(ASTNode* node, SymbolTable* symbols);
 void parse_unary_op(ASTNode* node, SymbolTable* symbols);
 // Parse a literal
 void parse_literal(ASTNode* node, SymbolTable* symbols);

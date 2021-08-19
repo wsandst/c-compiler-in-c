@@ -124,7 +124,7 @@ bool accept_post_unop() {
 }
 
 bool accept_binop() {
-    return accept_range(TK_OP_PLUS, TK_OP_ASSIGN_BITXOR);
+    return accept_range(TK_OP_PLUS, TK_OP_PTR_MEMBER) || accept(TK_DL_DOT);
 }
 
 // Accept variable/function type: float, double, char, short, int, long
@@ -225,6 +225,8 @@ bool accept_object_type(SymbolTable* symbols) {
         return true;
     }
     else if (accept(TK_KW_STRUCT)) { // Struct
+        parse_struct(symbols);
+        return true;
     }
     else {
         return false;
@@ -260,6 +262,64 @@ void parse_enum(SymbolTable* symbols) {
     latest_parsed_var_type.type = TY_INT;
     latest_parsed_var_type.ptr_level = 0;
     latest_parsed_var_type.is_array = 0;
+}
+
+void parse_struct(SymbolTable* symbols) {
+    char* struct_name = NULL;
+    if (accept(TK_IDENT)) {
+        struct_name = prev_token().string_repr;
+    } // Named struct
+    if (accept(TK_DL_OPENBRACE)) { // This is a definition
+        // Go through the args
+        VarType struct_type;
+        struct_type.bytes = 0;
+        struct_type.type = TY_STRUCT;
+        struct_type.ptr_level = 0;
+        struct_type.is_array = 0;
+        struct_type.is_static = 0;
+
+        VarType* member_type;
+        VarType* prev_member_type = NULL;
+        // Store linked list of member types in struct_type
+        while (!(accept(TK_DL_CLOSEBRACE)) || prev_token().type == TK_DL_OPENBRACE) {
+            expect_type(symbols);
+            expect(TK_IDENT);
+            char* ident = prev_token().string_repr;
+            member_type = calloc(1, sizeof(VarType));
+            *member_type = latest_parsed_var_type;
+            member_type->struct_member_name = ident;
+            // FIXME: I need to respect alignment here
+            member_type->struct_bytes_offset = struct_type.bytes;
+            struct_type.bytes += member_type->bytes;
+            if (prev_member_type) {
+                prev_member_type->next_struct_member = member_type;
+                prev_member_type = member_type;
+            }
+            else {
+                struct_type.first_struct_member = member_type;
+                prev_member_type = member_type;
+            }
+            expect(TK_DL_SEMICOLON);
+        }
+        member_type->next_struct_member = NULL;
+        if (struct_name) {
+            // Inserted into symbol table if named struct
+            Object struct_obj;
+            struct_obj.type = OBJ_STRUCT;
+            struct_obj.name = struct_name;
+            struct_obj.struct_type = struct_type;
+            symbol_table_insert_object(symbols, struct_obj);
+        }
+        latest_parsed_var_type = struct_type;
+    }
+    else { // Not a definition, must be already defined
+        char* ident = prev_token().string_repr;
+        Object* obj = symbol_table_lookup_object(symbols, ident, OBJ_STRUCT);
+        if (!obj) {
+            parse_error("Struct referenced but has no definition!");
+        }
+        latest_parsed_var_type = obj->struct_type;
+    }
 }
 
 bool accept_literal() {
@@ -531,6 +591,9 @@ void parse_expression(ASTNode* node, SymbolTable* symbols, int min_precedence) {
             parse_binary_op_indexing(node, symbols);
             expect(TK_DL_CLOSEBRACKET);
         }
+        else if (accept(TK_DL_DOT)) {
+            parse_binary_op_struct_member(node, symbols);
+        }
         else if (accept_binop()) {
             OpType op_type = token_type_to_bop_type(prev_token().type);
             int op_precedence = get_binary_operator_precedence(op_type);
@@ -548,7 +611,12 @@ void parse_expression(ASTNode* node, SymbolTable* symbols, int min_precedence) {
             node->op_type = op_type;
             int new_min_precedence = op_precedence +
                                      !is_binary_operation_assignment(op_type);
-            parse_expression(node->rhs, symbols, new_min_precedence);
+            if (op_type == BOP_MEMBER) {
+                parse_binary_op_struct_member(node, symbols);
+            }
+            else {
+                parse_expression(node->rhs, symbols, new_min_precedence);
+            }
             // LHS and RHS is now defined. Put the widest variable type in the op
             // for possible implicit casts
             node->cast_type = return_wider_type(node->rhs->cast_type, node->lhs->cast_type);
@@ -570,6 +638,22 @@ void parse_expression(ASTNode* node, SymbolTable* symbols, int min_precedence) {
             break;
         }
     }
+}
+
+void parse_binary_op_struct_member(ASTNode* node, SymbolTable* symbols) {
+    if (node->expr_type == EXPR_VAR && node->var.type.type != TY_STRUCT) {
+        parse_error("Attempt to refer to member of non-struct type!");
+    }
+    // Check if member exists inside struct var
+    expect(TK_IDENT);
+    char* member_ident = prev_token().string_repr;
+    VarType* member_type = symbol_table_struct_lookup_member(node->var.type, member_ident);
+    if (!member_type) {
+        parse_error("Attempted to access non-existant struct member!");
+    }
+    node->var.type = *member_type;
+    node->var.stack_offset -= node->var.type.struct_bytes_offset;
+    node->cast_type = *member_type;
 }
 
 void parse_binary_op_indexing(ASTNode* node, SymbolTable* symbols) {
@@ -1096,6 +1180,8 @@ char* evaluate_const_assignment(ASTNode* node, SymbolTable* symbols) {
 int get_binary_operator_precedence(OpType type) {
     switch (type) {
         case BOP_INDEX:
+        case BOP_MEMBER:
+        case BOP_PTR_MEMBER:
             return 14;
         case BOP_DIV: // /
         case BOP_MUL: // *
@@ -1293,6 +1379,10 @@ OpType token_type_to_bop_type(enum TokenType type) {
             return BOP_ASSIGN_BITXOR;
         case TK_DL_OPENBRACKET:
             return BOP_INDEX;
+        case TK_DL_DOT:
+            return BOP_MEMBER;
+        case TK_OP_PTR_MEMBER:
+            return BOP_PTR_MEMBER;
         default:
             parse_error("Unsupported binary operation encountered while parsing");
             return 0;

@@ -280,6 +280,7 @@ void tokenize_keyword(Tokens* tokens, StrVector* str_split, char* keyword,
 void tokenize_ops(Tokens* tokens, StrVector* str_split) {
     // Similar to keywords tokenization, except we want to isolate words
     tokenize_op(tokens, str_split, "sizeof", TK_OP_SIZEOF);
+    tokenize_op(tokens, str_split, "->", TK_OP_PTR_MEMBER);
     tokenize_op(tokens, str_split, "+=", TK_OP_ASSIGN_ADD);
     tokenize_op(tokens, str_split, "-=", TK_OP_ASSIGN_SUB);
     tokenize_op(tokens, str_split, "*=", TK_OP_ASSIGN_MULT);
@@ -678,6 +679,7 @@ char* token_type_to_string(enum TokenType type) {
         "TK_OP_ASSIGN_BITOR",
         "TK_OP_ASSIGN_BITXOR",
         "TK_OP_SIZEOF",
+        "TK_OP_PTR_MEMBER",
         // Keywords
         "TK_KW_IF",
         "TK_KW_ELSE",

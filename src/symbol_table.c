@@ -38,8 +38,22 @@ void symbol_table_free(SymbolTable* table) {
     }
 
     free(table->vars);
-    free(table->funcs); // We need to free the func params as well
+    free(table->funcs);
     free(table->labels);
+
+    // Free the struct member linked list in VarType
+    for (size_t i = 0; i < table->object_count; i++) {
+        if (table->objects[i].type == OBJ_STRUCT) {
+            VarType* member = table->objects[i].struct_type.first_struct_member;
+            VarType* prev_member;
+            while (member) {
+                prev_member = member;
+                member = prev_member->next_struct_member;
+                free(prev_member);
+            }
+        }
+    }
+
     free(table->objects);
     free(table);
 }
@@ -268,6 +282,17 @@ Object symbol_table_insert_object(SymbolTable* table, Object object) {
     }
     table->objects[table->object_count - 1] = object;
     return object;
+}
+
+VarType* symbol_table_struct_lookup_member(VarType struct_type, char* member_name) {
+    VarType* member = struct_type.first_struct_member;
+    while (member) {
+        if (strcmp(member->struct_member_name, member_name) == 0) {
+            return member;
+        }
+        member = member->next_struct_member;
+    }
+    return NULL;
 }
 
 void symbol_table_objects_realloc(SymbolTable* table, int new_size) {

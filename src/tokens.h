@@ -74,6 +74,7 @@ enum TokenType {
     TK_OP_ASSIGN_BITOR,
     TK_OP_ASSIGN_BITXOR,
     TK_OP_SIZEOF,
+    TK_OP_PTR_MEMBER,
     TK_KW_IF,
     TK_KW_ELSE,
     TK_KW_WHILE,

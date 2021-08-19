@@ -64,6 +64,11 @@ struct VarType {
     bool is_array;
     int array_size;
     bool array_has_initializer;
+
+    VarType* first_struct_member;
+    VarType* next_struct_member;
+    char* struct_member_name;
+    int struct_bytes_offset;
 };
 
 // Variable object
@@ -113,6 +118,7 @@ struct Object { // Structs, unions, enums, typedefs etc
     char* name;
     enum ObjectTypeEnum type;
     VarType typedef_type;
+    VarType struct_type;
 };
 
 // This is a tree of tables
@@ -213,6 +219,8 @@ Object* symbol_table_lookup_object(SymbolTable* table, char* object_name,
 Object symbol_table_insert_object(SymbolTable* table, Object object);
 
 void symbol_table_objects_realloc(SymbolTable* table, int new_size);
+
+VarType* symbol_table_struct_lookup_member(VarType struct_type, char* member_name);
 
 // =============== Tree related ================
 SymbolTable* symbol_table_create_child(SymbolTable* table, int stack_offset);
