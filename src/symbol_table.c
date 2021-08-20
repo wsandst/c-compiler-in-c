@@ -132,10 +132,20 @@ Variable* symbol_table_insert_var(SymbolTable* table, Variable var) {
     if (!table->is_global) { // 0 -> 2. 1 -> 4, 2->4, 3->6
         // The cur_stack_offset needs to be a multiple of var.type.bytes
         // Integer ceil divide. (int) ceil(x/y) = (x + y - 1) / y
-        table->cur_stack_offset =
-            ((table->cur_stack_offset + var.type.bytes - 1) / var.type.bytes + 1) *
-            var.type.bytes;
-        var.stack_offset = table->cur_stack_offset;
+        if (var.type.type == TY_STRUCT) {
+            // Alignment is based on first struct element
+            // FIXME: What if the first element is a struct? Same issue
+            // Maybe store total struct size somewhere else?
+            table->cur_stack_offset = align_stack_address(
+                table->cur_stack_offset, var.type.first_struct_member->bytes);
+            table->cur_stack_offset += var.type.bytes - var.type.first_struct_member->bytes;
+            var.stack_offset = table->cur_stack_offset;
+        }
+        else {
+            table->cur_stack_offset = align_stack_address(table->cur_stack_offset,
+                                                          var.type.bytes);
+            var.stack_offset = table->cur_stack_offset;
+        }
     }
     var.is_global = table->is_global;
     static int unique_id = 0;
@@ -211,6 +221,16 @@ void symbol_table_funcs_realloc(SymbolTable* table, int new_size) {
 int func_get_aligned_stack_usage(Function func) {
     // Integer ceil divison, (int) ceil(x/y) = (x + y - 1) / y
     return (func.stack_space_used + 16 - 1) / 16 * 16;
+}
+
+// Align a stack address correctly for a type of x bytes
+int align_stack_address(int addr, int type_bytes) {
+    return ((addr + type_bytes - 1) / type_bytes + 1) * type_bytes;
+}
+
+// Align a stack address correctly for a type of x bytes
+int align_stack_address_no_add(int addr, int type_bytes) {
+    return ((addr + type_bytes - 1) / type_bytes) * type_bytes;
 }
 
 // ================= Labels ====================

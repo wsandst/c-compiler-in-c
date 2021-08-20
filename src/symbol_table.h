@@ -198,6 +198,10 @@ void symbol_table_funcs_realloc(SymbolTable* table, int new_size);
 
 // System V ABI requires 16 byte alignment of stack
 int func_get_aligned_stack_usage(Function func);
+// Align a stack address correctly for a type of x bytes
+int align_stack_address(int addr, int type_bytes);
+
+int align_stack_address_no_add(int addr, int type_bytes);
 
 // ================= Labels ====================
 

@@ -54,6 +54,7 @@ void test_symbol_table_vars() {
     var.name = "var1";
     var.type.bytes = 1;
     var.type.ptr_level = 0;
+    var.type.type = TY_INT;
     symbol_table_insert_var(table, var);
     assert(table->var_count == 1);
     var.name = "var2";

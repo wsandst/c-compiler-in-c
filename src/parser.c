@@ -93,6 +93,9 @@ void expect_type(SymbolTable* symbols) {
 }
 
 bool accept(TokenType type) {
+    while (parse_token->type == TK_COMMENT) {
+        parse_token++;
+    }
     if (parse_token->type == type) {
         //printf("%s (%s)\n", token_type_to_string(parse_token->type), parse_token->string_repr);
         parse_token++;
@@ -289,8 +292,10 @@ void parse_struct(SymbolTable* symbols) {
             *member_type = latest_parsed_var_type;
             member_type->struct_member_name = ident;
             // FIXME: I need to respect alignment here
-            member_type->struct_bytes_offset = struct_type.bytes;
-            struct_type.bytes += member_type->bytes;
+            // This doesn't currently work
+            member_type->struct_bytes_offset =
+                align_stack_address_no_add(struct_type.bytes, member_type->bytes);
+            struct_type.bytes = member_type->struct_bytes_offset + member_type->bytes;
             if (prev_member_type) {
                 prev_member_type->next_struct_member = member_type;
                 prev_member_type = member_type;
@@ -301,6 +306,7 @@ void parse_struct(SymbolTable* symbols) {
             }
             expect(TK_DL_SEMICOLON);
         }
+        struct_type.bytes = align_stack_address_no_add(struct_type.bytes, 8);
         member_type->next_struct_member = NULL;
         if (struct_name) {
             // Inserted into symbol table if named struct
