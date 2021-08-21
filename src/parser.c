@@ -623,8 +623,11 @@ void parse_expression(ASTNode* node, SymbolTable* symbols, int min_precedence) {
             parse_binary_op_indexing(node, symbols);
             expect(TK_DL_CLOSEBRACKET);
         }
-        else if (accept(TK_DL_DOT)) {
+        else if (accept(TK_DL_DOT)) { // Struct member, needs special handling
             parse_binary_op_struct_member(node, symbols);
+        }
+        else if (accept(TK_OP_PTR_MEMBER)) { // Struct pointer member, needs special handling
+            parse_binary_op_struct_ptr_member(node, symbols);
         }
         else if (accept_binop()) {
             OpType op_type = token_type_to_bop_type(prev_token().type);
@@ -672,7 +675,7 @@ void parse_binary_op_struct_member(ASTNode* node, SymbolTable* symbols) {
     if (node->cast_type.type != TY_STRUCT || node->cast_type.ptr_level > 0) {
         parse_error("Attempt to refer to member of non-struct type!");
     }
-    OpType op_type = token_type_to_bop_type(prev_token().type);
+    OpType op_type = BOP_MEMBER;
     // Copy this node to node->lhs
     ASTNode* lhs = ast_node_new(AST_EXPR, 1);
     ast_node_copy(lhs, node);
@@ -695,6 +698,18 @@ void parse_binary_op_struct_member(ASTNode* node, SymbolTable* symbols) {
     node->rhs->cast_type = *member_type;
     node->cast_type = node->rhs->cast_type;
     node->next = ast_node_new(AST_END, 1);
+}
+
+void parse_binary_op_struct_ptr_member(ASTNode* node, SymbolTable* symbols) {
+    // Treat x->y like (*x).y
+    // Create deref unop node
+    node->rhs = ast_node_new(AST_EXPR, 1);
+    ast_node_copy(node->rhs, node);
+    node->expr_type = EXPR_UNOP;
+    node->op_type = UOP_DEREF;
+    node->cast_type = get_deref_var_type(node->rhs->cast_type);
+    // Pass deref node into normal struct member function
+    parse_binary_op_struct_member(node, symbols);
 }
 
 void parse_binary_op_indexing(ASTNode* node, SymbolTable* symbols) {

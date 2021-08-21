@@ -13,7 +13,9 @@ TODO:
             Everything is very fragmented currently, handling of globals/cases/enums should be
             the same, not different as it is currently
         Refactor function calling
-        Refactor codegen, decrease unnecessary assembly
+        Refactor codegen, decrease unnecessary assembly:
+            Leaf nodes vs non-leaf nodes
+            It is unneccessary to push on leaf nodes
 
     Functions, proper calling convention:
         Variadic function definitions, not just declarations/calling:
@@ -21,10 +23,7 @@ TODO:
             Just recreate that struct with va_start, push the registers to stack, pass it by pointer
 
     Structs:
-        Difference between StructType and Struct
-        Or the members are part of VarType and their inherent offset,
-        then the variable just keep track of pos normally
-        Probably better. How do I store members in VarType?
+        
 
     Types:
         Arrays:

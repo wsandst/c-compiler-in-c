@@ -12,7 +12,7 @@ struct TestStruct1 {
 struct TestStruct2 {
     long x; // 24 + 8 = 32
     int y; // 16
-    long z; // 8
+    double z; // 8
     struct TestStruct1 t;
     char u; // 0
 };

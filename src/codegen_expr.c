@@ -57,6 +57,9 @@ void gen_asm_variable(ASTNode* node, AsmContext ctx) {
             // If the member variable is a struct or array, we want the address in rax
             asm_addf(&ctx, "mov rax, r12", offset);
         }
+        else if (node->var.type.type == TY_FLOAT) {
+            asm_addf(&ctx, "movq xmm0, [r12]");
+        }
         else { // Else, get the value
             asm_addf(&ctx, "%s, %s [r12]", move_instr, addr_size);
         }
@@ -377,11 +380,10 @@ void gen_asm_binary_op_int(ASTNode* node, AsmContext ctx) {
             asm_addf(&ctx, "mov rcx, rbx");
             asm_addf(&ctx, "sar rax, cl");
             break;
-        case BOP_MEMBER: { // Struct to int member
+        case BOP_MEMBER: // Struct to int member
             asm_add_com(&ctx, "; Op: struct member");
             asm_addf(&ctx, "mov rax, rbx");
             break;
-        }
         default:
             codegen_error("Unsupported integer binary operation found!");
             break;
@@ -485,15 +487,20 @@ void gen_asm_binary_op_float(ASTNode* node, AsmContext ctx) {
     gen_asm_setup_short_circuiting(node, &ctx); // AND/OR Short circuiting related
 
     gen_asm(node->lhs, ctx); // LHS now in RAX
-    if (node->lhs->op_type == UOP_DEREF) {
-        asm_addf(&ctx,
-                 "push r12"); // Deref address is in r12, we need to save it incase rhs is deref
+    if (node->lhs->op_type == UOP_DEREF ||
+        (node->op_type == BOP_ASSIGN && node->lhs->op_type == BOP_MEMBER)) {
+        // Deref address is in r12, we need to save it incase rhs is deref
+        asm_addf(&ctx, "push r12");
     }
     // Check if we need to cast lhs (lhs is int)
     gen_asm_unary_op_cast(ctx, node->cast_type, node->lhs->cast_type);
 
     gen_asm_add_short_circuit_jumps(node, ctx); // AND/OR Short circuiting related
-    asm_addf(&ctx, "movq rax, xmm0");
+
+    // Save xmm0 in rax. In a few cases we don't want to do this, check for that
+    if (!(node->lhs->expr_type == EXPR_VAR && node->lhs->var.type.type == TY_STRUCT)) {
+        asm_addf(&ctx, "movq rax, xmm0");
+    }
     asm_addf(&ctx, "push rax"); // Save RAX
     gen_asm(node->rhs, ctx);
     // Check if we need to cast rhs (rhs is int)
@@ -570,11 +577,16 @@ void gen_asm_binary_op_float(ASTNode* node, AsmContext ctx) {
             asm_addf(&ctx, "setne al");
             asm_addf(&ctx, "cvtsi2sd xmm0, rax");
             break;
+        case BOP_MEMBER:
+            asm_add_com(&ctx, "; fOp: struct member");
+            asm_addf(&ctx, "movq xmm0, xmm1");
+            break;
         default:
             codegen_error("Unsupported float binary operation found!");
             break;
     }
-    if (node->lhs->op_type == UOP_DEREF) {
+    if (node->lhs->op_type == UOP_DEREF ||
+        (node->op_type == BOP_ASSIGN && node->lhs->op_type == BOP_MEMBER)) {
         asm_addf(&ctx, "pop r12");
     }
     if (is_binary_operation_assignment(node->op_type)) {
@@ -589,6 +601,9 @@ void gen_asm_binary_op_assign_float(ASTNode* node, AsmContext ctx) {
         free(var_sp);
     }
     else if (node->expr_type == EXPR_UNOP && node->op_type == UOP_DEREF) {
+        asm_addf(&ctx, "movq [r12], xmm0");
+    }
+    else if (node->expr_type == EXPR_BINOP && node->op_type == BOP_MEMBER) {
         asm_addf(&ctx, "movq [r12], xmm0");
     }
     else {

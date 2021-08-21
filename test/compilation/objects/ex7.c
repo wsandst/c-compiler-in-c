@@ -8,7 +8,7 @@ struct TestStruct {
 typedef struct TestStruct TestStruct;
 
 int test(TestStruct* s) {
-    return (*s).x + (*s).y; // Deref s. int* x; *x;
+    return s->x + (*s).y; // Deref s. int* x; *x;
 }
 
 int main() {
@@ -16,6 +16,7 @@ int main() {
     s.x = 5;
     s.y = s.x - 2;
     TestStruct* ptr = &s;
-    (*ptr).x = (*ptr).y + 2;
+    (*ptr).x = (*ptr).y;
+    ptr->y = ptr->y - 2;
     return test(&s);
 }
