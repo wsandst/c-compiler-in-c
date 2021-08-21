@@ -1,4 +1,4 @@
-// Struct padding test
+// Struct padding/alignment test
 
 struct TestStruct1 {
     long x; // 32 + 8 = 40
@@ -12,7 +12,8 @@ struct TestStruct1 {
 struct TestStruct2 {
     long x; // 24 + 8 = 32
     int y; // 16
-    double z; // 8
+    long z; // 8
+    struct TestStruct1 t;
     char u; // 0
 };
 
@@ -29,6 +30,6 @@ int main() {
     t2.y = 2;
     t2.z = 3;
     t2.u = 5;
-    return sizeof(struct TestStruct1) + sizeof(struct TestStruct2) + t2.u + t2.z + t.v +
+    return sizeof(struct TestStruct2) + sizeof(struct TestStruct1) + t2.u + t2.z + t.v +
            t.y;
 }

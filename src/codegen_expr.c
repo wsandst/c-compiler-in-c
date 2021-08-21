@@ -17,6 +17,9 @@ void gen_asm_expr(ASTNode* node, AsmContext ctx) {
         else if (node->var.type.is_array) {
             asm_addf(&ctx, "lea rax, [rbp-%d]", node->var.stack_offset);
         }
+        else if (node->var.type.is_struct_member) {
+            // Do nothing
+        }
         else if (node->var.type.type == TY_INT || node->var.type.ptr_level > 0) {
             char* move_instr = get_move_instr_for_var_type(node->var.type);
             asm_addf(&ctx, "%s, %s", move_instr, sp2);
@@ -24,6 +27,10 @@ void gen_asm_expr(ASTNode* node, AsmContext ctx) {
         }
         else if (node->var.type.type == TY_FLOAT) {
             asm_addf(&ctx, "movq xmm0, %s", sp2);
+        }
+        else if (node->var.type.type == TY_STRUCT) {
+            // Move the address of the struct into rax
+            asm_addf(&ctx, "lea rax, [rbp-%d]", node->var.stack_offset);
         }
         else {
             codegen_error("Unsupported variable type encountered");
@@ -87,6 +94,9 @@ void gen_asm_unary_op(ASTNode* node, AsmContext ctx) {
     else if (node->cast_type.type == TY_FLOAT) {
         gen_asm_unary_op_float(node, ctx);
     }
+    else if (node->cast_type.type == TY_STRUCT) {
+        gen_asm_unary_op_struct(node, ctx);
+    }
     else {
         codegen_error("Invalid cast-type encountered");
     }
@@ -102,6 +112,9 @@ void gen_asm_binary_op(ASTNode* node, AsmContext ctx) {
     }
     else if (node->cast_type.type == TY_FLOAT) { // Float
         gen_asm_binary_op_float(node, ctx);
+    }
+    else if (node->cast_type.type == TY_STRUCT) {
+        gen_asm_binary_op_struct(node, ctx);
     }
     else {
         codegen_error("Invalid cast-type encountered");
@@ -220,9 +233,11 @@ void gen_asm_binary_op_int(ASTNode* node, AsmContext ctx) {
     gen_asm_setup_short_circuiting(node, &ctx); // AND/OR Short circuiting related
 
     gen_asm(node->lhs, ctx); // LHS now in RAX
-    if (node->lhs->op_type == UOP_DEREF) {
-        asm_addf(&ctx,
-                 "push r12"); // Deref address is in r12, we need to save it incase rhs is deref
+    if (node->lhs->op_type == UOP_DEREF ||
+        (node->op_type == BOP_ASSIGN && node->lhs->op_type == BOP_MEMBER)) {
+        // Deref address is in r12, we need to save it incase rhs is deref
+        asm_addf(&ctx, "push r12");
+        //asm_addf(&ctx, "mov r12, [rsp]");
     }
 
     gen_asm_add_short_circuit_jumps(node, ctx); // AND/OR Short circuiting related
@@ -339,11 +354,22 @@ void gen_asm_binary_op_int(ASTNode* node, AsmContext ctx) {
             asm_addf(&ctx, "mov rcx, rbx");
             asm_addf(&ctx, "sar rax, cl");
             break;
+        case BOP_MEMBER: { // Struct to int member
+            char* addr_size = bytes_to_addr_width(node->cast_type.bytes);
+            char* move_instr = get_move_instr_for_var_type(node->cast_type);
+            int offset = node->rhs->var.type.struct_bytes_offset;
+            // Save rax for potential deref assignment
+            asm_addf(&ctx, "lea r12, [rax+%d]", offset);
+            asm_addf(&ctx, "%s, %s [rax+%d]", move_instr, addr_size, offset);
+            free(move_instr);
+            break;
+        }
         default:
             codegen_error("Unsupported integer binary operation found!");
             break;
     }
-    if (node->lhs->op_type == UOP_DEREF) {
+    if (node->lhs->op_type == UOP_DEREF ||
+        (node->op_type == BOP_ASSIGN && node->lhs->op_type == BOP_MEMBER)) {
         asm_addf(&ctx, "pop r12");
     }
     if (is_binary_operation_assignment(node->op_type)) {
@@ -360,6 +386,11 @@ void gen_asm_binary_op_assign_int(ASTNode* node, AsmContext ctx) {
     }
     else if (node->expr_type == EXPR_UNOP && node->op_type == UOP_DEREF) {
         node->var.type.bytes = node->var.type.ptr_value_bytes;
+        char* reg_str = get_reg_width_str(node->cast_type, RAX);
+        char* addr_size_str = bytes_to_addr_width(node->cast_type.bytes);
+        asm_addf(&ctx, "mov %s [r12], %s", addr_size_str, reg_str);
+    }
+    else if (node->expr_type == EXPR_BINOP && node->op_type == BOP_MEMBER) {
         char* reg_str = get_reg_width_str(node->cast_type, RAX);
         char* addr_size_str = bytes_to_addr_width(node->cast_type.bytes);
         asm_addf(&ctx, "mov %s [r12], %s", addr_size_str, reg_str);
@@ -703,6 +734,67 @@ void gen_asm_binary_op_load_ptr_size(ASTNode* node, AsmContext ctx) {
     asm_addf(&ctx, "imul rbx, %d", bytes);
 }
 
+// Generate assembly for a struct unary op expression node
+void gen_asm_unary_op_struct(ASTNode* node, AsmContext ctx) {
+    // Only deref from pointer into struct and sizeof allowed
+    gen_asm(node->rhs, ctx); // The value we are acting on is now in RAX
+    switch (node->op_type) {
+        case UOP_SIZEOF:
+            asm_add_com(&ctx, "; sOp: sizeof");
+            asm_addf(&ctx, "mov rax, %d", node->rhs->cast_type.bytes);
+            break;
+        case UOP_DEREF: { // Deref from struct pointer
+            asm_add_com(&ctx, "; sOp: * (deref)");
+            asm_addf(&ctx, "mov r12, rax"); // Save rax for potential deref assignment
+            // We want to keep the pointer in RAX
+            break;
+        }
+        default:
+            codegen_error("Unsupported integer unary operation found!");
+            break;
+    }
+}
+// Generate assembly for a struct binary op expression node
+void gen_asm_binary_op_struct(ASTNode* node, AsmContext ctx) {
+    gen_asm(node->lhs, ctx); // LHS now in RAX
+    if (node->lhs->op_type == UOP_DEREF) {
+        // Deref address is in r12, we need to save it incase rhs is deref
+        asm_addf(&ctx, "push r12");
+    }
+
+    asm_addf(&ctx, "push rax"); // Save RAX
+    gen_asm(node->rhs, ctx); // LHS now in RAX
+    asm_addf(&ctx, "mov rbx, rax"); // Move RHS to RBX
+    asm_addf(&ctx, "pop rax"); // LHS now in RAX
+    // We are now ready for the binary operation
+    switch (node->op_type) { // These are all integer operations
+        case BOP_ASSIGN:
+            // Rest of assignment is handled after the switch
+            asm_add_com(&ctx, "; pOp: =");
+            asm_addf(&ctx, "mov rax, rbx"); // We need the rhs value in rax
+            break;
+        case BOP_MEMBER: {
+            int offset = node->rhs->var.type.struct_bytes_offset;
+            asm_addf(&ctx, "lea rax, [rax+%d]", offset);
+            asm_addf(&ctx, "mov r12, rax");
+            break;
+        }
+        default:
+            codegen_error("Unsupported pointer binary operation encountered!");
+            break;
+    }
+    if (node->lhs->op_type == UOP_DEREF) {
+        asm_addf(&ctx, "pop r12");
+    }
+    if (is_binary_operation_assignment(node->op_type)) {
+        gen_asm_binary_op_assign_int(node->lhs, ctx);
+    }
+}
+
+// Generate assembly for a struct binary op assignment expression node
+void gen_asm_binary_op_assign_struct(ASTNode* node, AsmContext ctx) {
+}
+
 // Short circuiting
 void gen_asm_setup_short_circuiting(ASTNode* node, AsmContext* ctx) {
     // Identify first AND and OR nodes, give them labels for short circuiting
@@ -776,6 +868,9 @@ void gen_asm_unary_op_cast(AsmContext ctx, VarType to_type, VarType from_type) {
         return; // No need to do anything
     }
     else if (to_type.type == TY_VOID) {
+        return;
+    }
+    else if (from_type.type == TY_STRUCT) {
         return;
     }
     else {

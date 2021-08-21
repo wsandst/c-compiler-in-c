@@ -95,8 +95,6 @@ char* bytes_to_data_width(int bytes);
 char* var_to_stack_ptr(Variable* var);
 // Get the corresponding move instr for a certain memory size, ex movzx for 2
 char* get_move_instr_for_var_type(VarType var_type);
-// Get deref type of variable type
-VarType get_deref_var_type(VarType var_type);
 
 // ============= ASM Generation ================
 
@@ -191,6 +189,14 @@ void gen_asm_binary_op_ptr(ASTNode* node, AsmContext ctx);
 void gen_asm_unary_op_ptr_deref(ASTNode* node, AsmContext ctx);
 // Multiply int RBX value with size of pointer, used for adding and subtracting
 void gen_asm_binary_op_load_ptr_size(ASTNode* node, AsmContext ctx);
+
+// =============== Struct operations ====================
+// Generate assembly for a struct unary op expression node
+void gen_asm_unary_op_struct(ASTNode* node, AsmContext ctx);
+// Generate assembly for a struct binary op expression node
+void gen_asm_binary_op_struct(ASTNode* node, AsmContext ctx);
+// Generate assembly for a struct binary op assignment expression node
+void gen_asm_binary_op_assign_struct(ASTNode* node, AsmContext ctx);
 
 // Setup short circuiting labels for and and or
 void gen_asm_setup_short_circuiting(ASTNode* node, AsmContext* ctx);

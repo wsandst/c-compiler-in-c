@@ -179,14 +179,6 @@ char* get_move_instr_for_var_type(VarType var_type) {
     return NULL;
 }
 
-VarType get_deref_var_type(VarType var_type) {
-    var_type.ptr_level--;
-    if (var_type.ptr_level == 0) {
-        var_type.bytes = var_type.ptr_value_bytes;
-    }
-    return var_type;
-}
-
 char* get_label_str(int label) {
     static char result[64];
     snprintf(result, 63, ".L%d", label);

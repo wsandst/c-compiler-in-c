@@ -69,6 +69,8 @@ struct VarType {
     VarType* next_struct_member;
     char* struct_member_name;
     int struct_bytes_offset;
+    int widest_struct_member;
+    bool is_struct_member;
 };
 
 // Variable object

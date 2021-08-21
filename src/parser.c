@@ -135,6 +135,7 @@ bool accept_type(SymbolTable* symbols) {
     accept(TK_KW_CONST);
     latest_parsed_var_type.is_static = false;
     latest_parsed_var_type.is_extern = false;
+    latest_parsed_var_type.is_struct_member = false;
     if (accept(TK_KW_EXTERN)) {
         latest_parsed_var_type.is_extern = true;
     };
@@ -238,6 +239,16 @@ bool accept_object_type(SymbolTable* symbols) {
     return false;
 }
 
+// Dereference a variable type
+VarType get_deref_var_type(VarType var_type) {
+    var_type.ptr_level--;
+    var_type.is_array = false;
+    if (var_type.ptr_level == 0) {
+        var_type.bytes = var_type.ptr_value_bytes;
+    }
+    return var_type;
+}
+
 void parse_enum(SymbolTable* symbols) {
     accept(TK_IDENT); // Named enum
     if (accept(TK_DL_OPENBRACE)) { // This is a definition
@@ -280,9 +291,11 @@ void parse_struct(SymbolTable* symbols) {
         struct_type.ptr_level = 0;
         struct_type.is_array = 0;
         struct_type.is_static = 0;
+        struct_type.is_struct_member = false;
 
         VarType* member_type;
         VarType* prev_member_type = NULL;
+        struct_type.widest_struct_member = 0;
         // Store linked list of member types in struct_type
         while (!(accept(TK_DL_CLOSEBRACE)) || prev_token().type == TK_DL_OPENBRACE) {
             expect_type(symbols);
@@ -290,12 +303,23 @@ void parse_struct(SymbolTable* symbols) {
             char* ident = prev_token().string_repr;
             member_type = calloc(1, sizeof(VarType));
             *member_type = latest_parsed_var_type;
+            member_type->is_struct_member = true;
             member_type->struct_member_name = ident;
-            // FIXME: I need to respect alignment here
-            // This doesn't currently work
-            member_type->struct_bytes_offset =
-                align_stack_address_no_add(struct_type.bytes, member_type->bytes);
-            struct_type.bytes = member_type->struct_bytes_offset + member_type->bytes;
+            // FIXME: How rigorous is the struct alignment? Very bodgy
+            if (member_type->type == TY_STRUCT) {
+                member_type->struct_bytes_offset = align_stack_address_no_add(
+                    struct_type.bytes, member_type->first_struct_member->bytes);
+                struct_type.bytes = member_type->struct_bytes_offset + member_type->bytes;
+                struct_type.widest_struct_member = max(struct_type.widest_struct_member,
+                                                       member_type->widest_struct_member);
+            }
+            else {
+                member_type->struct_bytes_offset =
+                    align_stack_address_no_add(struct_type.bytes, member_type->bytes);
+                struct_type.bytes = member_type->struct_bytes_offset + member_type->bytes;
+                struct_type.widest_struct_member = max(struct_type.widest_struct_member,
+                                                       member_type->bytes);
+            }
             if (prev_member_type) {
                 prev_member_type->next_struct_member = member_type;
                 prev_member_type = member_type;
@@ -306,7 +330,8 @@ void parse_struct(SymbolTable* symbols) {
             }
             expect(TK_DL_SEMICOLON);
         }
-        struct_type.bytes = align_stack_address_no_add(struct_type.bytes, 8);
+        struct_type.bytes = align_stack_address_no_add(struct_type.bytes,
+                                                       struct_type.widest_struct_member);
         member_type->next_struct_member = NULL;
         if (struct_name) {
             // Inserted into symbol table if named struct
@@ -484,7 +509,8 @@ void parse_single_statement(ASTNode* node, SymbolTable* symbols) {
             return;
         }
     }
-    else if (accept(TK_IDENT) || accept_unop()) { // I need to handle literals here too
+    else if (accept(TK_IDENT) || accept_unop() ||
+             accept(TK_DL_OPENPAREN)) { // I need to handle literals here too
         if (accept(TK_DL_COLON)) { // Goto label
             node->type = AST_LABEL;
             token_go_back(1);
@@ -617,12 +643,7 @@ void parse_expression(ASTNode* node, SymbolTable* symbols, int min_precedence) {
             node->op_type = op_type;
             int new_min_precedence = op_precedence +
                                      !is_binary_operation_assignment(op_type);
-            if (op_type == BOP_MEMBER) {
-                parse_binary_op_struct_member(node, symbols);
-            }
-            else {
-                parse_expression(node->rhs, symbols, new_min_precedence);
-            }
+            parse_expression(node->rhs, symbols, new_min_precedence);
             // LHS and RHS is now defined. Put the widest variable type in the op
             // for possible implicit casts
             node->cast_type = return_wider_type(node->rhs->cast_type, node->lhs->cast_type);
@@ -646,20 +667,34 @@ void parse_expression(ASTNode* node, SymbolTable* symbols, int min_precedence) {
     }
 }
 
+// FIXME: Make this into a normal operator. I need to handle the address stuff in the codegen
 void parse_binary_op_struct_member(ASTNode* node, SymbolTable* symbols) {
-    if (node->expr_type == EXPR_VAR && node->var.type.type != TY_STRUCT) {
+    if (node->cast_type.type != TY_STRUCT || node->cast_type.ptr_level > 0) {
         parse_error("Attempt to refer to member of non-struct type!");
     }
+    OpType op_type = token_type_to_bop_type(prev_token().type);
+    // Copy this node to node->lhs
+    ASTNode* lhs = ast_node_new(AST_EXPR, 1);
+    ast_node_copy(lhs, node);
+    node->lhs = lhs;
+    node->rhs = ast_node_new(AST_EXPR, 1);
+    node->expr_type = EXPR_BINOP;
+    node->op_type = op_type;
+    node->lhs->next = ast_node_new(AST_END, 1);
     // Check if member exists inside struct var
     expect(TK_IDENT);
     char* member_ident = prev_token().string_repr;
-    VarType* member_type = symbol_table_struct_lookup_member(node->var.type, member_ident);
+    VarType* member_type = symbol_table_struct_lookup_member(node->cast_type, member_ident);
     if (!member_type) {
         parse_error("Attempted to access non-existant struct member!");
     }
-    node->var.type = *member_type;
-    node->var.stack_offset -= node->var.type.struct_bytes_offset;
-    node->cast_type = *member_type;
+    node->rhs->expr_type = EXPR_VAR;
+    node->rhs->var.type = *member_type;
+    node->rhs->var.stack_offset += node->rhs->var.type.struct_bytes_offset;
+    // FIXME: The offset is probably what is wrong. Experiment with larger structs
+    node->rhs->cast_type = *member_type;
+    node->cast_type = node->rhs->cast_type;
+    node->next = ast_node_new(AST_END, 1);
 }
 
 void parse_binary_op_indexing(ASTNode* node, SymbolTable* symbols) {
@@ -679,11 +714,8 @@ void parse_binary_op_indexing(ASTNode* node, SymbolTable* symbols) {
     node->op_type = UOP_DEREF;
     node->rhs = add_binop;
     node->cast_type = add_binop->cast_type;
-    node->cast_type.ptr_level -= 1;
-    node->cast_type.is_array = false;
-    if (node->cast_type.ptr_level == 0) {
-        node->cast_type.bytes = node->cast_type.ptr_value_bytes;
-    }
+
+    node->cast_type = get_deref_var_type(node->cast_type);
     node->next = ast_node_new(AST_END, 1);
 }
 
@@ -1279,6 +1311,9 @@ VarType return_wider_type(VarType type1, VarType type2) {
     }
     if (type2.type == TY_FLOAT) {
         type2_width += 8;
+    }
+    if (type1.type == TY_STRUCT) {
+        type1_width = 0;
     }
     if (type1_width > type2_width) {
         return type1;

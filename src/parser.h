@@ -272,6 +272,8 @@ bool accept_type(SymbolTable* symbols);
 bool accept_object_type(SymbolTable* symbols);
 // Accept a literal
 bool accept_literal();
+// Dereference a variable type
+VarType get_deref_var_type(VarType var_type);
 
 // Parse an enum type (and definition if there)
 void parse_enum(SymbolTable* symbols);
