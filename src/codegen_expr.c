@@ -9,33 +9,7 @@ void gen_asm_expr(ASTNode* node, AsmContext ctx) {
         gen_asm_literal(node, ctx);
     }
     else if (node->expr_type == EXPR_VAR) {
-        char* sp2 = var_to_stack_ptr(&node->var);
-        // Handle various variable types
-        if (node->var.is_constant) { // Constant
-            asm_addf(&ctx, "mov rax, %s", node->var.const_expr);
-        }
-        else if (node->var.type.is_array) {
-            asm_addf(&ctx, "lea rax, [rbp-%d]", node->var.stack_offset);
-        }
-        else if (node->var.type.is_struct_member) {
-            // Do nothing
-        }
-        else if (node->var.type.type == TY_INT || node->var.type.ptr_level > 0) {
-            char* move_instr = get_move_instr_for_var_type(node->var.type);
-            asm_addf(&ctx, "%s, %s", move_instr, sp2);
-            free(move_instr);
-        }
-        else if (node->var.type.type == TY_FLOAT) {
-            asm_addf(&ctx, "movq xmm0, %s", sp2);
-        }
-        else if (node->var.type.type == TY_STRUCT) {
-            // Move the address of the struct into rax
-            asm_addf(&ctx, "lea rax, [rbp-%d]", node->var.stack_offset);
-        }
-        else {
-            codegen_error("Unsupported variable type encountered");
-        }
-        free(sp2);
+        gen_asm_variable(node, ctx);
     }
     else if (node->expr_type == EXPR_FUNC_CALL) { // Function call
         gen_asm_func_call(node, ctx);
@@ -58,6 +32,55 @@ void gen_asm_expr(ASTNode* node, AsmContext ctx) {
     else {
         codegen_error("Non-supported expression type encountered!");
     }
+}
+
+// Generate assembly for accessing a variable
+void gen_asm_variable(ASTNode* node, AsmContext ctx) {
+    // Access a variable and store it in rax
+    char* sp2 = var_to_stack_ptr(&node->var);
+    // Handle various variable types
+    if (node->var.is_constant) { // Constant
+        asm_addf(&ctx, "mov rax, %s", node->var.const_expr);
+    }
+    else if (node->var.type.is_struct_member) {
+        // Struct member. Lhs must be struct, which means
+        // pop rax will give us the lhs memory value
+        char* addr_size = bytes_to_addr_width(node->var.type.bytes);
+        char* move_instr = get_move_instr_for_var_type(node->var.type);
+        int offset = node->var.type.struct_bytes_offset;
+        // Save rax for potential deref assignment
+        asm_add_com(&ctx, "; Struct member variable access");
+        asm_addf(&ctx, "pop rax");
+        asm_addf(&ctx, "lea r12, [rax+%d]", offset);
+        asm_addf(&ctx, "push rax");
+        if (node->var.type.is_array || node->var.type.type == TY_STRUCT) {
+            // If the member variable is a struct or array, we want the address in rax
+            asm_addf(&ctx, "mov rax, r12", offset);
+        }
+        else { // Else, get the value
+            asm_addf(&ctx, "%s, %s [r12]", move_instr, addr_size);
+        }
+        free(move_instr);
+    }
+    else if (node->var.type.is_array ||
+             (node->var.type.type == TY_STRUCT && node->var.type.ptr_level == 0)) {
+        // We store the address of array/pointers, not the value
+        asm_addf(&ctx, "lea rax, [rbp-%d]", node->var.stack_offset);
+    }
+    else if (node->var.type.type == TY_INT || node->var.type.ptr_level > 0) {
+        // Integer/pointer type, store value in rax
+        char* move_instr = get_move_instr_for_var_type(node->var.type);
+        asm_addf(&ctx, "%s, %s", move_instr, sp2);
+        free(move_instr);
+    }
+    else if (node->var.type.type == TY_FLOAT) {
+        // Floating point type, store in xmm0
+        asm_addf(&ctx, "movq xmm0, %s", sp2);
+    }
+    else {
+        codegen_error("Unsupported variable type encountered");
+    }
+    free(sp2);
 }
 
 void gen_asm_literal(ASTNode* node, AsmContext ctx) {
@@ -355,13 +378,8 @@ void gen_asm_binary_op_int(ASTNode* node, AsmContext ctx) {
             asm_addf(&ctx, "sar rax, cl");
             break;
         case BOP_MEMBER: { // Struct to int member
-            char* addr_size = bytes_to_addr_width(node->cast_type.bytes);
-            char* move_instr = get_move_instr_for_var_type(node->cast_type);
-            int offset = node->rhs->var.type.struct_bytes_offset;
-            // Save rax for potential deref assignment
-            asm_addf(&ctx, "lea r12, [rax+%d]", offset);
-            asm_addf(&ctx, "%s, %s [rax+%d]", move_instr, addr_size, offset);
-            free(move_instr);
+            asm_add_com(&ctx, "; Op: struct member");
+            asm_addf(&ctx, "mov rax, rbx");
             break;
         }
         default:
@@ -774,9 +792,8 @@ void gen_asm_binary_op_struct(ASTNode* node, AsmContext ctx) {
             asm_addf(&ctx, "mov rax, rbx"); // We need the rhs value in rax
             break;
         case BOP_MEMBER: {
-            int offset = node->rhs->var.type.struct_bytes_offset;
-            asm_addf(&ctx, "lea rax, [rax+%d]", offset);
-            asm_addf(&ctx, "mov r12, rax");
+            // Address is in rbx
+            asm_addf(&ctx, "mov rax, rbx");
             break;
         }
         default:

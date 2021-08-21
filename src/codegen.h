@@ -140,6 +140,8 @@ void codegen_error(char* message);
 void gen_asm_expr(ASTNode* node, AsmContext ctx);
 // Generate assembly for a literal (int, float, string, char)
 void gen_asm_literal(ASTNode* node, AsmContext ctx);
+// Generate assembly for accessing a variable
+void gen_asm_variable(ASTNode* node, AsmContext ctx);
 // Generate assembly for a unary op on any type
 void gen_asm_unary_op(ASTNode* node, AsmContext ctx);
 // Generate assembly for a binary op on any types

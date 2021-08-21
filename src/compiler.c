@@ -13,6 +13,7 @@ TODO:
             Everything is very fragmented currently, handling of globals/cases/enums should be
             the same, not different as it is currently
         Refactor function calling
+        Refactor codegen, decrease unnecessary assembly
 
     Functions, proper calling convention:
         Variadic function definitions, not just declarations/calling:
