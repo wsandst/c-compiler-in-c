@@ -761,8 +761,6 @@ void gen_asm_binary_op_ptr(ASTNode* node, AsmContext ctx) {
 void gen_asm_binary_op_load_ptr_size(ASTNode* node, AsmContext ctx) {
     // Multiply rbx with pointer size
     // We need to check for type here. Only multiply if int
-    //char buf[64];
-    //snprintf(buf, 63, "%d", node->cast_type.ptr_value_bytes);
     int bytes = get_deref_var_type(node->cast_type).bytes;
     asm_addf(&ctx, "imul rbx, %d", bytes);
 }
@@ -804,7 +802,7 @@ void gen_asm_binary_op_struct(ASTNode* node, AsmContext ctx) {
         case BOP_ASSIGN:
             // Rest of assignment is handled after the switch
             asm_add_com(&ctx, "; pOp: =");
-            asm_addf(&ctx, "mov rax, rbx"); // We need the rhs value in rax
+            //asm_addf(&ctx, "mov rax, rbx"); // We need the rhs value in rax
             break;
         case BOP_MEMBER: {
             // Address is in rbx
@@ -819,12 +817,21 @@ void gen_asm_binary_op_struct(ASTNode* node, AsmContext ctx) {
         asm_addf(&ctx, "pop r12");
     }
     if (is_binary_operation_assignment(node->op_type)) {
-        gen_asm_binary_op_assign_int(node->lhs, ctx);
+        gen_asm_binary_op_assign_struct(node, ctx);
     }
 }
 
 // Generate assembly for a struct binary op assignment expression node
 void gen_asm_binary_op_assign_struct(ASTNode* node, AsmContext ctx) {
+    // Perform a memcpy from address in rbx to address in rax
+    if (node->rhs->cast_type.bytes != node->lhs->cast_type.bytes) {
+        codegen_error("Attempted to assign a struct to a struct of different size!");
+    }
+    // memcpy: rdi: dest_ptr, rsi: src_ptr, rdx: size_t (bytes)
+    asm_addf(&ctx, "mov rdi, rax");
+    asm_addf(&ctx, "mov rsi, rbx");
+    asm_addf(&ctx, "mov rdx, %d", node->rhs->cast_type.bytes);
+    asm_addf(&ctx, "call memcpy");
 }
 
 // Short circuiting

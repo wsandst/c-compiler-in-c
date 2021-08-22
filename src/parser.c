@@ -835,7 +835,7 @@ void parse_unary_op(ASTNode* node, SymbolTable* symbols) {
         parse_expression_atom(node->rhs, symbols);
         node->cast_type = node->rhs->cast_type;
         if (node->op_type == UOP_ADDR) { // This changes cast_type
-            if (node->cast_type.ptr_level == 1) {
+            if (node->cast_type.ptr_level == 0) {
                 node->cast_type.ptr_value_bytes = node->cast_type.bytes;
             }
             node->cast_type.ptr_level += 1;
@@ -845,12 +845,10 @@ void parse_unary_op(ASTNode* node, SymbolTable* symbols) {
                 parse_error("Attempting to dereference non-pointer type!");
             }
             else if (node->cast_type.ptr_level == 1) {
-                node->cast_type.bytes = node->cast_type.ptr_value_bytes;
                 node->var = node->rhs->var;
                 node->var.is_dereferenced_ptr = true;
             }
-            node->cast_type.ptr_level -= 1;
-            node->cast_type.is_array = false;
+            node->cast_type = get_deref_var_type(node->cast_type);
         }
     }
 }

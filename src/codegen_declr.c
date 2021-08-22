@@ -7,6 +7,9 @@ certain initializations
 
 void gen_asm_global_symbols(SymbolTable* symbols, AsmContext ctx) {
     // Setup function globals
+    // Always add memcpy, used by struct operators
+    asm_add_sectionf(&ctx, ctx.asm_data_src, "extern memcpy");
+
     asm_add_sectionf(&ctx, ctx.asm_data_src, "; External or global functions");
     for (size_t i = 0; i < symbols->func_count; i++) {
         Function func = symbols->funcs[i];
