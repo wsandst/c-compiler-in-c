@@ -7,14 +7,14 @@
 
 #define RUNTIME_ERROR_HANDLING
 
-typedef struct Vec Vec;
-
 struct Vec {
     int size;
     int max_size;
     int elem_bytes;
     void* elems;
 };
+
+typedef struct Vec Vec;
 
 // Constructor, create a new Vector object containing elements of size bytes and
 // with an initial reserved size of initial_size

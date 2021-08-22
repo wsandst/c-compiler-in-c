@@ -133,7 +133,7 @@ char* var_to_stack_ptr(Variable* var) {
     }
     else if (var->is_global) {
         static char buf[64];
-        snprintf(buf, 63, "[%s]", var->name);
+        snprintf(buf, 63, "[G_%s]", var->name);
         return str_copy(buf);
     }
     else {
@@ -199,7 +199,7 @@ char* get_next_label_str(AsmContext* ctx) {
 char* get_next_cstring_label_str(AsmContext* ctx) {
     (*ctx->cstring_label_count)++;
     static char result[64];
-    snprintf(result, 63, "STR%d", *ctx->cstring_label_count);
+    snprintf(result, 63, "G_STR%d", *ctx->cstring_label_count);
     return result;
 }
 

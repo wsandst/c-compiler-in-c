@@ -240,7 +240,6 @@ void tokenize_keywords(Tokens* tokens, StrVector* str_split) {
     tokenize_keyword(tokens, str_split, "case", TK_KW_CASE);
     tokenize_keyword(tokens, str_split, "default", TK_KW_DEFAULT);
     tokenize_keyword(tokens, str_split, "goto", TK_KW_GOTO);
-    tokenize_keyword(tokens, str_split, "label", TK_KW_LABEL);
     tokenize_keyword(tokens, str_split, "typedef", TK_KW_TYPEDEF);
     tokenize_keyword(tokens, str_split, "const", TK_KW_CONST);
     tokenize_keyword(tokens, str_split, "long", TK_KW_LONG);
@@ -693,7 +692,6 @@ char* token_type_to_string(enum TokenType type) {
         "TK_KW_CASE",
         "TK_KW_DEFAULT",
         "TK_KW_GOTO",
-        "TK_KW_LABEL",
         "TK_KW_TYPEDEF",
         "TK_KW_INCLUDE",
         "TK_KW_DEFINE",

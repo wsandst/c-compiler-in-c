@@ -87,7 +87,6 @@ enum TokenType {
     TK_KW_CASE,
     TK_KW_DEFAULT,
     TK_KW_GOTO,
-    TK_KW_LABEL,
     TK_KW_TYPEDEF,
     TK_KW_INCLUDE,
     TK_KW_DEFINE,
@@ -109,9 +108,6 @@ enum TokenType {
     TK_KW_VARIADIC_DOTS,
 };
 
-typedef struct Token Token;
-typedef struct Tokens Tokens;
-
 struct Token {
     enum TokenType type;
     int src_pos;
@@ -122,9 +118,12 @@ struct Token {
 };
 
 struct Tokens {
-    Vec elems; // Token vec
     int size;
+    Vec elems; // Token vec
 };
+
+typedef struct Token Token;
+typedef struct Tokens Tokens;
 
 // ========= Tokens object functionality ===========
 

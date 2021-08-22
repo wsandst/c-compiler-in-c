@@ -53,7 +53,7 @@ void gen_asm_global_variable(Variable var, AsmContext* ctx) {
     }
     if (var.type.is_array) {
         asm_add_sectionf(ctx, ctx->asm_bss_src, "global %s", var.name);
-        asm_add_sectionf(ctx, ctx->asm_bss_src, "%s: resq %d", var.name,
+        asm_add_sectionf(ctx, ctx->asm_bss_src, "G_%s: resq %d", var.name,
                          var.type.array_size);
     }
     else if (!var.is_undefined) {
@@ -61,15 +61,16 @@ void gen_asm_global_variable(Variable var, AsmContext* ctx) {
             char* label_name = get_next_cstring_label_str(ctx);
             asm_add_sectionf(ctx, ctx->asm_rodata_src, "%s: db `%s`, 0", label_name,
                              var.const_expr);
-            asm_add_sectionf(ctx, ctx->asm_data_src, "%s: dq %s", var.name, label_name);
+            asm_add_sectionf(ctx, ctx->asm_data_src, "G_%s: dq %s", var.name, label_name);
         }
         else {
-            asm_add_sectionf(ctx, ctx->asm_data_src, "%s: dq %s", var.name, var.const_expr);
+            asm_add_sectionf(ctx, ctx->asm_data_src, "G_%s: dq %s", var.name,
+                             var.const_expr);
         }
     }
     else {
         asm_add_sectionf(ctx, ctx->asm_data_src, "; Uninitialized global variable");
-        asm_add_sectionf(ctx, ctx->asm_data_src, "%s: dq 0", var.name);
+        asm_add_sectionf(ctx, ctx->asm_data_src, "G_%s: dq 0", var.name);
     }
 }
 

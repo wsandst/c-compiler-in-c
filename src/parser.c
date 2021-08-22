@@ -55,6 +55,7 @@ void ast_free(AST* ast) {
 static Token* parse_token;
 static VarType latest_parsed_var_type;
 static Function latest_func;
+static Object latest_struct;
 
 AST parse(Tokens* tokens, SymbolTable* global_symbols) {
     parse_token = tokens_get(tokens, 0);
@@ -260,10 +261,10 @@ void parse_enum(SymbolTable* symbols) {
             char* ident = prev_token().string_repr;
             Variable var = variable_new(); // Create a variable to map the value
             snprintf(buf, 64, "%d", enum_value);
-            var.name = ident;
-            var.is_enum_member = 0;
             var.const_expr = str_copy(buf);
             var.const_expr_type = LT_INT;
+            var.name = ident;
+            var.is_enum_member = 0;
             var.type.bytes = 8;
             var.type.type = TY_INT;
             Variable* var_ptr = symbol_table_insert_var(symbols, var);
@@ -285,6 +286,10 @@ void parse_struct(SymbolTable* symbols) {
     } // Named struct
     if (accept(TK_DL_OPENBRACE)) { // This is a definition
         // Go through the args
+        // Issue: non-named struct. I should keep a global, latest_struct_obj
+        // which contains the latest struct obj
+        Object struct_obj;
+        struct_obj.type = OBJ_STRUCT;
         VarType struct_type;
         struct_type.bytes = 0;
         struct_type.type = TY_STRUCT;
@@ -292,6 +297,7 @@ void parse_struct(SymbolTable* symbols) {
         struct_type.is_array = 0;
         struct_type.is_static = 0;
         struct_type.is_struct_member = false;
+        struct_type.struct_name = struct_name;
 
         VarType* member_type;
         VarType* prev_member_type = NULL;
@@ -306,9 +312,11 @@ void parse_struct(SymbolTable* symbols) {
             member_type->is_struct_member = true;
             member_type->struct_member_name = ident;
             // FIXME: How rigorous is the struct alignment? Very bodgy
-            if (member_type->type == TY_STRUCT) {
+            if (member_type->type == TY_STRUCT && member_type->ptr_level == 0) {
+                Object* member_struct = symbol_table_lookup_object(
+                    symbols, member_type->struct_name, OBJ_STRUCT);
                 member_type->struct_bytes_offset = align_stack_address_no_add(
-                    struct_type.bytes, member_type->first_struct_member->bytes);
+                    struct_type.bytes, member_struct->first_struct_member->bytes);
                 struct_type.bytes = member_type->struct_bytes_offset + member_type->bytes;
                 struct_type.widest_struct_member = max(struct_type.widest_struct_member,
                                                        member_type->widest_struct_member);
@@ -325,7 +333,7 @@ void parse_struct(SymbolTable* symbols) {
                 prev_member_type = member_type;
             }
             else {
-                struct_type.first_struct_member = member_type;
+                struct_obj.first_struct_member = member_type;
                 prev_member_type = member_type;
             }
             expect(TK_DL_SEMICOLON);
@@ -333,23 +341,27 @@ void parse_struct(SymbolTable* symbols) {
         struct_type.bytes = align_stack_address_no_add(struct_type.bytes,
                                                        struct_type.widest_struct_member);
         member_type->next_struct_member = NULL;
+        struct_obj.name = struct_name;
+        struct_obj.struct_type = struct_type;
         if (struct_name) {
             // Inserted into symbol table if named struct
-            Object struct_obj;
-            struct_obj.type = OBJ_STRUCT;
-            struct_obj.name = struct_name;
-            struct_obj.struct_type = struct_type;
             symbol_table_insert_object(symbols, struct_obj);
         }
         latest_parsed_var_type = struct_type;
+        latest_struct = struct_obj;
     }
-    else { // Not a definition, must be already defined
+    else { // Not a definition, must be already defined or be a declaration
         char* ident = prev_token().string_repr;
         Object* obj = symbol_table_lookup_object(symbols, ident, OBJ_STRUCT);
-        if (!obj) {
-            parse_error("Struct referenced but has no definition!");
+        if (!obj) { // Declaration
+            latest_parsed_var_type.type = TY_STRUCT;
+            latest_parsed_var_type.struct_name = struct_name;
         }
-        latest_parsed_var_type = obj->struct_type;
+        else {
+            latest_parsed_var_type = obj->struct_type;
+            latest_parsed_var_type.struct_name = ident;
+            latest_struct = *obj;
+        }
     }
 }
 
@@ -370,19 +382,8 @@ void parse_program(ASTNode* node, SymbolTable* symbols) {
         return;
     }
     // Must either be a function, object, typedef or global variable
-    if (accept(TK_IDENT)) { // Global assignment
-        token_go_back(1);
-        parse_global(node, symbols);
-    }
-    else if (accept(TK_KW_TYPEDEF)) {
-        parse_typedef(node, symbols);
-        // We can reuse this node, typedef is only symbolic
-        parse_program(node, symbols);
-        return;
-    }
-    else {
-        Token* cur_parse_token = parse_token;
-        expect_type(symbols);
+    Token* cur_parse_token = parse_token;
+    if (accept_type(symbols)) {
         if (accept(TK_IDENT)) {
             if (accept(TK_DL_OPENPAREN)) { // Function
                 parse_token = cur_parse_token;
@@ -399,6 +400,19 @@ void parse_program(ASTNode* node, SymbolTable* symbols) {
             parse_program(node, symbols);
             return;
         }
+    }
+    else if (accept(TK_IDENT)) { // Global assignment
+        token_go_back(1);
+        parse_global(node, symbols);
+    }
+    else if (accept(TK_KW_TYPEDEF)) {
+        parse_typedef(node, symbols);
+        // We can reuse this node, typedef is only symbolic
+        parse_program(node, symbols);
+        return;
+    }
+    else {
+        parse_error("Unknown global statement encountered");
     }
     node->next = ast_node_new(AST_END, 1);
     parse_program(node->next, symbols);
@@ -430,6 +444,7 @@ void parse_func(ASTNode* node, SymbolTable* symbols) {
         Variable var;
         expect_type(symbols);
         var.type = latest_parsed_var_type;
+        var.struct_type = latest_struct;
         // Check for func(void) arg
         if (latest_parsed_var_type.type == TY_VOID &&
             latest_parsed_var_type.ptr_level == 0) {
@@ -473,6 +488,7 @@ void parse_single_statement(ASTNode* node, SymbolTable* symbols) {
         if (accept(TK_IDENT)) { // Variable declaration
             Variable var;
             var.type = latest_parsed_var_type;
+            var.struct_type = latest_struct;
             char* ident = prev_token().string_repr;
             var.name = ident;
             symbol_table_insert_var(symbols, var);
@@ -687,9 +703,10 @@ void parse_binary_op_struct_member(ASTNode* node, SymbolTable* symbols) {
     // Check if member exists inside struct var
     expect(TK_IDENT);
     char* member_ident = prev_token().string_repr;
-    VarType* member_type = symbol_table_struct_lookup_member(node->cast_type, member_ident);
+    VarType* member_type = symbol_table_struct_lookup_member(node->var.struct_type,
+                                                             member_ident);
     if (!member_type) {
-        parse_error("Attempted to access non-existant struct member!");
+        parse_error("Attempted to access non-existing struct member!");
     }
     node->rhs->expr_type = EXPR_VAR;
     node->rhs->var.type = *member_type;

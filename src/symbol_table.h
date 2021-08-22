@@ -25,17 +25,6 @@ typedef struct ValueLabel ValueLabel;
 typedef struct Object Object;
 typedef struct SymbolTable SymbolTable;
 
-/*
-Enums:
-We just throw a bunch of const variables everywhere
-enum xxx
-struct xxx
-lookup_structs()
-lookup_enums()
-lookup_typedefs()
-
-*/
-
 enum LiteralType {
     LT_NONE,
     LT_INT,
@@ -65,12 +54,27 @@ struct VarType {
     int array_size;
     bool array_has_initializer;
 
-    VarType* first_struct_member;
+    char* struct_name;
     VarType* next_struct_member;
     char* struct_member_name;
     int struct_bytes_offset;
-    int widest_struct_member;
     bool is_struct_member;
+    int widest_struct_member;
+};
+
+enum ObjectTypeEnum {
+    OBJ_STRUCT,
+    OBJ_ENUM,
+    OBJ_TYPEDEF,
+};
+
+struct Object { // Structs, unions, enums, typedefs etc
+    char* name;
+    enum ObjectTypeEnum type;
+    VarType typedef_type;
+    // Struct related
+    VarType struct_type;
+    VarType* first_struct_member;
 };
 
 // Variable object
@@ -87,6 +91,7 @@ struct Variable {
     LiteralType const_expr_type;
     bool is_constant;
     int unique_id;
+    Object struct_type;
 };
 
 // Function object
@@ -108,19 +113,6 @@ struct ValueLabel { // Switch case labels
     char* value;
     bool is_default_case;
     ValueLabel* next; // Used as linked list for switch
-};
-
-enum ObjectTypeEnum {
-    OBJ_STRUCT,
-    OBJ_ENUM,
-    OBJ_TYPEDEF,
-};
-
-struct Object { // Structs, unions, enums, typedefs etc
-    char* name;
-    enum ObjectTypeEnum type;
-    VarType typedef_type;
-    VarType struct_type;
 };
 
 // This is a tree of tables
@@ -226,7 +218,7 @@ Object symbol_table_insert_object(SymbolTable* table, Object object);
 
 void symbol_table_objects_realloc(SymbolTable* table, int new_size);
 
-VarType* symbol_table_struct_lookup_member(VarType struct_type, char* member_name);
+VarType* symbol_table_struct_lookup_member(Object struct_obj, char* member_name);
 
 // =============== Tree related ================
 SymbolTable* symbol_table_create_child(SymbolTable* table, int stack_offset);

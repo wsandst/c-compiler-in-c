@@ -40,12 +40,19 @@ The compiler uses a handwritten tokenizer, a recursive decent parser and a code 
     * Type casting (explicit and implicit)
     * Typedefs
     * Enums
+    * Structs
 * Preprocessor
     * Includes (normal and STL includes)
     * Pragma once
     * Simple defines, undef (no function macros)
     * Ifdef, ifndef
 * Gotos, labels
+* Structs
+    * Access operators
+    * Structs within structs
+    * Missing support for:
+        * Pass structs by value to functions
+        * Struct return values
 
 
 ## Build instructions

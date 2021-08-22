@@ -44,7 +44,7 @@ void symbol_table_free(SymbolTable* table) {
     // Free the struct member linked list in VarType
     for (size_t i = 0; i < table->object_count; i++) {
         if (table->objects[i].type == OBJ_STRUCT) {
-            VarType* member = table->objects[i].struct_type.first_struct_member;
+            VarType* member = table->objects[i].first_struct_member;
             VarType* prev_member;
             while (member) {
                 prev_member = member;
@@ -137,8 +137,9 @@ Variable* symbol_table_insert_var(SymbolTable* table, Variable var) {
             // FIXME: What if the first element is a struct? Same issue
             // Maybe store total struct size somewhere else?
             table->cur_stack_offset = align_stack_address(
-                table->cur_stack_offset, var.type.first_struct_member->bytes);
-            table->cur_stack_offset += var.type.bytes - var.type.first_struct_member->bytes;
+                table->cur_stack_offset, var.struct_type.first_struct_member->bytes);
+            table->cur_stack_offset += var.type.bytes -
+                                       var.struct_type.first_struct_member->bytes;
             var.stack_offset = table->cur_stack_offset;
         }
         else {
@@ -304,8 +305,8 @@ Object symbol_table_insert_object(SymbolTable* table, Object object) {
     return object;
 }
 
-VarType* symbol_table_struct_lookup_member(VarType struct_type, char* member_name) {
-    VarType* member = struct_type.first_struct_member;
+VarType* symbol_table_struct_lookup_member(Object struct_obj, char* member_name) {
+    VarType* member = struct_obj.first_struct_member;
     while (member) {
         if (strcmp(member->struct_member_name, member_name) == 0) {
             return member;

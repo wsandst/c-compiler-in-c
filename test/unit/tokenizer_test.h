@@ -124,7 +124,7 @@ void test_tokenizer_strings() {
 void test_tokenizer_keywords() {
     // Keywords
     char* src = "unsigned.if else while do for break continue return switch case\ndefault "
-                "goto label typedef struct union const long short signed "
+                "goto typedef struct union const long short signed "
                 "int float double char void hello_int int_hello _int";
     Tokens tokens = tokenize(src);
     assert(tokens_get(&tokens, 0)->type == TK_KW_UNSIGNED);
@@ -141,23 +141,22 @@ void test_tokenizer_keywords() {
     assert(tokens_get(&tokens, 11)->type == TK_KW_CASE);
     assert(tokens_get(&tokens, 12)->type == TK_KW_DEFAULT);
     assert(tokens_get(&tokens, 13)->type == TK_KW_GOTO);
-    assert(tokens_get(&tokens, 14)->type == TK_KW_LABEL);
-    assert(tokens_get(&tokens, 15)->type == TK_KW_TYPEDEF);
-    assert(tokens_get(&tokens, 16)->type == TK_KW_STRUCT);
-    assert(tokens_get(&tokens, 17)->type == TK_KW_UNION);
-    assert(tokens_get(&tokens, 18)->type == TK_KW_CONST);
-    assert(tokens_get(&tokens, 19)->type == TK_KW_LONG);
-    assert(tokens_get(&tokens, 20)->type == TK_KW_SHORT);
-    assert(tokens_get(&tokens, 21)->type == TK_KW_SIGNED);
-    assert(tokens_get(&tokens, 22)->type == TK_KW_INT);
-    assert(tokens_get(&tokens, 23)->type == TK_KW_FLOAT);
-    assert(tokens_get(&tokens, 24)->type == TK_KW_DOUBLE);
-    assert(tokens_get(&tokens, 25)->type == TK_KW_CHAR);
-    assert(tokens_get(&tokens, 26)->type == TK_KW_VOID);
+    assert(tokens_get(&tokens, 14)->type == TK_KW_TYPEDEF);
+    assert(tokens_get(&tokens, 15)->type == TK_KW_STRUCT);
+    assert(tokens_get(&tokens, 16)->type == TK_KW_UNION);
+    assert(tokens_get(&tokens, 17)->type == TK_KW_CONST);
+    assert(tokens_get(&tokens, 18)->type == TK_KW_LONG);
+    assert(tokens_get(&tokens, 19)->type == TK_KW_SHORT);
+    assert(tokens_get(&tokens, 20)->type == TK_KW_SIGNED);
+    assert(tokens_get(&tokens, 21)->type == TK_KW_INT);
+    assert(tokens_get(&tokens, 22)->type == TK_KW_FLOAT);
+    assert(tokens_get(&tokens, 23)->type == TK_KW_DOUBLE);
+    assert(tokens_get(&tokens, 24)->type == TK_KW_CHAR);
+    assert(tokens_get(&tokens, 25)->type == TK_KW_VOID);
+    assert(tokens_get(&tokens, 26)->type == TK_IDENT);
     assert(tokens_get(&tokens, 27)->type == TK_IDENT);
     assert(tokens_get(&tokens, 28)->type == TK_IDENT);
-    assert(tokens_get(&tokens, 29)->type == TK_IDENT);
-    assert(tokens_get(&tokens, 30)->type == TK_EOF);
+    assert(tokens_get(&tokens, 29)->type == TK_EOF);
     tokens_free(&tokens);
 }
 
