@@ -560,6 +560,35 @@ void gen_asm_func(ASTNode* node, AsmContext ctx) {
             }
             float_arg_count++;
         }
+        else if (param->type.type == TY_STRUCT) {
+            // Struct by value, this is a pointer to the struct
+            if (int_arg_count < 6) { // Pass by register
+                char* reg_str = get_reg_width_str(param->type, RAX);
+                asm_addf(&ctx, "mov rax, %s", reg_str);
+            }
+            else { // Pass by stack
+                asm_addf(&ctx, "mov rax, qword [rbp+%d]", 8 * (stack_arg_count + 2));
+                stack_arg_count++;
+            }
+            // memcpy from  param->stack_offset
+            // memcpy: rdi: dest_ptr, rsi: src_ptr, rdx: size_t (bytes)
+            asm_addf(&ctx, "; Struct passed by value, memcpy required");
+            if (int_arg_count < 3) {
+                asm_addf(&ctx, "push rdi");
+                asm_addf(&ctx, "push rsi");
+                asm_addf(&ctx, "push rdx");
+            }
+            asm_addf(&ctx, "lea rdi, [rbp-%d]", param->stack_offset);
+            asm_addf(&ctx, "mov rsi, rax");
+            asm_addf(&ctx, "mov rdx, %d", param->type.bytes);
+            asm_addf(&ctx, "call memcpy");
+            if (int_arg_count < 3) {
+                asm_addf(&ctx, "pop rdi");
+                asm_addf(&ctx, "pop rsi");
+                asm_addf(&ctx, "pop rdx");
+            }
+            int_arg_count++;
+        }
         else {
             codegen_error("Unsupported function argument type in function definition");
         }
