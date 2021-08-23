@@ -1031,6 +1031,16 @@ void parse_func_call(ASTNode* node, SymbolTable* symbols) {
     }
     node->func.call_param_count = arg_count;
     node->args_end = arg_node;
+    if (node->func.return_type.type == TY_STRUCT && node->func.return_type.ptr_level == 0) {
+        // This function returns a struct by value, needs special handling
+        // Allocate a memory location for the return value
+        Variable var = variable_new();
+        var.type = node->func.return_type;
+        var.name = "temp_struct_return";
+        var.struct_type = *symbol_table_lookup_object(symbols, var.type.struct_name,
+                                                      OBJ_STRUCT);
+        node->var = *symbol_table_insert_var(symbols, var);
+    }
 }
 
 void parse_if(ASTNode* node, SymbolTable* symbols) {

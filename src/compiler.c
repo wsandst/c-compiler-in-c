@@ -23,11 +23,8 @@ TODO:
             Just recreate that struct with va_start, push the registers to stack, pass it by pointer
 
     Structs:
-        Pass struct by value:
-            Pass a pointer to the struct in the function call, always on the stack
-            In the function definition, we perform (struct_val=*ptr_to_val)
-            The struct variable already exists, we just need to copy to it
-        Return struct (use r12?)
+        Return struct (pass r12 to the function, then memcpy to it at the end)
+        
 
     Typedef issue:
         Does the current way respect alignment? Not sure        

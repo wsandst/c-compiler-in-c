@@ -363,6 +363,9 @@ void gen_asm_func_call(ASTNode* node, AsmContext ctx) {
                                        "xmm4", "xmm5", "xmm6", "xmm7" };
     asm_add_com(&ctx, "; Expression function call");
 
+    bool has_struct_ret_val = node->func.return_type.type == TY_STRUCT &&
+                              node->func.return_type.ptr_level == 0;
+
     // Count general and floating point parameters
     Variable* current_func_def_arg = node->func.params;
     ASTNode* current_arg = node->args;
@@ -383,6 +386,13 @@ void gen_asm_func_call(ASTNode* node, AsmContext ctx) {
         if (i < (node->func.def_param_count - 1)) {
             current_func_def_arg++;
         }
+    }
+
+    if (has_struct_ret_val) {
+        // We need to return a struct by value,
+        // Pass a pointer to the local temp struct as the bottom of the stack
+        asm_addf(&ctx, "lea rax, [rbp-%d]", node->var.stack_offset);
+        asm_addf(&ctx, "push rax");
     }
 
     // Add non-register arguments to the stack
@@ -483,8 +493,7 @@ void gen_asm_func_call(ASTNode* node, AsmContext ctx) {
     // Pop INT REGS parameters into their respective function regs
     int min_int_pop = min(int_arg_count, 6);
     for (int i = 0; i < min_int_pop; i++) {
-        asm_addf(&ctx, "pop rax");
-        asm_addf(&ctx, "mov %s, rax", reg_strs[i]);
+        asm_addf(&ctx, "pop %s", reg_strs[i]);
     }
     // Pop FLOAT REGS parameters into their respective function regs
     int min_float_pop = min(float_arg_count, 8);
@@ -492,6 +501,7 @@ void gen_asm_func_call(ASTNode* node, AsmContext ctx) {
         asm_addf(&ctx, "pop rax");
         asm_addf(&ctx, "movq %s, rax", float_reg_strs[i]);
     }
+
     if (node->func.is_variadic) {
         // Pass floating point reg count in AL in variadic functions
         asm_addf(&ctx, "mov al, %d", min_float_pop);
@@ -500,8 +510,13 @@ void gen_asm_func_call(ASTNode* node, AsmContext ctx) {
     asm_addf(&ctx, "call %s", node->func.name);
 
     // Restore the stack space used by REST OF ARGS
-    int pop_count = max(int_arg_count - 6, 0) + max(float_arg_count - 8, 0);
+    int pop_count = max(int_arg_count - 6, 0) + max(float_arg_count - 8, 0) +
+                    has_struct_ret_val;
     asm_addf(&ctx, "add rsp, %d", pop_count * 8);
+
+    if (has_struct_ret_val) {
+        asm_addf(&ctx, "mov r12, rax");
+    }
 }
 
 void gen_asm_func(ASTNode* node, AsmContext ctx) {
@@ -522,6 +537,10 @@ void gen_asm_func(ASTNode* node, AsmContext ctx) {
     asm_add_newline(&ctx, ctx.asm_text_src);
     asm_addf(&ctx, "%s:", node->func.name);
     asm_set_indent(&ctx, 1);
+
+    bool has_struct_ret_val = node->func.return_type.type == TY_STRUCT &&
+                              node->func.return_type.ptr_level == 0;
+
     asm_add_com(&ctx, "; Setting up function stack pointer");
     asm_addf(&ctx, "push rbp");
     asm_addf(&ctx, "mov rbp, rsp");
@@ -602,6 +621,20 @@ void gen_asm_func(ASTNode* node, AsmContext ctx) {
     // Add return
     asm_addf(&ctx, "mov rax, 0 ; Default function return is 0");
     asm_addf(&ctx, "%s: ; Function return label", ctx.func_return_label);
+
+    if (has_struct_ret_val) {
+        // Special return, we are returning a struct by value
+        // memcpy rax into the bottom value of the stack
+        // memcpy: rdi: dest_ptr, rsi: src_ptr, rdx: size_t (bytes)
+        asm_addf(&ctx,
+                 "; Return struct by value, memcpy rax into bottom value of stack args");
+        asm_addf(&ctx, "mov rdi, [rbp+%d]", 8 * (stack_arg_count + 2));
+        asm_addf(&ctx, "mov rsi, rax");
+        asm_addf(&ctx, "mov rdx, %d", node->func.return_type.bytes);
+        asm_addf(&ctx, "call memcpy");
+        asm_addf(&ctx, "mov rax, [rbp+%d]", 8 * (stack_arg_count + 2));
+    }
+
     asm_addf(&ctx, "add rsp, %d ; Restore function stack allocation", stack_space);
     asm_addf(&ctx, "pop rbp");
     asm_addf(&ctx, "ret");
