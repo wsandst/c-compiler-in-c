@@ -33,6 +33,7 @@ void write_string_to_file(char* filename, char* src) {
 }
 
 // Compile Intel-syntax ASM using NASM and link with gcc
+// Example command: nasm -f elf64 -F dwarf -g output.asm && gcc -g -no-pie -o output output.o && rm output.o
 void compile_asm(char* asm_src, char* executable_name) {
     write_string_to_file("output.asm", asm_src);
     // Includes debug symbols

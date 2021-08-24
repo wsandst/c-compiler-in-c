@@ -21,9 +21,14 @@ TODO:
         Variadic function definitions, not just declarations/calling:
             https://blog.nelhage.com/2010/10/amd64-and-va_arg/
             Just recreate that struct with va_start, push the registers to stack, pass it by pointer
-
-    Structs:
-        Return struct (pass r12 to the function, then memcpy to it at the end)
+        Alignment issue:
+            My rsp must be 16-byte aligned at function call
+            This is only an issue for external function calls, but
+            I should fix it to adhere to the calling convention
+            How do I respect it though? 
+            I need to adjust before function call, which
+            messes up the stack arguments unless I adjust before
+            pushing them. But then I need forward knowledge
         
 
     Typedef issue:

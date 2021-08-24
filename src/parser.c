@@ -665,7 +665,15 @@ void parse_expression(ASTNode* node, SymbolTable* symbols, int min_precedence) {
             parse_expression(node->rhs, symbols, new_min_precedence);
             // LHS and RHS is now defined. Put the widest variable type in the op
             // for possible implicit casts
-            node->cast_type = return_wider_type(node->rhs->cast_type, node->lhs->cast_type);
+            if (is_binary_operation_assignment(op_type)) {
+                // Always cast to lhs type in assignment
+                node->cast_type = node->lhs->cast_type;
+            }
+            else {
+                node->cast_type = return_wider_type(node->rhs->cast_type,
+                                                    node->lhs->cast_type);
+            }
+            //node->cast_type = return_wider_type(node->rhs->cast_type, node->lhs->cast_type);
             if (is_binary_operation_logical(op_type)) {
                 // Logical operator, we need to implicitly cast to integer
                 // We do this by creating a cast unary op

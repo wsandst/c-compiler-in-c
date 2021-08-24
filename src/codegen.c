@@ -388,6 +388,17 @@ void gen_asm_func_call(ASTNode* node, AsmContext ctx) {
         }
     }
 
+    int push_count = max(int_arg_count - 6, 0) + max(float_arg_count - 8, 0) +
+                     has_struct_ret_val + 1;
+    // Align stack to 16 bytes for function call
+    // This is done dynamically as I don't track all my pushes/pops currently
+    asm_addf(&ctx, "mov rbx, rsp");
+    asm_addf(&ctx, "and rsp, -16");
+    if (push_count % 2 == 1) {
+        asm_addf(&ctx, "sub rsp, 8");
+    }
+    asm_addf(&ctx, "push rbx");
+
     if (has_struct_ret_val) {
         // We need to return a struct by value,
         // Pass a pointer to the local temp struct as the bottom of the stack
@@ -504,7 +515,10 @@ void gen_asm_func_call(ASTNode* node, AsmContext ctx) {
 
     if (node->func.is_variadic) {
         // Pass floating point reg count in AL in variadic functions
-        asm_addf(&ctx, "mov al, %d", min_float_pop);
+        asm_addf(
+            &ctx,
+            "mov eax, %d ; Variadic function requires number of floating point regs in AL",
+            min_float_pop);
     }
 
     asm_addf(&ctx, "call %s", node->func.name);
@@ -513,7 +527,7 @@ void gen_asm_func_call(ASTNode* node, AsmContext ctx) {
     int pop_count = max(int_arg_count - 6, 0) + max(float_arg_count - 8, 0) +
                     has_struct_ret_val;
     asm_addf(&ctx, "add rsp, %d", pop_count * 8);
-
+    asm_addf(&ctx, "pop rsp");
     if (has_struct_ret_val) {
         asm_addf(&ctx, "mov r12, rax");
     }
