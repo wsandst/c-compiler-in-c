@@ -223,7 +223,9 @@ void gen_asm_unary_op_int(ASTNode* node, AsmContext ctx) {
         case UOP_SIZEOF:
             asm_add_com(&ctx, "; Op: sizeof");
             if (node->rhs->cast_type.is_array) {
-                asm_addf(&ctx, "mov rax, %d", node->rhs->cast_type.array_size);
+                asm_addf(&ctx, "mov rax, %d",
+                         node->rhs->cast_type.array_size *
+                             node->rhs->cast_type.ptr_value_bytes);
             }
             else {
                 asm_addf(&ctx, "mov rax, %d", node->rhs->cast_type.bytes);
@@ -270,6 +272,8 @@ void gen_asm_binary_op_int(ASTNode* node, AsmContext ctx) {
 
     asm_addf(&ctx, "push rax"); // Save RAX
     gen_asm(node->rhs, ctx); // LHS now in RAX
+    // Check if we need to cast rhs
+    gen_asm_unary_op_cast(ctx, node->cast_type, node->rhs->cast_type);
     asm_addf(&ctx, "mov rbx, rax"); // Move RHS to RBX
     asm_addf(&ctx, "pop rax"); // LHS now in RAX
     // We are now ready for the binary operation

@@ -40,6 +40,11 @@ TODO:
             Treat x[] as *x
             These are connected. int x[] is equivalent with int* x;
             char* x = {"a", "b", "c"} should work if char x[] works, same construct
+            Variable length arrays: just add to rsp, then set address to this
+    
+    Issue:
+        &x[0] does not work, address operator does something wrong. 
+        This is an issue as I'm using this everywhere in the compiler
 
     Intentional deficits:
         Constants expressions are not evaluated
@@ -48,6 +53,7 @@ TODO:
         Comma operator and ternary operator is not implemented
         Certain float operators have been skipped
         No function pointers or local functions
+        Floats are 64 bit, not 32 bit. Messes with scanf
 
 */
 

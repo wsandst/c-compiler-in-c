@@ -137,6 +137,7 @@ bool accept_type(SymbolTable* symbols) {
     latest_parsed_var_type.is_static = false;
     latest_parsed_var_type.is_extern = false;
     latest_parsed_var_type.is_struct_member = false;
+    latest_parsed_var_type.array_has_initializer = false;
     if (accept(TK_KW_EXTERN)) {
         latest_parsed_var_type.is_extern = true;
     };
@@ -971,7 +972,7 @@ void parse_array_declaration(ASTNode* node, SymbolTable* symbols) {
     Variable* var = symbol_table_lookup_var_ptr(symbols, ident);
     var->type.is_array = true;
     var->type.ptr_level++;
-    if (var->type.ptr_value_bytes == 0) {
+    if (var->type.ptr_level == 1) {
         var->type.ptr_value_bytes = var->type.bytes;
     }
     var->type.bytes = 8;

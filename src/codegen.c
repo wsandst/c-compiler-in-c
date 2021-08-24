@@ -373,7 +373,7 @@ void gen_asm_func_call(ASTNode* node, AsmContext ctx) {
     int int_arg_count = 0;
     for (int i = 0; i < node->func.call_param_count; i++) {
         VarType arg_type = current_func_def_arg->type;
-        if (i > node->func.def_param_count) { // Variadic, use argument type
+        if (i >= node->func.def_param_count) { // Variadic, use argument type
             arg_type = current_arg->cast_type;
         }
         if (arg_type.type == TY_FLOAT && arg_type.ptr_level == 0) {

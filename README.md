@@ -50,9 +50,8 @@ The compiler uses a handwritten tokenizer, a recursive decent parser and a code 
 * Structs
     * Access operators
     * Structs within structs
-    * Missing support for:
-        * Pass structs by value to functions
-        * Struct return values
+    * Pass structs by value to functions
+    * Struct return values
 
 
 ## Build instructions
