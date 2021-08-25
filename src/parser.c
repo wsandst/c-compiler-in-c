@@ -128,7 +128,7 @@ bool accept_post_unop() {
 }
 
 bool accept_binop() {
-    return accept_range(TK_OP_PLUS, TK_OP_PTR_MEMBER) || accept(TK_DL_DOT);
+    return accept_range(TK_OP_PLUS, TK_OP_PTR_MEMBER);
 }
 
 // Accept variable/function type: float, double, char, short, int, long
@@ -635,18 +635,10 @@ void parse_expression(ASTNode* node, SymbolTable* symbols, int min_precedence) {
 
     parse_expression_atom(node, symbols);
 
+    parse_high_precedence_binary_operators(node, symbols);
+
     while (true) {
-        if (accept(TK_DL_OPENBRACKET)) { // Indexing, needs special handling
-            parse_binary_op_indexing(node, symbols);
-            expect(TK_DL_CLOSEBRACKET);
-        }
-        else if (accept(TK_DL_DOT)) { // Struct member, needs special handling
-            parse_binary_op_struct_member(node, symbols);
-        }
-        else if (accept(TK_OP_PTR_MEMBER)) { // Struct pointer member, needs special handling
-            parse_binary_op_struct_ptr_member(node, symbols);
-        }
-        else if (accept_binop()) {
+        if (accept_binop()) {
             OpType op_type = token_type_to_bop_type(prev_token().type);
             int op_precedence = get_binary_operator_precedence(op_type);
             if (op_precedence < min_precedence) {
@@ -688,6 +680,25 @@ void parse_expression(ASTNode* node, SymbolTable* symbols, int min_precedence) {
                 node->cast_type.is_array = false;
                 node->cast_type.bytes = 8;
             };
+        }
+        else {
+            break;
+        }
+    }
+}
+
+// Parse certain binary operators which have a higher precedence than unary operators ([], ., ->)
+void parse_high_precedence_binary_operators(ASTNode* node, SymbolTable* symbols) {
+    while (true) {
+        if (accept(TK_DL_OPENBRACKET)) { // Indexing, needs special handling
+            parse_binary_op_indexing(node, symbols);
+            expect(TK_DL_CLOSEBRACKET);
+        }
+        else if (accept(TK_DL_DOT)) { // Struct member, needs special handling
+            parse_binary_op_struct_member(node, symbols);
+        }
+        else if (accept(TK_OP_PTR_MEMBER)) { // Struct pointer member, needs special handling
+            parse_binary_op_struct_ptr_member(node, symbols);
         }
         else {
             break;
@@ -776,6 +787,7 @@ void parse_expression_atom(ASTNode* node, SymbolTable* symbols) {
             node->expr_type = EXPR_VAR;
             node->var = symbol_table_lookup_var(symbols, ident);
             node->cast_type = node->var.type;
+            parse_high_precedence_binary_operators(node, symbols);
         }
     }
     else if (accept(TK_DL_OPENPAREN)) {

@@ -150,11 +150,17 @@ void gen_asm_binary_op(ASTNode* node, AsmContext ctx) {
 // & address operator for
 void gen_asm_unary_op_address(ASTNode* node, AsmContext ctx) {
     asm_add_com(&ctx, "; Op: & (address)");
-    if (node->expr_type != EXPR_VAR) {
-        codegen_error("Tried to take address of non-variable!");
+    if (node->expr_type == EXPR_VAR) {
+        asm_addf(&ctx, "mov rax, 0");
+        asm_addf(&ctx, "lea rax, [rbp-%d]", node->var.stack_offset);
     }
-    asm_addf(&ctx, "mov rax, 0");
-    asm_addf(&ctx, "lea rax, [rbp-%d]", node->var.stack_offset);
+    else if (node->expr_type == EXPR_UNOP && node->op_type == UOP_DEREF) {
+        // Dereffed value, the address is in r12
+        asm_addf(&ctx, "mov rax, r12");
+    }
+    else {
+        codegen_error("Tried to take address of non-supported operand!");
+    }
 }
 
 // =============== Integer operations ===============

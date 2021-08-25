@@ -182,6 +182,8 @@ void parse_single_statement(ASTNode* node, SymbolTable* symbols);
 void parse_expression(ASTNode* node, SymbolTable* symbols, int min_precedence);
 // Parse an expression atom, ex 3 or x or (...)
 void parse_expression_atom(ASTNode* node, SymbolTable* symbols);
+// Parse certain binary operators which have a higher precedence than unary operators ([], ., ->)
+void parse_high_precedence_binary_operators(ASTNode* node, SymbolTable* symbols);
 // Parse array indexing binop. This needs special handling
 void parse_binary_op_indexing(ASTNode* node, SymbolTable* symbols);
 // Parse struct member access binary operator. This needs special handling

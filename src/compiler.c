@@ -43,8 +43,15 @@ TODO:
             Variable length arrays: just add to rsp, then set address to this
     
     Issue:
-        &x[0] does not work, address operator does something wrong. 
-        This is an issue as I'm using this everywhere in the compiler
+        Certain binary operations ([], ., ->) need to have higher priority
+        than unary operators. Move their check to inside or before evaluate atom maybe?
+
+
+    rvalues vs lvalues:
+        Complicated to implement correctly. Currently the
+        compiler stores the value in rax and the address in r12
+        The current issue is the deref operator: 
+        Once I index a value, where does the address go?
 
     Intentional deficits:
         Constants expressions are not evaluated
