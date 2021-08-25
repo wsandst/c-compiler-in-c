@@ -70,6 +70,6 @@ test-full: testexe $(EXE)
 	@echo Running memory leak test...
 	valgrind --leak-check=full --error-exitcode=1 --log-fd=2 ./build/ccompiler-test 1>/dev/null
 	@echo "[TEST] \e[0;32mPassed memory leak test!\e[0m"
-	bash ./test/compilation/test_compilation.sh --full
+	bash ./test/compilation/test_compilation.sh --full --multithreading
 
 -include $(OBJ:.o=.d)

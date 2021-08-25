@@ -43,8 +43,13 @@ TODO:
             Variable length arrays: just add to rsp, then set address to this
     
     Issue:
-        Certain binary operations ([], ., ->) need to have higher priority
-        than unary operators. Move their check to inside or before evaluate atom maybe?
+        Problem: x[5].y = 1 sets x[5].x to 1, because we always
+        use the address of x[5], never the address of x[5] + offset or whatever
+        This is because we pop the .y r12 value before assigning. How do I prevent this?
+        We should be grabbing the index first, then the member, which should overwrite r12
+        Then push for rhs, then pop. What goes wrong?
+        We always push for deref. We should restore that push though, deref is deeper than member
+        
 
 
     rvalues vs lvalues:
@@ -66,12 +71,16 @@ TODO:
 
 int main(int argc, char** argv) {
     char* src_path;
+    char* executable_name = "output";
     if (argc > 1) {
         src_path = argv[1];
     }
     else {
         printf("Error: Please specify a source file\n");
         exit(1);
+    }
+    if (argc > 2) { // Output executable name specified
+        executable_name = argv[2];
     }
 
     printf("Compiling source file \"%s\"\n", src_path);
@@ -89,7 +98,7 @@ int main(int argc, char** argv) {
     char* asm_src = generate_assembly(&ast, symbols);
 
     // Save ASM src to file and compile with NASM
-    compile_asm(asm_src, "output");
+    compile_asm(asm_src, executable_name);
 
     // Free memory
     symbol_table_free(symbols);

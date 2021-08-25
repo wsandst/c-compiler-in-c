@@ -6,3 +6,4 @@ output.asm
 output.o
 output
 *.out
+*.asm

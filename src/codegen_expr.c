@@ -267,11 +267,11 @@ void gen_asm_binary_op_int(ASTNode* node, AsmContext ctx) {
     gen_asm_setup_short_circuiting(node, &ctx); // AND/OR Short circuiting related
 
     gen_asm(node->lhs, ctx); // LHS now in RAX
-    if (node->lhs->op_type == UOP_DEREF ||
-        (node->op_type == BOP_ASSIGN && node->lhs->op_type == BOP_MEMBER)) {
-        // Deref address is in r12, we need to save it incase rhs is deref
+    if (node->op_type == BOP_ASSIGN) {
+        // Address of lvalue is in r12
+        // lvalues are only used in assignment, thus we need to save r12
+        // incase rhs contains another lvalue
         asm_addf(&ctx, "push r12");
-        //asm_addf(&ctx, "mov r12, [rsp]");
     }
 
     gen_asm_add_short_circuit_jumps(node, ctx); // AND/OR Short circuiting related
@@ -398,8 +398,8 @@ void gen_asm_binary_op_int(ASTNode* node, AsmContext ctx) {
             codegen_error("Unsupported integer binary operation found!");
             break;
     }
-    if (node->lhs->op_type == UOP_DEREF ||
-        (node->op_type == BOP_ASSIGN && node->lhs->op_type == BOP_MEMBER)) {
+    if (node->op_type == BOP_ASSIGN) {
+        // Restore r12 lvalue address
         asm_addf(&ctx, "pop r12");
     }
     if (is_binary_operation_assignment(node->op_type)) {

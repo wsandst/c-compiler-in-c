@@ -656,13 +656,14 @@ void parse_expression(ASTNode* node, SymbolTable* symbols, int min_precedence) {
             int new_min_precedence = op_precedence +
                                      !is_binary_operation_assignment(op_type);
             parse_expression(node->rhs, symbols, new_min_precedence);
-            // LHS and RHS is now defined. Put the widest variable type in the op
-            // for possible implicit casts
+            // LHS and RHS is now defined.
             if (is_binary_operation_assignment(op_type)) {
                 // Always cast to lhs type in assignment
                 node->cast_type = node->lhs->cast_type;
             }
             else {
+                // Put the widest variable type in the op
+                // for possible implicit casts
                 node->cast_type = return_wider_type(node->rhs->cast_type,
                                                     node->lhs->cast_type);
             }
@@ -688,8 +689,11 @@ void parse_expression(ASTNode* node, SymbolTable* symbols, int min_precedence) {
 }
 
 // Parse certain binary operators which have a higher precedence than unary operators ([], ., ->)
+// Need to respect left associativity
 void parse_high_precedence_binary_operators(ASTNode* node, SymbolTable* symbols) {
     while (true) {
+        // Issue: Another op will just shift this down
+        // We should never call this again through here
         if (accept(TK_DL_OPENBRACKET)) { // Indexing, needs special handling
             parse_binary_op_indexing(node, symbols);
             expect(TK_DL_CLOSEBRACKET);
