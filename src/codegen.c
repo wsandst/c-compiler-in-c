@@ -150,7 +150,12 @@ char* var_to_stack_ptr(Variable* var) {
     }
     else if (var->is_global) {
         char* addr_width_str = bytes_to_addr_width(var->type.bytes);
-        snprintf(buf, 63, "%s [G_%s]", addr_width_str, var->name);
+        if (var->type.is_extern) { // Don't prefix extern
+            snprintf(buf, 63, "%s [%s]", addr_width_str, var->name);
+        }
+        else {
+            snprintf(buf, 63, "%s [G_%s]", addr_width_str, var->name);
+        }
         return str_copy(buf);
     }
     else {

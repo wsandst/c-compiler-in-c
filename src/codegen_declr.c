@@ -54,6 +54,10 @@ void gen_asm_global_variable(Variable var, AsmContext* ctx) {
     if (var.type.array_has_initializer) { // This is handled by the AST_INIT node instead
         return;
     }
+    if (var.type.is_extern) { // No definition for this one
+        asm_add_sectionf(ctx, ctx->asm_bss_src, "extern %s", var.name);
+        return;
+    }
     char* data_width_str = bytes_to_data_width(var.type.bytes);
     char* reserve_width_str = bytes_to_reserve_data_width(var.type.bytes);
     if (var.type.is_array) {

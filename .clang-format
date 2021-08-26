@@ -57,6 +57,7 @@ Cpp11BracedListStyle: false
 DerivePointerAlignment: false
 DisableFormat: false
 ExperimentalAutoDetectBinPacking: false
+IndentPPDirectives: BeforeHash
 
 #IncludeBlocks: Preserve # Unknown to clang-format-5.0
 IncludeCategories:

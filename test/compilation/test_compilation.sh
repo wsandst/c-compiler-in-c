@@ -40,9 +40,9 @@ function run_compilation_test {
             exit 1
         fi
     else
-        ./build/ccompiler $1 output$2
+        ./build/ccompiler $1 
     fi
-    ./output$2    # Run the binary we assembled
+    ./a.out$2    # Run the binary we assembled
     actual=$?   # get exit code from binary
     echo -n "[TEST] $1:    "
     # Give error if exit code does not match gcc
@@ -53,8 +53,7 @@ function run_compilation_test {
         #echo "Returned: ${actual}"
         echo -e "${GREEN}OK${CLEAR}"
     fi
-    rm output
-    rm output.asm
+    rm a.out.asm
     rm a.out
 }
 

@@ -13,13 +13,13 @@
 
 /* Default buffer size.  */
 #ifndef BUFSIZ
-#define BUFSIZ _IO_BUFSIZ
+    #define BUFSIZ _IO_BUFSIZ
 #endif
 
 /* End of file character.
    Some things throughout the library rely on this being -1.  */
 #ifndef EOF
-#define EOF (-1)
+    #define EOF (-1)
 #endif
 
 /* The possibilities for the third argument to `fseek'.
@@ -42,14 +42,9 @@ typedef struct _iobuf {
 } FILE;
 
 // Standard streams.
-/*extern struct _IO_FILE* stdin; // Standard input stream.
-extern struct _IO_FILE* stdout; // Standard output stream.
-extern struct _IO_FILE* stderr; // Standard error output stream.
-// C89/C99 say they're macros.  Make them happy.
-#define stdin stdin
-#define stdout stdout
-#define stderr stderr
-*/
+extern struct FILE* stdin; /* Standard input stream.  */
+extern struct FILE* stdout; /* Standard output stream.  */
+extern struct FILE* stderr; /* Standard error output stream.  */
 
 extern int remove(const char* __filename);
 

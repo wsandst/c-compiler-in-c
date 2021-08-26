@@ -268,6 +268,7 @@ void parse_enum(SymbolTable* symbols) {
             var.is_enum_member = 0;
             var.type.bytes = 8;
             var.type.type = TY_INT;
+            var.type.is_extern = false;
             Variable* var_ptr = symbol_table_insert_var(symbols, var);
             var_ptr->is_constant = true;
             accept(TK_DL_COMMA);
@@ -291,7 +292,7 @@ void parse_struct(SymbolTable* symbols) {
         // which contains the latest struct obj
         Object struct_obj;
         struct_obj.type = OBJ_STRUCT;
-        VarType struct_type;
+        VarType struct_type = latest_parsed_var_type;
         struct_type.bytes = 0;
         struct_type.type = TY_STRUCT;
         struct_type.ptr_level = 0;
@@ -916,7 +917,7 @@ void parse_global(ASTNode* node, SymbolTable* symbols) {
         var.name = ident;
         var.is_undefined = true;
         var.is_global = true;
-        if (var.type.type == TY_STRUCT) {
+        if (var.type.type == TY_STRUCT && !var.type.is_extern) {
             var.struct_type = *symbol_table_lookup_object(symbols, var.type.struct_name,
                                                           OBJ_STRUCT);
         }

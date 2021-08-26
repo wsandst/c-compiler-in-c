@@ -148,6 +148,10 @@ Variable* symbol_table_insert_var(SymbolTable* table, Variable var) {
             var.stack_offset = table->cur_stack_offset;
         }
     }
+    else {
+        // Globals don't use the stack, just set it to 0
+        var.stack_offset = 0;
+    }
     var.is_global = table->is_global;
     static int unique_id = 0;
     var.unique_id = unique_id++;

@@ -20,9 +20,6 @@ TODO:
             https://blog.nelhage.com/2010/10/amd64-and-va_arg/
             Just recreate that struct with va_start, push the registers to stack, pass it by pointer  
 
-    Issue:
-        Global structs
-
     Types:
         Arrays:
             Infer array size from initializer size
@@ -30,6 +27,8 @@ TODO:
             These are connected. int x[] is equivalent with int* x;
             char* x = {"a", "b", "c"} should work if char x[] works, same construct
             Variable length arrays: just add to rsp, then set address to this
+    
+    Try compiling one of the test programs
 
     Intentional deficits:
         Constants variables are not evaluated at compile-time
@@ -45,24 +44,13 @@ TODO:
 */
 
 int main(int argc, char** argv) {
-    char* src_path;
-    char* executable_name = "output";
-    if (argc > 1) {
-        src_path = argv[1];
-    }
-    else {
-        printf("Error: Please specify a source file\n");
-        exit(1);
-    }
-    if (argc > 2) { // Output executable name specified
-        executable_name = argv[2];
-    }
+    CompileOptions compile_options = parse_compiler_options(argc, argv);
 
-    printf("Compiling source file \"%s\"\n", src_path);
+    printf("Compiling source file \"%s\"\n", compile_options.src_filename);
 
     // Step 1: Preprocessing + Tokenization
     PreprocessorTable table = preprocessor_table_new();
-    Tokens tokens = preprocess_first(src_path, &table);
+    Tokens tokens = preprocess_first(compile_options.src_filename, &table);
     //tokens_pretty_print(&tokens);
 
     // Step 2: AST Parsing
@@ -73,7 +61,7 @@ int main(int argc, char** argv) {
     char* asm_src = generate_assembly(&ast, symbols);
 
     // Save ASM src to file and compile with NASM
-    compile_asm(asm_src, executable_name);
+    compile_asm(asm_src, compile_options);
 
     // Free memory
     symbol_table_free(symbols);

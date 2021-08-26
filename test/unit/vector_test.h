@@ -3,7 +3,7 @@
 #include <stdio.h>
 #include <string.h>
 
-#include "../src/util/vector.h"
+#include "../../src/util/vector.h"
 
 struct TestStruct {
     int x;
@@ -29,15 +29,15 @@ void test_vector() {
     assert(vec.size == 3);
     assert(vec.max_size == 4);
 
-    int* res = (int*)vec_get(&vec, 0);
+    int* res = (int*) vec_get(&vec, 0);
     assert(*res == 1);
-    res = (int*)vec_get(&vec, 1);
+    res = (int*) vec_get(&vec, 1);
     assert(*res == 2);
-    res = (int*)vec_get(&vec, 2);
+    res = (int*) vec_get(&vec, 2);
     assert(*res == 3);
-    res = (int*)vec_peek(&vec);
+    res = (int*) vec_peek(&vec);
     assert(*res == 3);
-    res = (int*)vec_pop(&vec);
+    res = (int*) vec_pop(&vec);
     assert(*res == 3);
     assert(vec.size == 2);
 
@@ -55,13 +55,13 @@ void test_vector() {
     struct_elem.x = 5;
     struct_elem.c = 6;
     vec_push(&vec, &struct_elem);
-    struct_elem = *((TestStruct*)vec_get(&vec, 0));
+    struct_elem = *((TestStruct*) vec_get(&vec, 0));
     assert(struct_elem.x == 1);
     assert(struct_elem.c == 2);
-    struct_elem = *((TestStruct*)vec_get(&vec, 1));
+    struct_elem = *((TestStruct*) vec_get(&vec, 1));
     assert(struct_elem.x == 3);
     assert(struct_elem.c == 4);
-    struct_elem = *((TestStruct*)vec_get(&vec, 2));
+    struct_elem = *((TestStruct*) vec_get(&vec, 2));
     assert(struct_elem.x == 5);
     assert(struct_elem.c == 6);
     vec_free(&vec);
@@ -92,13 +92,13 @@ void test_vec_insert() {
 
     Vec* combined_vec = vec_insert(&vec1, &vec2, 2);
     assert(combined_vec->size == 7);
-    assert(*(int*)vec_get(combined_vec, 0) == 1);
-    assert(*(int*)vec_get(combined_vec, 1) == 2);
-    assert(*(int*)vec_get(combined_vec, 2) == 3);
-    assert(*(int*)vec_get(combined_vec, 3) == 4);
-    assert(*(int*)vec_get(combined_vec, 4) == 5);
-    assert(*(int*)vec_get(combined_vec, 5) == 6);
-    assert(*(int*)vec_get(combined_vec, 6) == 7);
+    assert(*(int*) vec_get(combined_vec, 0) == 1);
+    assert(*(int*) vec_get(combined_vec, 1) == 2);
+    assert(*(int*) vec_get(combined_vec, 2) == 3);
+    assert(*(int*) vec_get(combined_vec, 3) == 4);
+    assert(*(int*) vec_get(combined_vec, 4) == 5);
+    assert(*(int*) vec_get(combined_vec, 5) == 6);
+    assert(*(int*) vec_get(combined_vec, 6) == 7);
     vec_free(&vec1);
     vec_free(&vec2);
 }

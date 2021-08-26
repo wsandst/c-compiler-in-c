@@ -21,7 +21,7 @@ RELEASE_CFLAGS := -Wall -O2
 LDFLAGS  := -Llib
 LDLIBS   := -lm -Isrc
 
-.PHONY: all clean testexe test test-full
+.PHONY: all clean testexe test unit-test test-full test-full-mt
 
 # Compile program
 all: $(EXE) $(LIBC_DIR)
@@ -51,25 +51,26 @@ $(TEST_OBJ_DIR)/%.o: $(TEST_DIR)/%.c | $(TEST_OBJ_DIR)
 clean:
 	@$(RM) -rv $(BIN_DIR) $(OBJ_DIR) $(TEST_OBJ_DIR) $(LIBC_DIR)
 
-# Run unit tests with valgrind and compilation tests without valgrind
-test: testexe $(EXE)
+unit-test:
 	@echo [TEST] Running unit tests...
 	./build/ccompiler-test
 	@echo "[TEST] \e[0;32mPassed unit tests!\e[0m"
 	@echo Running memory leak test...
 	valgrind --leak-check=full --error-exitcode=1 --log-fd=2 ./build/ccompiler-test 1>/dev/null
 	@echo "[TEST] \e[0;32mPassed memory leak test!\e[0m"
+
+# Run unit tests with valgrind and compilation tests without valgrind
+test: testexe $(EXE) unit-test
 	bash ./test/compilation/test_compilation.sh
 	
 # Run full tests. This includes running valgrind on every compile, which
 # is very slow
-test-full: testexe $(EXE)
-	@echo [TEST] Running unit tests...
-	./build/ccompiler-test
-	@echo "[TEST] \e[0;32mPassed unit tests!\e[0m"
-	@echo Running memory leak test...
-	valgrind --leak-check=full --error-exitcode=1 --log-fd=2 ./build/ccompiler-test 1>/dev/null
-	@echo "[TEST] \e[0;32mPassed memory leak test!\e[0m"
+test-full: testexe $(EXE) unit-test
+	bash ./test/compilation/test_compilation.sh --full
+
+# Multithreaded version, has less output
+test-full-mt: testexe $(EXE) unit-test
 	bash ./test/compilation/test_compilation.sh --full --multithreading
+
 
 -include $(OBJ:.o=.d)
