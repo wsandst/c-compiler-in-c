@@ -902,7 +902,39 @@ void parse_literal(ASTNode* node, SymbolTable* symbols) {
 }
 
 void parse_global(ASTNode* node, SymbolTable* symbols) {
-    if (accept(TK_IDENT)) { // Definition of already declared global variable
+    if (accept_type(symbols)) { // Declaration
+        Variable var;
+        var.type = latest_parsed_var_type;
+        expect(TK_IDENT);
+        char* ident = prev_token().string_repr;
+        var.name = ident;
+        var.is_undefined = true;
+        var.is_global = true;
+        if (var.type.type == TY_STRUCT) {
+            var.struct_type = *symbol_table_lookup_object(symbols, var.type.struct_name,
+                                                          OBJ_STRUCT);
+        }
+        symbol_table_insert_var(symbols, var);
+        if (accept(TK_DL_OPENBRACKET)) { // Array type
+            parse_array_declaration(node, symbols);
+            expect(TK_DL_SEMICOLON);
+            return;
+        }
+        if (accept(TK_OP_ASSIGN)) { // Assignment
+            token_go_back(2);
+            parse_expression(node, symbols, 1);
+            if (!is_valid_const_assignment(node, symbols)) {
+                parse_error("Non-constant global expression found");
+            }
+            Variable* inserted_var = symbol_table_lookup_var_ptr(symbols, ident);
+            inserted_var->const_expr = evaluate_const_assignment(node, symbols);
+            inserted_var->const_expr_type = node->rhs->literal_type;
+            inserted_var->is_undefined = false;
+        }
+        expect(TK_DL_SEMICOLON);
+        node->type = AST_NULL_STMT; // This is just a virtual node
+    }
+    else if (accept(TK_IDENT)) { // Not a declaration, must be redefinition
         char* ident = prev_token().string_repr;
         token_go_back(1);
         parse_expression(node, symbols, 1);
@@ -917,33 +949,7 @@ void parse_global(ASTNode* node, SymbolTable* symbols) {
         node->type = AST_NULL_STMT; // Declaration is virtual
     }
     else {
-        accept_type(symbols);
-        Variable var;
-        var.type = latest_parsed_var_type;
-        expect(TK_IDENT);
-        char* ident = prev_token().string_repr;
-        var.name = ident;
-        var.is_undefined = true;
-        var.is_global = true;
-        symbol_table_insert_var(symbols, var);
-        if (accept(TK_DL_OPENBRACKET)) { // Array type
-            parse_array_declaration(node, symbols);
-            expect(TK_DL_SEMICOLON);
-            return;
-        }
-        if (accept(TK_OP_ASSIGN)) {
-            token_go_back(2);
-            parse_expression(node, symbols, 1);
-            if (!is_valid_const_assignment(node, symbols)) {
-                parse_error("Non-constant global expression found");
-            }
-            Variable* inserted_var = symbol_table_lookup_var_ptr(symbols, ident);
-            inserted_var->const_expr = evaluate_const_assignment(node, symbols);
-            inserted_var->const_expr_type = node->rhs->literal_type;
-            inserted_var->is_undefined = false;
-        }
-        expect(TK_DL_SEMICOLON);
-        node->type = AST_NULL_STMT; // This is just a virtual node
+        parse_error("Invalid global declaration statement");
     }
 }
 

@@ -22,8 +22,7 @@ TODO:
             Just recreate that struct with va_start, push the registers to stack, pass it by pointer  
 
     Issue:
-        Second iteration is off. Where do we diverge?
-        Neighbour counts are completely off.
+        Global structs
 
     Types:
         Arrays:
@@ -41,6 +40,8 @@ TODO:
         Certain float operators have been skipped
         No function pointers or local functions
         Floats are 64 bit, not 32 bit. Only really messes with scanf
+        All integers are signed no matter what
+        No unions
 
 */
 
