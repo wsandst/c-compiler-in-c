@@ -103,7 +103,7 @@ void gen_asm_literal(ASTNode* node, AsmContext ctx) {
         asm_addf(&ctx, "lea rax, [%s]", label_name);
     }
     else if (node->literal_type == LT_CHAR) {
-        asm_addf(&ctx, "mov rax, '%s'", node->literal);
+        asm_addf(&ctx, "mov rax, `%s`", node->literal);
     }
     else {
         codegen_error("Unsupported literal encountered");

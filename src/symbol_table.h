@@ -109,8 +109,10 @@ struct Function {
 };
 
 struct ValueLabel { // Switch case labels
+    LiteralType type;
     int id;
-    char* value;
+    char* str_value;
+    int value;
     bool is_default_case;
     ValueLabel* next; // Used as linked list for switch
 };

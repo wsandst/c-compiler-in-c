@@ -118,35 +118,35 @@ void test_symbol_table_labels() {
     SymbolTable* childchild2 = symbol_table_create_child(child, 0);
     ValueLabel label;
     // Test insert
-    label.value = "0";
+    label.str_value = "0";
     symbol_table_insert_label(table, label);
     assert(table->label_count == 1);
-    label.value = "1";
+    label.str_value = "1";
     symbol_table_insert_label(table, label);
-    label.value = "2";
+    label.str_value = "2";
     symbol_table_insert_label(table, label);
     assert(table->label_count == 3);
     assert(table->label_max_count == 4);
 
     // Test recursively grabbing case labels
-    label.value = "3";
+    label.str_value = "3";
     symbol_table_insert_label(child, label);
-    label.value = "4";
+    label.str_value = "4";
     symbol_table_insert_label(childchild1, label);
     childchild2->is_switch_scope = true;
-    label.value = "5";
+    label.str_value = "5";
     symbol_table_insert_label(childchild2, label);
 
     ValueLabel* labels = symbol_table_lookup_switch_case_labels(table);
-    assert(strcmp(labels->value, "0") == 0);
+    assert(strcmp(labels->str_value, "0") == 0);
     labels = labels->next;
-    assert(strcmp(labels->value, "1") == 0);
+    assert(strcmp(labels->str_value, "1") == 0);
     labels = labels->next;
-    assert(strcmp(labels->value, "2") == 0);
+    assert(strcmp(labels->str_value, "2") == 0);
     labels = labels->next;
-    assert(strcmp(labels->value, "3") == 0);
+    assert(strcmp(labels->str_value, "3") == 0);
     labels = labels->next;
-    assert(strcmp(labels->value, "4") == 0);
+    assert(strcmp(labels->str_value, "4") == 0);
     labels = labels->next;
     assert(labels == NULL);
     symbol_table_free(table);

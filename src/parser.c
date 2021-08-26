@@ -1188,7 +1188,14 @@ void parse_case(ASTNode* node, SymbolTable* symbols) {
     ValueLabel label;
     label.is_default_case = false;
     if (accept(TK_LINT)) {
-        label.value = prev_token().string_repr;
+        label.type = LT_INT;
+        label.str_value = prev_token().string_repr;
+        label.value = atoi(label.str_value);
+    }
+    else if (accept(TK_LCHAR)) {
+        label.type = LT_CHAR;
+        label.str_value = prev_token().string_repr;
+        label.value = *label.str_value;
     }
     // Constant variable, this should really be handled as an expression
     else if (accept(TK_IDENT)) {
@@ -1196,7 +1203,9 @@ void parse_case(ASTNode* node, SymbolTable* symbols) {
         if (var == NULL) {
             parse_error("Non-constant switch case variable value encountered!");
         }
-        label.value = var->const_expr;
+        label.type = LT_INT;
+        label.str_value = var->const_expr;
+        label.value = atoi(label.str_value);
     }
     else {
         parse_error("Expected integer literal or enum literal for switch case value");

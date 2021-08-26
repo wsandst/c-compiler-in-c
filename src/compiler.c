@@ -8,31 +8,22 @@ TODO:
         Refactor parser:
             parse_program should run a subset of parse_statement, this should
             decrease code duplication (and allow for local functions in the future)
-        Cleanup pointer lhs deref r12 pushing
         Refactor constant expression handling:
             Everything is very fragmented currently, handling of globals/cases/enums should be
             the same, not different as it is currently
         Refactor function calling
         Refactor codegen, decrease unnecessary assembly:
             Leaf nodes vs non-leaf nodes
-            It is unneccessary to push on leaf nodes
+            It is unneccessary to push on leaf nodes.
 
     Functions, proper calling convention:
         Variadic function definitions, not just declarations/calling:
             https://blog.nelhage.com/2010/10/amd64-and-va_arg/
-            Just recreate that struct with va_start, push the registers to stack, pass it by pointer
-        Alignment issue:
-            My rsp must be 16-byte aligned at function call
-            This is only an issue for external function calls, but
-            I should fix it to adhere to the calling convention
-            How do I respect it though? 
-            I need to adjust before function call, which
-            messes up the stack arguments unless I adjust before
-            pushing them. But then I need forward knowledge
-        
+            Just recreate that struct with va_start, push the registers to stack, pass it by pointer  
 
-    Typedef issue:
-        Does the current way respect alignment? Not sure        
+    Issue:
+        Second iteration is off. Where do we diverge?
+        Neighbour counts are completely off.
 
     Types:
         Arrays:
@@ -41,31 +32,15 @@ TODO:
             These are connected. int x[] is equivalent with int* x;
             char* x = {"a", "b", "c"} should work if char x[] works, same construct
             Variable length arrays: just add to rsp, then set address to this
-    
-    Issue:
-        Problem: x[5].y = 1 sets x[5].x to 1, because we always
-        use the address of x[5], never the address of x[5] + offset or whatever
-        This is because we pop the .y r12 value before assigning. How do I prevent this?
-        We should be grabbing the index first, then the member, which should overwrite r12
-        Then push for rhs, then pop. What goes wrong?
-        We always push for deref. We should restore that push though, deref is deeper than member
-        
-
-
-    rvalues vs lvalues:
-        Complicated to implement correctly. Currently the
-        compiler stores the value in rax and the address in r12
-        The current issue is the deref operator: 
-        Once I index a value, where does the address go?
 
     Intentional deficits:
-        Constants expressions are not evaluated
-        Only literals are allowed for constant certain expressions
+        Constants variables are not evaluated at compile-time
+        Only literals are allowed for most constant expressions
         Variable length arrays are not implemented
         Comma operator and ternary operator is not implemented
         Certain float operators have been skipped
         No function pointers or local functions
-        Floats are 64 bit, not 32 bit. Messes with scanf
+        Floats are 64 bit, not 32 bit. Only really messes with scanf
 
 */
 

@@ -17,6 +17,9 @@ int main() {
         return 1;
     if (!(3.0 <= 3.0))
         return 1;
+    if (!(-1 <= 0)) {
+        return 1;
+    }
     //float f = 1.2;
     //f++;
     //f--;

@@ -79,7 +79,7 @@ char* asm_context_join_srcs(AsmContext* ctx);
 // Get a C string representing a jump label
 char* get_label_str(int label);
 // Get a C string representing a switch case jump label
-char* get_case_label_str(int label, char* value);
+char* get_case_label_str(ValueLabel* label);
 // Get the next jump label and increment the global label counter
 char* get_next_label_str(AsmContext* ctx);
 // Get the next label for constant c-strings, used for string literals
@@ -91,6 +91,8 @@ char* get_reg_width_str(VarType var_type, RegisterEnum reg);
 char* bytes_to_addr_width(int bytes);
 // Get the value size corresponding to bytes, ex 1->db, 2->dw, etc...
 char* bytes_to_data_width(int bytes);
+// Get the value size corresponding to global reserve bytes, ex 1->resb, 2->resw, etc...
+char* bytes_to_reserve_data_width(int bytes);
 // Get stack adress of a variable, ex qword [rbp - 8]
 char* var_to_stack_ptr(Variable* var);
 // Get the corresponding move instr for a certain memory size, ex movzx for 2

@@ -54,26 +54,29 @@ void gen_asm_global_variable(Variable var, AsmContext* ctx) {
     if (var.type.array_has_initializer) { // This is handled by the AST_INIT node instead
         return;
     }
+    char* data_width_str = bytes_to_data_width(var.type.bytes);
+    char* reserve_width_str = bytes_to_reserve_data_width(var.type.bytes);
     if (var.type.is_array) {
         asm_add_sectionf(ctx, ctx->asm_bss_src, "global %s", var.name);
-        asm_add_sectionf(ctx, ctx->asm_bss_src, "G_%s: resq %d", var.name,
-                         var.type.array_size);
+        asm_add_sectionf(ctx, ctx->asm_bss_src, "G_%s: %s %d", var.name,
+                         reserve_width_str, var.type.array_size);
     }
     else if (!var.is_undefined) {
         if (var.const_expr_type == LT_STRING) { // String
             char* label_name = get_next_cstring_label_str(ctx);
             asm_add_sectionf(ctx, ctx->asm_rodata_src, "%s: db `%s`, 0", label_name,
                              var.const_expr);
-            asm_add_sectionf(ctx, ctx->asm_data_src, "G_%s: dq %s", var.name, label_name);
+            asm_add_sectionf(ctx, ctx->asm_data_src, "G_%s: %s %s", var.name,
+                             data_width_str, label_name);
         }
         else {
-            asm_add_sectionf(ctx, ctx->asm_data_src, "G_%s: dq %s", var.name,
-                             var.const_expr);
+            asm_add_sectionf(ctx, ctx->asm_data_src, "G_%s: %s %s", var.name,
+                             data_width_str, var.const_expr);
         }
     }
     else {
         asm_add_sectionf(ctx, ctx->asm_data_src, "; Uninitialized global variable");
-        asm_add_sectionf(ctx, ctx->asm_data_src, "G_%s: dq 0", var.name);
+        asm_add_sectionf(ctx, ctx->asm_data_src, "G_%s: %s 0", var.name, data_width_str);
     }
 }
 

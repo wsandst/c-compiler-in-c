@@ -125,15 +125,32 @@ char* bytes_to_data_width(int bytes) {
     }
 }
 
+// Get the value size corresponding to global reserve bytes, ex 1->resb, 2->resw, etc...
+char* bytes_to_reserve_data_width(int bytes) {
+    switch (bytes) {
+        case 8:
+            return "resq";
+        case 4:
+            return "resd";
+        case 2:
+            return "resw";
+        case 1:
+            return "resb";
+        default:
+            return "error";
+    }
+}
+
 char* var_to_stack_ptr(Variable* var) {
+    static char buf[64];
     if (var->type.is_static) {
-        static char buf[64];
-        snprintf(buf, 63, "[%s.%ds]", var->name, var->unique_id);
+        char* addr_width_str = bytes_to_addr_width(var->type.bytes);
+        snprintf(buf, 63, "%s [%s.%ds]", addr_width_str, var->name, var->unique_id);
         return str_copy(buf);
     }
     else if (var->is_global) {
-        static char buf[64];
-        snprintf(buf, 63, "[G_%s]", var->name);
+        char* addr_width_str = bytes_to_addr_width(var->type.bytes);
+        snprintf(buf, 63, "%s [G_%s]", addr_width_str, var->name);
         return str_copy(buf);
     }
     else {
@@ -170,11 +187,8 @@ char* get_move_instr_for_var_type(VarType var_type) {
     if (var_type.bytes == 8) {
         return str_copy("mov rax");
     }
-    else if (var_type.bytes == 4) {
-        return str_copy("mov eax"); // Moving into eax automatically zeroes upper bits
-    }
-    else if (var_type.bytes == 1 || var_type.bytes == 2) {
-        return str_copy("movzx rax"); // Zeroes the upper unused bits
+    else if (var_type.bytes == 1 || var_type.bytes == 2 || var_type.bytes == 4) {
+        return str_copy("movsx rax"); // Sign set the upper unused bits
     }
     return NULL;
 }
@@ -185,9 +199,14 @@ char* get_label_str(int label) {
     return result;
 }
 
-char* get_case_label_str(int label, char* value) {
+char* get_case_label_str(ValueLabel* label) {
     static char result[64];
-    snprintf(result, 63, ".LC%d_%s", label, value);
+    if (label->is_default_case) {
+        snprintf(result, 63, ".LC%d_D", label->id);
+    }
+    else {
+        snprintf(result, 63, ".LC%d_%s", label->id, label->str_value);
+    }
     return result;
 }
 
@@ -758,8 +777,8 @@ void gen_asm_switch(ASTNode* node, AsmContext ctx) {
             default_label = case_labels;
         }
         else { // Normal cases
-            char* case_label_str = get_case_label_str(case_labels->id, case_labels->value);
-            asm_addf(&ctx, "cmp rax, %s", case_labels->value);
+            char* case_label_str = get_case_label_str(case_labels);
+            asm_addf(&ctx, "cmp rax, %d", case_labels->value);
             asm_addf(&ctx, "je %s ; Jump to the case label if value is equal",
                      case_label_str);
             asm_addf(&ctx, "mov rax, rbx"); // Restore rax
@@ -767,7 +786,7 @@ void gen_asm_switch(ASTNode* node, AsmContext ctx) {
         case_labels = case_labels->next;
     }
     if (default_label != NULL) { // We found a default case
-        char* default_label_str = get_case_label_str(default_label->id, "D");
+        char* default_label_str = get_case_label_str(default_label);
         asm_addf(&ctx, "jmp %s ; Jump to the default case label", default_label_str);
     }
     char* switch_break_label = str_copy(get_next_label_str(&ctx));
@@ -783,10 +802,10 @@ void gen_asm_switch(ASTNode* node, AsmContext ctx) {
 void gen_asm_case(ASTNode* node, AsmContext ctx) {
     char* case_label_str;
     if (node->label.is_default_case) { // Default case
-        case_label_str = get_case_label_str(node->label.id, "D");
+        case_label_str = get_case_label_str(&node->label);
     }
     else {
-        case_label_str = get_case_label_str(node->label.id, node->label.value);
+        case_label_str = get_case_label_str(&node->label);
     }
     asm_addf(&ctx, "%s: ; Switch case label", case_label_str);
     gen_asm(node->next, ctx);
