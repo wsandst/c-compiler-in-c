@@ -92,6 +92,7 @@ echo "[TEST] Running automated compilation tests..."
 
 if [ "$use_multithreading" = true ] ; then
     # Multithreaded variant
+    echo -e "[TEST] ${YELLOW} Using multithreading, it takes a few seconds until the first output is displayed ${CLEAR}"
     c=0
     for i in test/compilation/*/*.c
     do

@@ -11,12 +11,11 @@ TODO:
         Refactor constant expression handling:
             Everything is very fragmented currently, handling of globals/cases/enums should be
             the same, not different as it is currently
-        Refactor function calling
         Refactor codegen, decrease unnecessary assembly:
             Leaf nodes vs non-leaf nodes
             It is unneccessary to push on leaf nodes.
 
-    Functions, proper calling convention:
+    Functions:
         Variadic function definitions, not just declarations/calling:
             https://blog.nelhage.com/2010/10/amd64-and-va_arg/
             Just recreate that struct with va_start, push the registers to stack, pass it by pointer  

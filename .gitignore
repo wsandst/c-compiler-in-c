@@ -4,6 +4,6 @@ build/
 .vscode
 output.asm
 output.o
-output
+output*
 *.out
 *.asm

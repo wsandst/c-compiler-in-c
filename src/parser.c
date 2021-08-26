@@ -493,6 +493,15 @@ void parse_single_statement(ASTNode* node, SymbolTable* symbols) {
             char* ident = prev_token().string_repr;
             var.name = ident;
             symbol_table_insert_var(symbols, var);
+            if (accept(TK_DL_COMMA)) { // Multiple definitions
+                while (accept(TK_IDENT)) {
+                    var.name = prev_token().string_repr;
+                    symbol_table_insert_var(symbols, var);
+                    accept(TK_DL_COMMA);
+                }
+                expect(TK_DL_SEMICOLON);
+                return;
+            }
 
             if (var.type.is_static) { // Static
                 parse_static_declaration(node, symbols);
@@ -500,17 +509,13 @@ void parse_single_statement(ASTNode* node, SymbolTable* symbols) {
             }
             if (accept(TK_DL_OPENBRACKET)) { // Array type
                 parse_array_declaration(node, symbols);
-                expect(TK_DL_SEMICOLON);
-                return;
             }
-
-            if (accept(TK_OP_ASSIGN)) { // Def and assignment
+            else if (accept(TK_OP_ASSIGN)) { // Def and assignment
                 // Treat this as an expresison
                 token_go_back(2); // Go back to ident token
                 node->type = AST_EXPR;
                 node->top_level_expr = true;
                 parse_expression(node, symbols, 1);
-                expect(TK_DL_SEMICOLON);
             }
             else {
                 expect(TK_DL_SEMICOLON);
@@ -518,6 +523,7 @@ void parse_single_statement(ASTNode* node, SymbolTable* symbols) {
                 parse_single_statement(node, symbols);
                 return;
             }
+            expect(TK_DL_SEMICOLON);
         }
         else { // Only struct/enum definition. This is purely virtual
             expect(TK_DL_SEMICOLON);
