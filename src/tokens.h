@@ -9,12 +9,9 @@ Normally a task like this is more suited to regex.
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-#include <ctype.h>
 
 #include "util/vector.h"
 #include "util/string_helpers.h"
-
-typedef enum TokenType TokenType;
 
 enum TokenType {
     TK_NONE,
@@ -107,6 +104,8 @@ enum TokenType {
     TK_KW_VOID,
     TK_KW_VARIADIC_DOTS,
 };
+
+typedef enum TokenType TokenType;
 
 struct Token {
     enum TokenType type;

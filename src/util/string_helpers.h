@@ -100,3 +100,13 @@ int str_index_of_reverse(char* str, char c);
 int max(int a, int b);
 
 int min(int a, int b);
+
+// These are implemented manually because this compiler does not support
+// macro functions which is how they are implemented in GCC
+bool c_isdigit(char c);
+
+bool c_isalpha(char c);
+
+bool c_isalnum(char c);
+
+bool c_isspace(char c);

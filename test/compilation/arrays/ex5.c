@@ -12,5 +12,5 @@ int main() {
     if (zeroes[9] != 0) {
         return 1;
     }
-    return ints[1] + strs[1][1]; // + s_ints[2] + s_strs[2][1] + g_ints[3] + g_strs[3][1];
+    return ints[1] + strs[1][1] + s_ints[2] + s_strs[2][1] + g_ints[3] + g_strs[3][1];
 }

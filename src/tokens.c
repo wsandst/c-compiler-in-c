@@ -7,17 +7,19 @@ I don't handle -> correctly. Treat as operator? Or delimiter?
 */
 
 Tokens tokenize(char* src) {
-    int src_length = strlen(src) + 1;
-    Tokens tokens = tokens_new(src_length);
-
     // Split up src in lines
     //StrVector lines = str_split(src, '\n');
+
+    int total_lines_length = 0;
     StrVector lines = str_split_lines(src);
     for (size_t i = 0; i < lines.size; i++) {
         char* new_str = str_strip(lines.elems[i]);
         free(lines.elems[i]);
         lines.elems[i] = new_str;
+        total_lines_length += strlen(new_str);
     }
+
+    Tokens tokens = tokens_new(total_lines_length + 1);
 
     // Set last token to EOF
     tokens_get(&tokens, tokens.size - 1)->type = TK_EOF;
@@ -139,11 +141,10 @@ void tokenize_comments(Tokens* tokens, StrVector* str_split) {
     bool is_inside_string = false;
     for (size_t i = 0; i < str_split->size; i++) {
         char* str = str_split->elems[i];
-
         while (*str) {
             if (!seeking_block_comment_end) {
                 // We need to ignore comments inside strings
-                if (*str != '\\' && *str == '\"') {
+                if (*(str) == '\"' && (str == str_split->elems[i] || *(str - 1) != '\\')) {
                     is_inside_string = !is_inside_string;
                 }
                 // Check for start of multiline comment
@@ -186,44 +187,40 @@ void tokenize_strings(Tokens* tokens, StrVector* str_split) {
     int src_pos = 0;
     for (size_t i = 0; i < str_split->size; i++) {
         char* str = str_split->elems[i];
-
-        // Chars, single quotes ''
-        int s_quote_start = 1;
-        while (s_quote_start) {
-            s_quote_start = str_contains(str, "\'");
-            if (s_quote_start) {
-                char* search_str = str + s_quote_start;
-                while (*search_str != '\'' ||
-                       (search_str > str && (*(search_str - 1) == '\\'))) {
-                    search_str++;
+        while (*str) {
+            // Strings, double quotes ""
+            if (*str == '\"') {
+                char* str_start = str + 1;
+                bool char_escaped = false;
+                str++;
+                src_pos++;
+                while (*str != '\"' || char_escaped) {
+                    char_escaped = (*str == '\\' && !char_escaped);
+                    str++;
+                    src_pos++;
                 }
-                int string_src_pos = src_pos + s_quote_start;
-                tokens_set(tokens, string_src_pos, TK_LCHAR,
-                           str_substr(str + s_quote_start,
-                                      search_str - (str + s_quote_start)),
-                           true, i);
-                str_fill(str + s_quote_start - 1, search_str - (str + s_quote_start) + 2,
-                         ' ');
+                tokens_set(tokens, src_pos, TK_LSTRING,
+                           str_substr(str_start, str - str_start), true, i);
+                str_fill(str_start - 1, str - str_start + 2, ' ');
             }
-        }
-        // Strings, double quotes ""
-        int quote_start = 1;
-        while (quote_start) {
-            quote_start = str_contains(str, "\"");
-            if (quote_start) {
-                char* search_str = str + quote_start;
-                while (*search_str != '\"' ||
-                       (search_str > str && (*(search_str - 1) == '\\'))) {
-                    search_str++;
+            // Chars, single quotes ''
+            else if (*str == '\'') {
+                char* char_start = str + 1;
+                bool char_escaped = false;
+                str++;
+                src_pos++;
+                while (*str != '\'' || char_escaped) {
+                    char_escaped = (*str == '\\' && !char_escaped);
+                    str++;
+                    src_pos++;
                 }
-                int string_src_pos = src_pos + quote_start;
-                tokens_set(tokens, string_src_pos, TK_LSTRING,
-                           str_substr(str + quote_start, search_str - (str + quote_start)),
-                           true, i);
-                str_fill(str + quote_start - 1, search_str - (str + quote_start) + 2, ' ');
+                tokens_set(tokens, src_pos, TK_LCHAR,
+                           str_substr(char_start, str - char_start), true, i);
+                str_fill(char_start - 1, str - char_start + 2, ' ');
             }
+            str++;
+            src_pos++;
         }
-        src_pos += strlen(str);
     }
 }
 
@@ -351,14 +348,14 @@ void tokenize_idents(Tokens* tokens, StrVector* str_split) {
         bool prev_is_whitespace = true;
         while (*str != '\0') {
             if (!matching_ident) {
-                if ((isalpha(*str) || *str == '_') &&
+                if ((c_isalpha(*str) || *str == '_') &&
                     prev_is_whitespace) { // Found start of identifier
                     matching_ident = true;
                     ident_start = str;
                 }
             }
             else {
-                if (!(isalnum(*str)) && *str != '_') { // Found end of identifier
+                if (!(c_isalnum(*str)) && *str != '_') { // Found end of identifier
                     int length = str - ident_start;
                     tokens_set(tokens, src_pos - length, TK_IDENT,
                                str_substr(ident_start, length), true, i);
@@ -366,7 +363,7 @@ void tokenize_idents(Tokens* tokens, StrVector* str_split) {
                     matching_ident = false;
                 }
             }
-            if (!isalnum(*str) && *str != '_') {
+            if (!c_isalnum(*str) && *str != '_') {
                 prev_is_whitespace = true;
             }
             else {
@@ -402,26 +399,29 @@ void tokenize_ints(Tokens* tokens, StrVector* str_split) {
         char* str = str_split->elems[i];
         while (*str != '\0') {
             if (!matching) {
-                if (isdigit(*str) && prev_is_whitespace) { // Found start of int
+                if (c_isdigit(*str) && prev_is_whitespace) { // Found start of int
                     matching = true;
                     ident_start = str;
                 }
             }
             else {
-                if (isalpha(*str) || *str == '_' || *str == '.') { // Invalid character in int
+                if (c_isalpha(*str) || *str == '_' ||
+                    *str == '.') { // Invalid character in int
                     matching = false;
                     prev_is_whitespace = false;
                     continue;
                 }
-                else if (!isalnum(*str)) { // End of int
+                else if (!c_isalnum(*str)) { // End of int
                     int length = str - ident_start;
+                    //char* substr = str_substr(ident_start, length);
+                    //printf("Found int %s\n", substr);
                     tokens_set(tokens, src_pos - length, TK_LINT,
                                str_substr(ident_start, length), true, i);
                     str_fill(ident_start, length, ' ');
                     matching = false;
                 }
             }
-            if (!isalnum(*str) && *str != '_' && *str != '.') {
+            if (!c_isalnum(*str) && *str != '_' && *str != '.') {
                 prev_is_whitespace = true;
             }
             else {
@@ -452,14 +452,14 @@ void tokenize_floats(Tokens* tokens, StrVector* str_split) {
         char* str = str_split->elems[i];
         while (*str != '\0') {
             if (!matching) {
-                if ((isdigit(*str) || *str == '.') &&
+                if ((c_isdigit(*str) || *str == '.') &&
                     prev_is_whitespace) { // Found start of int
                     matching = true;
                     ident_start = str;
                     if (*str == '.') {
                         found_dot = true;
                     }
-                    else if (isdigit(*str)) {
+                    else if (c_isdigit(*str)) {
                         found_digit = true;
                     }
                 }
@@ -468,18 +468,18 @@ void tokenize_floats(Tokens* tokens, StrVector* str_split) {
                 if (*str == '.') {
                     found_dot = true;
                 }
-                else if (isdigit(*str)) {
+                else if (c_isdigit(*str)) {
                     found_digit = true;
                 }
-                else if (isalpha(*str) || *str == '_' ||
-                         (!isalpha(*str) &&
+                else if (c_isalpha(*str) || *str == '_' ||
+                         (!c_isalpha(*str) &&
                           (!found_digit || !found_dot))) { // Invalid character in float
                     matching = false;
                     prev_is_whitespace = false;
                     found_dot = false;
                     continue;
                 }
-                else if (!isalnum(*str)) { // End of float
+                else if (!c_isalnum(*str)) { // End of float
                     int length = str - ident_start;
                     tokens_set(tokens, src_pos - length, TK_LFLOAT,
                                str_substr(ident_start, length), true, i);
@@ -489,7 +489,7 @@ void tokenize_floats(Tokens* tokens, StrVector* str_split) {
                     found_digit = false;
                 }
             }
-            if (!isalnum(*str) && *str != '_' && *str != '.') {
+            if (!c_isalnum(*str) && *str != '_' && *str != '.') {
                 prev_is_whitespace = true;
             }
             else {
@@ -622,7 +622,7 @@ void tokens_pretty_print(Tokens* tokens) {
 }
 
 char* token_type_to_string(enum TokenType type) {
-    static char* type_strings[] = {
+    static char* type_strings[87] = {
         "TK_NONE",
         "TK_IDENT",
         "TK_TYPE",

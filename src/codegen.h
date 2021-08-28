@@ -20,6 +20,7 @@ struct AsmContext {
     StrVector* asm_bss_src;
     StrVector* asm_text_src;
     char** asm_indent_str;
+    int indent_level;
     int* label_count;
     int* cstring_label_count;
     // Used by break and continue

@@ -151,6 +151,16 @@ void test_string_helper_funcs() {
     free(multiplied_str);
 
     free(test_str);
+
+    // isdigit, isalpha, isalphanum
+    assert(c_isdigit('0'));
+    assert(c_isdigit('9'));
+    assert(c_isalpha('a'));
+    assert(c_isalpha('A'));
+    assert(c_isalpha('z'));
+    assert(c_isalpha('Z'));
+    assert(c_isalnum('Z'));
+    assert(c_isalnum('3'));
 }
 
 //int main() {

@@ -1111,6 +1111,7 @@ void parse_func_call(ASTNode* node, SymbolTable* symbols) {
         node->var.struct_type = *symbol_table_lookup_object(
             symbols, node->func.return_type.struct_name, OBJ_STRUCT);
     }
+    node->next = ast_node_new(AST_END, 1);
 }
 
 void parse_if(ASTNode* node, SymbolTable* symbols) {

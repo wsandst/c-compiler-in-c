@@ -160,7 +160,7 @@ StrVector str_split_on_whitespace(char* str) {
     StrVector str_vec = str_vec_new(4);
     char* start = str;
     while (*str != '\0') {
-        if (isspace(*str)) {
+        if (c_isspace(*str)) {
             if (start != str) {
                 int length = str - start;
                 char* word = str_substr(start, length);
@@ -301,7 +301,7 @@ int str_contains_word(char* str, char* match) {
     while (*match_end != '\0')
         match_end++;
     while (*str != '\0') {
-        if ((!isalnum(*str) && *str != '_') ||
+        if ((!c_isalnum(*str) && *str != '_') ||
             (prev_whitespace && *cur_match_char == *str)) {
             prev_whitespace = true;
         }
@@ -315,8 +315,8 @@ int str_contains_word(char* str, char* match) {
                 str++;
                 int index = str - str_start - (match_end - match) + 1;
                 char* before_word = str_start + index - 2;
-                if (!isalnum(*str) && *str != '_' &&
-                    (before_word < str_start || !isalnum(*before_word))) {
+                if (!c_isalnum(*str) && *str != '_' &&
+                    (before_word < str_start || !c_isalnum(*before_word))) {
                     return index;
                 }
                 else {
@@ -376,4 +376,22 @@ int min(int a, int b) {
         return a;
     else
         return b;
+}
+
+// These are implemented manually because this compiler does not support
+// macro functions which is how they are implemented in GCC
+bool c_isdigit(char c) {
+    return (c >= 48 && c <= 57);
+}
+
+bool c_isalpha(char c) {
+    return (c >= 65 && c <= 90) || (c >= 97 && c <= 122);
+}
+
+bool c_isalnum(char c) {
+    return (c_isdigit(c) || c_isalpha(c));
+}
+
+bool c_isspace(char c) {
+    return c == ' ' || c == '\n' || c == '\t';
 }

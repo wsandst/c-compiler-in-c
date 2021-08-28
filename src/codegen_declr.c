@@ -114,7 +114,9 @@ void gen_asm_static_variable(Variable var, AsmContext* ctx) {
 
 void gen_asm_array_initializer(ASTNode* node, AsmContext ctx) {
     // If this is a global or a static initializer, we can initialize when defining the asm variable
+    int prev_indent_level = ctx.indent_level;
     if (node->var.is_global || node->var.type.is_static) {
+        asm_set_indent(&ctx, 0);
         asm_add_newline(&ctx, ctx.asm_data_src);
         ASTNode* arg_node = node->args;
         if (node->var.type.is_static) {
@@ -124,7 +126,7 @@ void gen_asm_array_initializer(ASTNode* node, AsmContext ctx) {
         }
         else {
             asm_add_wn_sectionf(
-                &ctx, ctx.asm_data_src, "%s: %s ", node->var.name,
+                &ctx, ctx.asm_data_src, "G_%s: %s ", node->var.name,
                 bytes_to_data_width(get_deref_var_type(node->var.type).bytes));
         }
         for (size_t i = 0; i < node->var.type.array_size; i++) {
@@ -176,4 +178,5 @@ void gen_asm_array_initializer(ASTNode* node, AsmContext ctx) {
             stack_ptr -= deref_type.bytes;
         }
     }
+    asm_set_indent(&ctx, prev_indent_level);
 }

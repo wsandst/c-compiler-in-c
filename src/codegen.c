@@ -77,6 +77,7 @@ void asm_add_newline(AsmContext* ctx, StrVector* asm_src) {
 void asm_set_indent(AsmContext* ctx, int indent) {
     free(*(ctx->asm_indent_str));
     *ctx->asm_indent_str = str_multiply("    ", indent);
+    ctx->indent_level = indent;
     return;
 }
 
@@ -210,7 +211,7 @@ char* get_case_label_str(ValueLabel* label) {
         snprintf(result, 63, ".LC%d_D", label->id);
     }
     else {
-        snprintf(result, 63, ".LC%d_%s", label->id, label->str_value);
+        snprintf(result, 63, ".LC%d", label->id);
     }
     return result;
 }
@@ -840,12 +841,17 @@ void gen_asm_switch(ASTNode* node, AsmContext ctx) {
         }
         case_labels = case_labels->next;
     }
+    char* switch_break_label = str_copy(get_next_label_str(&ctx));
+    ctx.last_end_label = switch_break_label;
     if (default_label != NULL) { // We found a default case
         char* default_label_str = get_case_label_str(default_label);
         asm_addf(&ctx, "jmp %s ; Jump to the default case label", default_label_str);
     }
-    char* switch_break_label = str_copy(get_next_label_str(&ctx));
-    ctx.last_end_label = switch_break_label;
+    else { // No default case, jump to end
+        asm_addf(&ctx, "jmp %s ; Jump to end of switch if no case matches",
+                 switch_break_label);
+    }
+
     gen_asm(node->body, ctx);
     // Add label at end for break
     asm_addf(&ctx, "%s:", switch_break_label);
@@ -858,11 +864,13 @@ void gen_asm_case(ASTNode* node, AsmContext ctx) {
     char* case_label_str;
     if (node->label.is_default_case) { // Default case
         case_label_str = get_case_label_str(&node->label);
+        asm_addf(&ctx, "%s: ; Switch default case", case_label_str);
     }
     else {
         case_label_str = get_case_label_str(&node->label);
+        asm_addf(&ctx, "%s: ; Switch case for val %s", case_label_str,
+                 node->label.str_value);
     }
-    asm_addf(&ctx, "%s: ; Switch case label", case_label_str);
     gen_asm(node->next, ctx);
 }
 

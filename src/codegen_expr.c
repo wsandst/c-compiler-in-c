@@ -69,7 +69,15 @@ void gen_asm_variable(ASTNode* node, AsmContext ctx) {
     else if (node->var.type.is_array ||
              (node->var.type.type == TY_STRUCT && node->var.type.ptr_level == 0)) {
         // We store the address of array/pointers, not the value
-        asm_addf(&ctx, "lea rax, [rbp-%d]", node->var.stack_offset);
+        if (node->var.type.is_static) {
+            asm_addf(&ctx, "lea rax, [%s.%ds]", node->var.name, node->var.unique_id);
+        }
+        else if (node->var.is_global) {
+            asm_addf(&ctx, "lea rax, [G_%s]", node->var.name);
+        }
+        else {
+            asm_addf(&ctx, "lea rax, [rbp-%d]", node->var.stack_offset);
+        }
     }
     else if (node->var.type.type == TY_INT || node->var.type.ptr_level > 0) {
         // Integer/pointer type, store value in rax
@@ -155,8 +163,9 @@ void gen_asm_unary_op_address(ASTNode* node, AsmContext ctx) {
         asm_addf(&ctx, "mov rax, 0");
         asm_addf(&ctx, "lea rax, [rbp-%d]", node->var.stack_offset);
     }
-    else if (node->expr_type == EXPR_UNOP && node->op_type == UOP_DEREF) {
-        // Dereffed value, the address is in r12
+    else if ((node->expr_type == EXPR_UNOP && node->op_type == UOP_DEREF) ||
+             (node->expr_type == EXPR_BINOP && node->op_type == BOP_MEMBER)) {
+        // The address is in r12
         asm_addf(&ctx, "mov rax, r12");
     }
     else {
@@ -796,7 +805,7 @@ void gen_asm_unary_op_struct(ASTNode* node, AsmContext ctx) {
 // Generate assembly for a struct binary op expression node
 void gen_asm_binary_op_struct(ASTNode* node, AsmContext ctx) {
     gen_asm(node->lhs, ctx); // LHS now in RAX
-    if (node->lhs->op_type == UOP_DEREF) {
+    if (node->op_type == BOP_ASSIGN) {
         // Deref address is in r12, we need to save it incase rhs is deref
         asm_addf(&ctx, "push r12");
     }
@@ -821,7 +830,7 @@ void gen_asm_binary_op_struct(ASTNode* node, AsmContext ctx) {
             codegen_error("Unsupported pointer binary operation encountered!");
             break;
     }
-    if (node->lhs->op_type == UOP_DEREF) {
+    if (node->op_type == BOP_ASSIGN) {
         asm_addf(&ctx, "pop r12");
     }
     if (is_binary_operation_assignment(node->op_type)) {

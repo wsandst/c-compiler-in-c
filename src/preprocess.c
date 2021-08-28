@@ -295,6 +295,11 @@ PreprocessorTable preprocessor_table_new() {
     table.token_index = 0;
     table.current_file_dir = NULL;
     table.current_file_index = 0;
+    PreprocessorItem item;
+    item.name = str_copy("CCIC");
+    item.type = PP_DEFINE;
+    item.define_value_tokens = tokens_new(0);
+    preprocessor_table_insert(&table, item);
     return table;
 }
 
