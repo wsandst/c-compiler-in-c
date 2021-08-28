@@ -68,6 +68,7 @@ SymbolTable* symbol_table_create_child(SymbolTable* table, int stack_offset) {
     SymbolTable* child = calloc(1, sizeof(SymbolTable));
     child->cur_stack_offset = stack_offset;
     child->parent = table;
+    //printf("Parent %d\n", child->parent);
     child->label_prefix = table->label_prefix; // Case labels
     symbol_table_init(child);
     table->children_ptrs[table->children_count - 1] = child;

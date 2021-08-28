@@ -15,16 +15,6 @@
 
 #include "util/string_helpers.h"
 
-typedef enum LiteralType LiteralType;
-typedef enum VarTypeEnum VarTypeEnum;
-typedef enum ObjectTypeEnum ObjectTypeEnum;
-typedef struct VarType VarType;
-typedef struct Variable Variable;
-typedef struct Function Function;
-typedef struct ValueLabel ValueLabel;
-typedef struct Object Object;
-typedef struct SymbolTable SymbolTable;
-
 enum LiteralType {
     LT_NONE,
     LT_INT,
@@ -41,6 +31,12 @@ enum VarTypeEnum {
     TY_ENUM,
     TY_STRUCT,
 };
+
+typedef enum LiteralType LiteralType;
+typedef enum VarTypeEnum VarTypeEnum;
+typedef enum ObjectTypeEnum ObjectTypeEnum;
+
+typedef struct VarType VarType;
 
 struct VarType {
     VarTypeEnum type;
@@ -77,6 +73,8 @@ struct Object { // Structs, unions, enums, typedefs etc
     VarType* first_struct_member;
 };
 
+typedef struct Object Object;
+
 // Variable object
 struct Variable {
     char* name;
@@ -94,6 +92,8 @@ struct Variable {
     Object struct_type;
 };
 
+typedef struct Variable Variable;
+
 // Function object
 struct Function {
     char* name;
@@ -108,6 +108,10 @@ struct Function {
     bool is_variadic;
 };
 
+typedef struct Function Function;
+
+typedef struct ValueLabel ValueLabel;
+
 struct ValueLabel { // Switch case labels
     LiteralType type;
     int id;
@@ -116,6 +120,8 @@ struct ValueLabel { // Switch case labels
     bool is_default_case;
     ValueLabel* next; // Used as linked list for switch
 };
+
+typedef struct SymbolTable SymbolTable;
 
 // This is a tree of tables
 struct SymbolTable {

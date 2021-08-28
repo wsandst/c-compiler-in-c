@@ -12,7 +12,7 @@ char* load_file_to_string(char* filename) {
     long size;
     char* buffer;
 
-    fseek(file, 0L, SEEK_END);
+    fseek(file, 0, SEEK_END);
     size = ftell(file);
     rewind(file);
 
@@ -66,16 +66,22 @@ char* isolate_file_dir(char* filepath) {
     return str_substr(filepath, index + 1);
 }
 
+char* isolate_file_from_path(char* filepath) {
+    int index = str_index_of_reverse(filepath, '/');
+    return str_copy(filepath + index + 1);
+}
+
 // Parse compiler command line options
 CompileOptions parse_compiler_options(int argc, char** argv) {
     CompileOptions options;
-    options.output_filename = "a.out";
     options.link_with_gcc = true;
     if (argc > 1) {
         if (strcmp(argv[1], "-c") == 0) {
             options.link_with_gcc = false;
             if (argc > 2) {
                 options.src_filename = argv[2];
+                options.output_filename = isolate_file_from_path(argv[2]);
+                options.output_filename[strlen(options.output_filename) - 2] = '\0';
                 return options;
             }
             else {
@@ -85,6 +91,10 @@ CompileOptions parse_compiler_options(int argc, char** argv) {
         }
         else {
             options.src_filename = argv[1];
+            if (argc == 2) {
+                options.output_filename = str_copy("a.out");
+                return options;
+            }
         }
     }
     else {
@@ -94,7 +104,7 @@ CompileOptions parse_compiler_options(int argc, char** argv) {
     if (argc > 2) { // Output executable name specified
         if (strcmp(argv[2], "-o") == 0) {
             if (argc > 3) {
-                options.output_filename = argv[3];
+                options.output_filename = str_copy(argv[3]);
             }
             else {
                 printf("Error: Please specify an output executable filename\n");
@@ -102,7 +112,7 @@ CompileOptions parse_compiler_options(int argc, char** argv) {
             }
         }
         else {
-            options.output_filename = argv[2];
+            options.output_filename = str_copy(argv[2]);
         }
     }
     return options;

@@ -53,7 +53,8 @@ void gen_asm_variable(ASTNode* node, AsmContext ctx) {
         asm_addf(&ctx, "pop rax");
         asm_addf(&ctx, "lea r12, [rax+%d]", offset);
         asm_addf(&ctx, "push rax");
-        if (node->var.type.is_array || node->var.type.type == TY_STRUCT) {
+        if (node->var.type.is_array ||
+            (node->var.type.type == TY_STRUCT && node->var.type.ptr_level == 0)) {
             // If the member variable is a struct or array, we want the address in rax
             asm_addf(&ctx, "mov rax, r12", offset);
         }
@@ -184,27 +185,18 @@ void gen_asm_unary_op_int(ASTNode* node, AsmContext ctx) {
         // This is kind of a form of assignment
         case UOP_PRE_INCR: // ++x
             // Increment and return incremented value
-            if (node->rhs->expr_type != EXPR_VAR) {
-                codegen_error("Only variables can be incremented to");
-            }
             asm_add_com(&ctx, "; Op: ++ (pre)");
             asm_addf(&ctx, "inc rax");
             gen_asm_binary_op_assign_int(node->rhs, ctx);
             break;
         case UOP_PRE_DECR: // --x
             // Decrement and return incremented value
-            if (node->rhs->expr_type != EXPR_VAR) {
-                codegen_error("Only variables can be decremented to");
-            }
             asm_add_com(&ctx, "; Op: -- (pre)");
             asm_addf(&ctx, "dec rax");
             gen_asm_binary_op_assign_int(node->rhs, ctx);
             break;
         case UOP_POST_INCR: // x++
             // Increment and return previous value
-            if (node->rhs->expr_type != EXPR_VAR) {
-                codegen_error("Only variables can be incremented to");
-            }
             asm_add_com(&ctx, "; Op: ++ (post)");
             asm_addf(&ctx, "mov rbx, rax");
             asm_addf(&ctx, "push rax");
@@ -215,9 +207,6 @@ void gen_asm_unary_op_int(ASTNode* node, AsmContext ctx) {
             break;
         case UOP_POST_DECR: // x--
             // Decrement and return previous value
-            if (node->rhs->expr_type != EXPR_VAR) {
-                codegen_error("Only variables can be decremented to");
-            }
             asm_add_com(&ctx, "; Op: -- (post)");
             asm_addf(&ctx, "mov rbx, rax");
             asm_addf(&ctx, "push rax");
@@ -232,6 +221,9 @@ void gen_asm_unary_op_int(ASTNode* node, AsmContext ctx) {
                 asm_addf(&ctx, "mov rax, %d",
                          node->rhs->cast_type.array_size *
                              node->rhs->cast_type.ptr_value_bytes);
+            }
+            else if (node->rhs->cast_type.type == TY_STRUCT) {
+                asm_addf(&ctx, "mov rax, %d", node->rhs->var.struct_type.struct_type.bytes);
             }
             else {
                 asm_addf(&ctx, "mov rax, %d", node->rhs->cast_type.bytes);
@@ -409,19 +401,19 @@ void gen_asm_binary_op_int(ASTNode* node, AsmContext ctx) {
 
 void gen_asm_binary_op_assign_int(ASTNode* node, AsmContext ctx) {
     if (node->expr_type == EXPR_VAR) {
-        char* reg_str = get_reg_width_str(node->var.type, RAX);
+        char* reg_str = get_reg_width_str(node->var.type.bytes, RAX);
         char* var_sp = var_to_stack_ptr(&node->var);
         asm_addf(&ctx, "mov %s, %s", var_sp, reg_str);
         free(var_sp);
     }
     else if (node->expr_type == EXPR_UNOP && node->op_type == UOP_DEREF) {
         node->var.type.bytes = node->var.type.ptr_value_bytes;
-        char* reg_str = get_reg_width_str(node->cast_type, RAX);
+        char* reg_str = get_reg_width_str(node->cast_type.bytes, RAX);
         char* addr_size_str = bytes_to_addr_width(node->cast_type.bytes);
         asm_addf(&ctx, "mov %s [r12], %s", addr_size_str, reg_str);
     }
     else if (node->expr_type == EXPR_BINOP && node->op_type == BOP_MEMBER) {
-        char* reg_str = get_reg_width_str(node->cast_type, RAX);
+        char* reg_str = get_reg_width_str(node->cast_type.bytes, RAX);
         char* addr_size_str = bytes_to_addr_width(node->cast_type.bytes);
         asm_addf(&ctx, "mov %s [r12], %s", addr_size_str, reg_str);
     }
@@ -497,9 +489,10 @@ void gen_asm_binary_op_float(ASTNode* node, AsmContext ctx) {
     gen_asm_setup_short_circuiting(node, &ctx); // AND/OR Short circuiting related
 
     gen_asm(node->lhs, ctx); // LHS now in RAX
-    if (node->lhs->op_type == UOP_DEREF ||
-        (node->op_type == BOP_ASSIGN && node->lhs->op_type == BOP_MEMBER)) {
-        // Deref address is in r12, we need to save it incase rhs is deref
+    if (node->op_type == BOP_ASSIGN) {
+        // Address of lvalue is in r12
+        // lvalues are only used in assignment, thus we need to save r12
+        // incase rhs contains another lvalue
         asm_addf(&ctx, "push r12");
     }
     // Check if we need to cast lhs (lhs is int)
@@ -595,8 +588,7 @@ void gen_asm_binary_op_float(ASTNode* node, AsmContext ctx) {
             codegen_error("Unsupported float binary operation found!");
             break;
     }
-    if (node->lhs->op_type == UOP_DEREF ||
-        (node->op_type == BOP_ASSIGN && node->lhs->op_type == BOP_MEMBER)) {
+    if (node->op_type == BOP_ASSIGN) {
         asm_addf(&ctx, "pop r12");
     }
     if (is_binary_operation_assignment(node->op_type)) {
@@ -689,9 +681,11 @@ void gen_asm_binary_op_ptr(ASTNode* node, AsmContext ctx) {
     gen_asm_setup_short_circuiting(node, &ctx); // AND/OR Short circuiting related
 
     gen_asm(node->lhs, ctx); // LHS now in RAX
-    if (node->lhs->op_type == UOP_DEREF) {
-        asm_addf(&ctx,
-                 "push r12"); // Deref address is in r12, we need to save it incase rhs is deref
+    if (node->op_type == BOP_ASSIGN) {
+        // Address of lvalue is in r12
+        // lvalues are only used in assignment, thus we need to save r12
+        // incase rhs contains another lvalue
+        asm_addf(&ctx, "push r12");
     }
 
     gen_asm_add_short_circuit_jumps(node, ctx); // AND/OR Short circuiting related
@@ -727,40 +721,44 @@ void gen_asm_binary_op_ptr(ASTNode* node, AsmContext ctx) {
             asm_addf(&ctx, "sete al");
             break;
         case BOP_NEQ: // Not equals
-            asm_add_com(&ctx, "; Op: !=");
+            asm_add_com(&ctx, "; pOp: !=");
             asm_addf(&ctx, "cmp rax, rbx");
             asm_addf(&ctx, "mov rax, 0");
             asm_addf(&ctx, "setne al");
             break;
         case BOP_LT: // Less than
-            asm_add_com(&ctx, "; Op: <");
+            asm_add_com(&ctx, "; pOp: <");
             asm_addf(&ctx, "cmp rax, rbx");
             asm_addf(&ctx, "mov rax, 0");
             asm_addf(&ctx, "setl al");
             break;
         case BOP_LTE: // Less than equals
-            asm_add_com(&ctx, "; Op: <=");
+            asm_add_com(&ctx, "; pOp: <=");
             asm_addf(&ctx, "cmp rax, rbx");
             asm_addf(&ctx, "mov rax, 0");
             asm_addf(&ctx, "setle al");
             break;
         case BOP_GT: // Greater than
-            asm_add_com(&ctx, "; Op: >");
+            asm_add_com(&ctx, "; pOp: >");
             asm_addf(&ctx, "cmp rax, rbx");
             asm_addf(&ctx, "mov rax, 0");
             asm_addf(&ctx, "setg al");
             break;
         case BOP_GTE: // Greater than equals
-            asm_add_com(&ctx, "; Op, >=");
+            asm_add_com(&ctx, "; pOp, >=");
             asm_addf(&ctx, "cmp rax, rbx");
             asm_addf(&ctx, "mov rax, 0");
             asm_addf(&ctx, "setge al");
+            break;
+        case BOP_MEMBER: // Struct to pointer member
+            asm_add_com(&ctx, "; pOp: struct member");
+            asm_addf(&ctx, "mov rax, rbx");
             break;
         default:
             codegen_error("Unsupported pointer binary operation encountered!");
             break;
     }
-    if (node->lhs->op_type == UOP_DEREF) {
+    if (node->op_type == BOP_ASSIGN) {
         asm_addf(&ctx, "pop r12");
     }
     if (is_binary_operation_assignment(node->op_type)) {

@@ -86,7 +86,7 @@ char* get_next_label_str(AsmContext* ctx);
 char* get_next_cstring_label_str(AsmContext* ctx);
 
 // Get the corresponding byte size register, eg 2, RAX -> AX
-char* get_reg_width_str(VarType var_type, RegisterEnum reg);
+char* get_reg_width_str(int bytes, RegisterEnum reg);
 // Get the address size corresponding to bytes, ex 8->qword or 4->dword
 char* bytes_to_addr_width(int bytes);
 // Get the value size corresponding to bytes, ex 1->db, 2->dw, etc...

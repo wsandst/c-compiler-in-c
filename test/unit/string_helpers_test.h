@@ -3,7 +3,7 @@
 #include <stdio.h>
 #include <string.h>
 
-#include "../src/util/string_helpers.h"
+#include "../../src/util/string_helpers.h"
 
 void test_string_helpers();
 void test_str_vec();
@@ -152,3 +152,7 @@ void test_string_helper_funcs() {
 
     free(test_str);
 }
+
+//int main() {
+//test_string_helpers();
+//}

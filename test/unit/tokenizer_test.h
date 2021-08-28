@@ -105,7 +105,7 @@ void test_tokenizer_comments() {
 
 void test_tokenizer_strings() {
     // Strings
-    char* src = "//\"\"\n \"hello\" \n \"hello\\\"\" \n 'c' \n '\\n' '\\\"'";
+    char* src = "//\"\"\n \"hello\" \n \"hello\\\"\" \n 'c' \n '\\n' '\\\"'\n\"\")";
     Tokens tokens = tokenize(src);
     assert(tokens_get(&tokens, 0)->type == TK_COMMENT);
     assert(tokens_get(&tokens, 1)->type == TK_LSTRING);
@@ -118,6 +118,8 @@ void test_tokenizer_strings() {
     assert(strcmp(tokens_get(&tokens, 4)->string_repr, "\\n") == 0);
     assert(tokens_get(&tokens, 5)->type == TK_LCHAR);
     assert(strcmp(tokens_get(&tokens, 5)->string_repr, "\\\"") == 0);
+    assert(tokens_get(&tokens, 6)->type == TK_LSTRING);
+    assert(tokens_get(&tokens, 7)->type == TK_DL_CLOSEPAREN);
     tokens_free(&tokens);
 }
 

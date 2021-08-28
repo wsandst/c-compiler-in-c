@@ -143,6 +143,7 @@ bool accept_type(SymbolTable* symbols) {
     };
     if (accept(TK_KW_STATIC)) {
         latest_parsed_var_type.is_static = true;
+        accept(TK_KW_CONST);
     }
     latest_parsed_var_type.ptr_level = 0;
     if (accept(TK_KW_UNSIGNED)) {
@@ -223,6 +224,17 @@ bool accept_object_type(SymbolTable* symbols) {
         Object* typedef_obj = symbol_table_lookup_object(symbols, ident, OBJ_TYPEDEF);
         if (typedef_obj != NULL) {
             latest_parsed_var_type = typedef_obj->typedef_type;
+            if (latest_parsed_var_type.type == TY_STRUCT) {
+                Object* struct_obj = symbol_table_lookup_object(
+                    symbols, latest_parsed_var_type.struct_name, OBJ_STRUCT);
+                if (struct_obj == NULL) {
+                    latest_struct.name = "ERROR!";
+                    //parse_error("Attempted to reference non-existing struct!");
+                }
+                else {
+                    latest_struct = *struct_obj;
+                }
+            }
             return true;
         }
     }
@@ -737,6 +749,7 @@ void parse_binary_op_struct_member(ASTNode* node, SymbolTable* symbols) {
     VarType* member_type = symbol_table_struct_lookup_member(node->var.struct_type,
                                                              member_ident);
     if (!member_type) {
+        token_go_back(2);
         parse_error("Attempted to access non-existing struct member!");
     }
     node->rhs->expr_type = EXPR_VAR;
@@ -746,16 +759,25 @@ void parse_binary_op_struct_member(ASTNode* node, SymbolTable* symbols) {
     node->rhs->cast_type = *member_type;
     node->cast_type = node->rhs->cast_type;
     node->next = ast_node_new(AST_END, 1);
+    if (member_type->type == TY_STRUCT) {
+        node->var.struct_type =
+            *symbol_table_lookup_object(symbols, member_type->struct_name, OBJ_STRUCT);
+    }
 }
 
 void parse_binary_op_struct_ptr_member(ASTNode* node, SymbolTable* symbols) {
     // Treat x->y like (*x).y
     // Create deref unop node
-    node->rhs = ast_node_new(AST_EXPR, 1);
-    ast_node_copy(node->rhs, node);
+    ASTNode* rhs = ast_node_new(AST_EXPR, 1);
+    ast_node_copy(rhs, node);
+    node->rhs = rhs;
     node->expr_type = EXPR_UNOP;
     node->op_type = UOP_DEREF;
     node->cast_type = get_deref_var_type(node->rhs->cast_type);
+    //if (node->var.struct_type.name == 0) {
+    //node->var.struct_type =
+    //*symbol_table_lookup_object(symbols, node->cast_type.struct_name, OBJ_STRUCT);
+    //}
     // Pass deref node into normal struct member function
     parse_binary_op_struct_member(node, symbols);
 }
@@ -853,6 +875,7 @@ void parse_unary_op(ASTNode* node, SymbolTable* symbols) {
         expect(TK_DL_OPENPAREN);
         if (accept_type(symbols)) {
             node->rhs->cast_type = latest_parsed_var_type;
+            node->rhs->var.struct_type = latest_struct;
             expect(TK_DL_CLOSEPAREN);
         }
         else {
@@ -1078,6 +1101,10 @@ void parse_func_call(ASTNode* node, SymbolTable* symbols) {
         var.struct_type = *symbol_table_lookup_object(symbols, var.type.struct_name,
                                                       OBJ_STRUCT);
         node->var = *symbol_table_insert_var(symbols, var);
+    }
+    else if (node->func.return_type.type == TY_STRUCT) {
+        node->var.struct_type = *symbol_table_lookup_object(
+            symbols, node->func.return_type.struct_name, OBJ_STRUCT);
     }
 }
 

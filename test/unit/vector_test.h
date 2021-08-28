@@ -102,3 +102,7 @@ void test_vec_insert() {
     vec_free(&vec1);
     vec_free(&vec2);
 }
+
+//int main() {
+//    test_vector();
+//}

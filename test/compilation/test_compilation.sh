@@ -42,7 +42,7 @@ function run_compilation_test {
     else
         ./build/ccompiler $1 
     fi
-    ./a.out$2    # Run the binary we assembled
+    ./a.out    # Run the binary we assembled
     actual=$?   # get exit code from binary
     echo -n "[TEST] $1:    "
     # Give error if exit code does not match gcc
@@ -64,14 +64,14 @@ function run_compilation_test_mt {
     expected=$?   #get exit code
     #compile with ccompiler, optionally use valgrind to check for mem issues
     if [ "$use_valgrind" = true ] ; then
-        valgrind --leak-check=full --error-exitcode=1 --log-fd=2 2>/dev/null ./build/ccompiler $1 output$2 > /dev/null
+        valgrind --leak-check=full --error-exitcode=1 --log-fd=2 2>/dev/null ./build/ccompiler $1 -o output$2 > /dev/null
         if [ $? -ne 0 ]; then
             echo -e "[TEST] $1: ${RED}VALGRIND FAIL ${CLEAR}"
             failed_test=true
             exit 1
         fi
     else
-        ./build/ccompiler $1 output$2 > /dev/null
+        ./build/ccompiler $1 -o output$2 > /dev/null
     fi
     ./output$2 > /dev/null   # Run the binary we assembled
     actual=$?   # get exit code from binary

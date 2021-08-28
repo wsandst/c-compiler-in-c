@@ -3,7 +3,7 @@
 #include <stdio.h>
 #include <string.h>
 
-#include "symbol_table.h"
+#include "../../src/symbol_table.h"
 
 void test_symbol_table();
 void test_symbol_table_tree();
@@ -36,6 +36,7 @@ void test_symbol_table_tree() {
     assert(table->children_max_count == 4);
     // This should not have invalidated the original child pointer
     assert(child == table->children_ptrs[0]);
+    //printf("Where are we?\n");
 
     SymbolTable* childchild = symbol_table_create_child(child, 0);
     assert(childchild->parent == child);
@@ -79,6 +80,7 @@ void test_symbol_table_vars() {
     assert(symbol_table_lookup_var(child, "var1").type.bytes == 1);
     // symbol_table_lookup_var(child, "novar"); // This will correctly error!
     symbol_table_free(table);
+    printf("Vars test complete\n");
 }
 
 void test_symbol_table_funcs() {
@@ -109,6 +111,7 @@ void test_symbol_table_funcs() {
     assert(symbol_table_lookup_func(child, "func1").def_param_count == 1);
     // symbol_table_lookup_var(child, "novar"); // This will correctly error!
     symbol_table_free(table);
+    //printf("Funcs test complete\n");
 }
 
 void test_symbol_table_labels() {
@@ -150,6 +153,7 @@ void test_symbol_table_labels() {
     labels = labels->next;
     assert(labels == NULL);
     symbol_table_free(table);
+    //printf("Labels test complete\n");
 }
 
 void test_symbol_table_objects() {
@@ -184,4 +188,9 @@ void test_symbol_table_objects() {
     assert(symbol_table_lookup_object(child, "obj1", 1)->type == 1);
     // symbol_table_lookup_var(child, "novar"); // This will correctly error!
     symbol_table_free(table);
+    //printf("Objects test complete\n");
 }
+
+//int main() {
+//test_symbol_table();
+//}

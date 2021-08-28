@@ -88,8 +88,8 @@ void codegen_error(char* error_message) {
 }
 
 char* offset_to_stack_ptr(int offset, char* prefix) {
-    char buf[64];
-    snprintf(buf, 63, "%s [rbp-%i]", prefix, offset);
+    static char buf[64];
+    snprintf(buf, 63, "%s [rbp-%d]", prefix, offset);
     return str_copy(buf);
 }
 
@@ -176,14 +176,14 @@ char* var_to_stack_ptr(Variable* var) {
     return NULL;
 }
 
-char* get_reg_width_str(VarType var_type, RegisterEnum reg) {
+char* get_reg_width_str(int bytes, RegisterEnum reg) {
     int index;
-    switch (var_type.bytes) {
+    switch (bytes) {
         case 8:
             index = 3;
             break;
         default:
-            index = var_type.bytes / 2;
+            index = bytes / 2;
     }
     return register_enum_to_modifier_strs[reg][index];
 }
@@ -594,12 +594,13 @@ void gen_asm_func(ASTNode* node, AsmContext ctx) {
         char* param_ptr = var_to_stack_ptr(param);
         if (param->type.type == TY_INT || param->type.ptr_level > 0) {
             if (int_arg_count < 6) { // Pass by register
-                char* reg_str = get_reg_width_str(param->type, arg_regs[int_arg_count]);
+                char* reg_str = get_reg_width_str(param->type.bytes,
+                                                  arg_regs[int_arg_count]);
                 asm_addf(&ctx, "mov %s, %s", param_ptr, reg_str);
             }
             else { // Pass by stack
                 asm_addf(&ctx, "mov rax, qword [rbp+%d]", 8 * (stack_arg_count + 2));
-                char* reg_str = get_reg_width_str(param->type, RAX);
+                char* reg_str = get_reg_width_str(param->type.bytes, RAX);
                 asm_addf(&ctx, "mov %s, %s", param_ptr, reg_str);
                 stack_arg_count++;
             }
@@ -611,7 +612,7 @@ void gen_asm_func(ASTNode* node, AsmContext ctx) {
             }
             else {
                 asm_addf(&ctx, "mov rax, qword [rbp+%d]", 8 * (stack_arg_count + 2));
-                char* reg_str = get_reg_width_str(param->type, RAX);
+                char* reg_str = get_reg_width_str(param->type.bytes, RAX);
                 asm_addf(&ctx, "mov %s, %s", param_ptr, reg_str);
                 stack_arg_count++;
             }
@@ -620,7 +621,7 @@ void gen_asm_func(ASTNode* node, AsmContext ctx) {
         else if (param->type.type == TY_STRUCT) {
             // Struct by value, this is a pointer to the struct
             if (int_arg_count < 6) { // Pass by register
-                char* reg_str = get_reg_width_str(param->type, RAX);
+                char* reg_str = get_reg_width_str(8, RAX);
                 asm_addf(&ctx, "mov rax, %s", reg_str);
             }
             else { // Pass by stack

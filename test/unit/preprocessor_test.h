@@ -33,3 +33,7 @@ void test_preprocessor_table() {
 
     preprocessor_table_free(&table);
 }
+
+//int main() {
+//test_preprocessor();
+//}

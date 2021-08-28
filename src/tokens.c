@@ -197,7 +197,7 @@ void tokenize_strings(Tokens* tokens, StrVector* str_split) {
                        (search_str > str && (*(search_str - 1) == '\\'))) {
                     search_str++;
                 }
-                int string_src_pos = src_pos + s_quote_start + 1;
+                int string_src_pos = src_pos + s_quote_start;
                 tokens_set(tokens, string_src_pos, TK_LCHAR,
                            str_substr(str + s_quote_start,
                                       search_str - (str + s_quote_start)),
@@ -216,7 +216,7 @@ void tokenize_strings(Tokens* tokens, StrVector* str_split) {
                        (search_str > str && (*(search_str - 1) == '\\'))) {
                     search_str++;
                 }
-                int string_src_pos = src_pos + quote_start + 1;
+                int string_src_pos = src_pos + quote_start;
                 tokens_set(tokens, string_src_pos, TK_LSTRING,
                            str_substr(str + quote_start, search_str - (str + quote_start)),
                            true, i);
@@ -473,19 +473,20 @@ void tokenize_floats(Tokens* tokens, StrVector* str_split) {
                 }
                 else if (isalpha(*str) || *str == '_' ||
                          (!isalpha(*str) &&
-                          (!found_digit || !found_dot))) { // Invalid character in int
+                          (!found_digit || !found_dot))) { // Invalid character in float
                     matching = false;
                     prev_is_whitespace = false;
                     found_dot = false;
                     continue;
                 }
-                else if (!isalnum(*str)) { // End of int
+                else if (!isalnum(*str)) { // End of float
                     int length = str - ident_start;
                     tokens_set(tokens, src_pos - length, TK_LFLOAT,
                                str_substr(ident_start, length), true, i);
                     str_fill(ident_start, length, ' ');
                     matching = false;
                     found_dot = false;
+                    found_digit = false;
                 }
             }
             if (!isalnum(*str) && *str != '_' && *str != '.') {
@@ -504,6 +505,7 @@ void tokenize_floats(Tokens* tokens, StrVector* str_split) {
             str_fill(ident_start, length, ' ');
             matching = false;
             found_dot = false;
+            found_digit = false;
         }
     }
 }

@@ -11,14 +11,22 @@ TODO:
         Refactor constant expression handling:
             Everything is very fragmented currently, handling of globals/cases/enums should be
             the same, not different as it is currently
-        Refactor codegen, decrease unnecessary assembly:
-            Leaf nodes vs non-leaf nodes
-            It is unneccessary to push on leaf nodes.
 
     Functions:
         Variadic function definitions, not just declarations/calling:
             https://blog.nelhage.com/2010/10/amd64-and-va_arg/
             Just recreate that struct with va_start, push the registers to stack, pass it by pointer  
+            Compare with godbolt output
+
+    Implement __LINE__ and __FILE__?
+
+    Issue:
+        Next up, figure out why test_symbol_table_vars doesn't work
+
+    Super weird issue:
+        In pointers/ex6.c, for some very weird reason, we get segmentation fault if we
+        don't include the printf function definition. It shouldn't have any code effect, but it does
+        How???
 
     Types:
         Arrays:
@@ -27,8 +35,6 @@ TODO:
             These are connected. int x[] is equivalent with int* x;
             char* x = {"a", "b", "c"} should work if char x[] works, same construct
             Variable length arrays: just add to rsp, then set address to this
-    
-    Try compiling one of the test programs
 
     Intentional deficits:
         Constants variables are not evaluated at compile-time
@@ -69,6 +75,7 @@ int main(int argc, char** argv) {
     tokens_free(&tokens);
     ast_free(&ast);
     free(asm_src);
+    free(compile_options.output_filename);
 
     printf("Compilation complete\n");
 
