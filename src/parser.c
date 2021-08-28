@@ -905,6 +905,10 @@ void parse_unary_op(ASTNode* node, SymbolTable* symbols) {
                 node->var.is_dereferenced_ptr = true;
             }
             node->cast_type = get_deref_var_type(node->cast_type);
+            if (node->cast_type.type == TY_STRUCT && node->cast_type.ptr_level == 0) {
+                node->var.struct_type = *symbol_table_lookup_object(
+                    symbols, node->cast_type.struct_name, OBJ_STRUCT);
+            }
         }
     }
 }
