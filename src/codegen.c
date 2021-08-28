@@ -413,15 +413,9 @@ void gen_asm_func_call(ASTNode* node, AsmContext ctx) {
     }
 
     int push_count = max(int_arg_count - 6, 0) + max(float_arg_count - 8, 0) +
-                     has_struct_ret_val + 1;
-    // Align stack to 16 bytes for function call
-    // This is done dynamically as I don't track all my pushes/pops currently
-    asm_addf(&ctx, "mov rbx, rsp");
-    asm_addf(&ctx, "and rsp, -16");
-    if (push_count % 2 == 1) {
-        asm_addf(&ctx, "sub rsp, 8");
-    }
-    asm_addf(&ctx, "push rbx");
+                     has_struct_ret_val;
+
+    gen_asm_align_stack_for_func_call(push_count, &ctx);
 
     if (has_struct_ret_val) {
         // We need to return a struct by value,
@@ -551,10 +545,23 @@ void gen_asm_func_call(ASTNode* node, AsmContext ctx) {
     int pop_count = max(int_arg_count - 6, 0) + max(float_arg_count - 8, 0) +
                     has_struct_ret_val;
     asm_addf(&ctx, "add rsp, %d", pop_count * 8);
-    asm_addf(&ctx, "pop rsp");
+    asm_addf(&ctx, "pop rsp"); // Restore function call alignment modification
     if (has_struct_ret_val) {
         asm_addf(&ctx, "mov r12, rax");
     }
+}
+
+void gen_asm_align_stack_for_func_call(int future_pushes, AsmContext* ctx) {
+    // Align stack to 16 bytes for function call
+    // This is done dynamically as I don't track all my pushes/pops currently
+    // Remember to manually pop the rsp after the function call!
+    asm_addf(ctx, "; Aligning stack to 16 bytes ahead of function call");
+    asm_addf(ctx, "mov rbx, rsp");
+    asm_addf(ctx, "and rsp, -16");
+    if ((future_pushes + 1) % 2 == 1) {
+        asm_addf(ctx, "sub rsp, 8");
+    }
+    asm_addf(ctx, "push rbx");
 }
 
 void gen_asm_func(ASTNode* node, AsmContext ctx) {
@@ -621,7 +628,7 @@ void gen_asm_func(ASTNode* node, AsmContext ctx) {
         else if (param->type.type == TY_STRUCT) {
             // Struct by value, this is a pointer to the struct
             if (int_arg_count < 6) { // Pass by register
-                char* reg_str = get_reg_width_str(8, RAX);
+                char* reg_str = get_reg_width_str(8, arg_regs[int_arg_count]);
                 asm_addf(&ctx, "mov rax, %s", reg_str);
             }
             else { // Pass by stack
@@ -631,20 +638,14 @@ void gen_asm_func(ASTNode* node, AsmContext ctx) {
             // memcpy from  param->stack_offset
             // memcpy: rdi: dest_ptr, rsi: src_ptr, rdx: size_t (bytes)
             asm_addf(&ctx, "; Struct passed by value, memcpy required");
-            if (int_arg_count < 3) {
-                asm_addf(&ctx, "push rdi");
-                asm_addf(&ctx, "push rsi");
-                asm_addf(&ctx, "push rdx");
-            }
+            gen_asm_push_future_call_regs(int_arg_count, &ctx);
             asm_addf(&ctx, "lea rdi, [rbp-%d]", param->stack_offset);
             asm_addf(&ctx, "mov rsi, rax");
             asm_addf(&ctx, "mov rdx, %d", param->type.bytes);
-            asm_addf(&ctx, "call memcpy");
-            if (int_arg_count < 3) {
-                asm_addf(&ctx, "pop rdi");
-                asm_addf(&ctx, "pop rsi");
-                asm_addf(&ctx, "pop rdx");
-            }
+            gen_asm_align_stack_for_func_call(0, &ctx);
+            asm_addf(&ctx, "call memcpy"); // we are not aligned properly here
+            asm_addf(&ctx, "pop rsp");
+            gen_asm_pop_future_call_regs(int_arg_count, &ctx);
             int_arg_count++;
         }
         else {
@@ -654,10 +655,10 @@ void gen_asm_func(ASTNode* node, AsmContext ctx) {
         param++;
     }
     asm_add_com(&ctx, "; Function code start");
-    // Do I need to allocate more stack space here?
+    // Function body
     gen_asm(node->body, ctx);
     asm_add_newline(&ctx, ctx.asm_text_src);
-    // Add return
+    // Function return
     asm_addf(&ctx, "mov rax, 0 ; Default function return is 0");
     asm_addf(&ctx, "%s: ; Function return label", ctx.func_return_label);
 
@@ -670,7 +671,9 @@ void gen_asm_func(ASTNode* node, AsmContext ctx) {
         asm_addf(&ctx, "mov rdi, [rbp+%d]", 8 * (stack_arg_count + 2));
         asm_addf(&ctx, "mov rsi, rax");
         asm_addf(&ctx, "mov rdx, %d", node->func.return_type.bytes);
+        gen_asm_align_stack_for_func_call(0, &ctx);
         asm_addf(&ctx, "call memcpy");
+        asm_addf(&ctx, "pop rsp");
         asm_addf(&ctx, "mov rax, [rbp+%d]", 8 * (stack_arg_count + 2));
     }
 
@@ -679,6 +682,52 @@ void gen_asm_func(ASTNode* node, AsmContext ctx) {
     asm_addf(&ctx, "ret");
     free(ctx.func_return_label);
     gen_asm(node->next, ctx);
+}
+
+void gen_asm_push_future_call_regs(int current_reg, AsmContext* ctx) {
+    switch (current_reg) {
+        case 0:
+            asm_addf(ctx, "push rsi");
+        case 1:
+            asm_addf(ctx, "push rdx");
+        case 2:
+            asm_addf(ctx, "push rcx");
+        case 3:
+            asm_addf(ctx, "push r8");
+        case 4:
+            asm_addf(ctx, "push r9");
+            break;
+    }
+}
+
+void gen_asm_pop_future_call_regs(int current_reg, AsmContext* ctx) {
+    switch (current_reg) {
+        case 0:
+            asm_addf(ctx, "pop r9");
+            asm_addf(ctx, "pop r8");
+            asm_addf(ctx, "pop rcx");
+            asm_addf(ctx, "pop rdx");
+            asm_addf(ctx, "pop rsi");
+            break;
+        case 1:
+            asm_addf(ctx, "pop r9");
+            asm_addf(ctx, "pop r8");
+            asm_addf(ctx, "pop rcx");
+            asm_addf(ctx, "pop rdx");
+            break;
+        case 2:
+            asm_addf(ctx, "pop r9");
+            asm_addf(ctx, "pop r8");
+            asm_addf(ctx, "pop rcx");
+            break;
+        case 3:
+            asm_addf(ctx, "pop r9");
+            asm_addf(ctx, "pop r8");
+            break;
+        case 4:
+            asm_addf(ctx, "pop r9");
+            break;
+    }
 }
 
 // Generate assembly for an if conditional node

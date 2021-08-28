@@ -20,8 +20,10 @@ TODO:
 
     Implement __LINE__ and __FILE__?
 
-    Issue:
-        Next up, figure out why test_symbol_table_vars doesn't work
+    Known issue:
+        Floating point parameters + struct by value won't work, I don't save the xmm regs
+
+    The struct padding is off by 8 bytes for ValueLabel, why?
 
     Super weird issue:
         In pointers/ex6.c, for some very weird reason, we get segmentation fault if we

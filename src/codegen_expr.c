@@ -838,7 +838,7 @@ void gen_asm_binary_op_assign_struct(ASTNode* node, AsmContext ctx) {
     // memcpy: rdi: dest_ptr, rsi: src_ptr, rdx: size_t (bytes)
     asm_addf(&ctx, "mov rdi, rax");
     asm_addf(&ctx, "mov rsi, rbx");
-    asm_addf(&ctx, "mov rdx, %d", node->rhs->cast_type.bytes);
+    asm_addf(&ctx, "mov rdx, %d", node->rhs->var.struct_type.struct_type.bytes);
     asm_addf(&ctx, "call memcpy");
 }
 

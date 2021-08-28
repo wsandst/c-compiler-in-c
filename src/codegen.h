@@ -112,6 +112,15 @@ void gen_asm_func(ASTNode* node, AsmContext ctx);
 // Generate assembly for a function call
 void gen_asm_func_call(ASTNode* node, AsmContext ctx);
 
+// Align the stack to 16 bytes to prepare for function call
+void gen_asm_align_stack_for_func_call(int future_pushes, AsmContext* ctx);
+
+// Push call argument registers if necessary
+void gen_asm_push_future_call_regs(int current_reg, AsmContext* ctx);
+
+// Pop call argument registers if necessary
+void gen_asm_pop_future_call_regs(int current_reg, AsmContext* ctx);
+
 // Generate assembly for an if conditional node
 void gen_asm_if(ASTNode* node, AsmContext ctx);
 

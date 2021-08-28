@@ -331,7 +331,8 @@ void parse_struct(SymbolTable* symbols) {
                     symbols, member_type->struct_name, OBJ_STRUCT);
                 member_type->struct_bytes_offset = align_stack_address_no_add(
                     struct_type.bytes, member_struct->first_struct_member->bytes);
-                struct_type.bytes = member_type->struct_bytes_offset + member_type->bytes;
+                struct_type.bytes = member_type->struct_bytes_offset +
+                                    member_struct->struct_type.bytes;
                 struct_type.widest_struct_member = max(struct_type.widest_struct_member,
                                                        member_type->widest_struct_member);
             }
