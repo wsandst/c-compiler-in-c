@@ -1,12 +1,10 @@
 #include "tokens.h"
 
 /*
-TODO: Implement handling of comments in strings and reverse
 Implement tokenization of Hex int values
-I don't handle -> correctly. Treat as operator? Or delimiter?
 */
 
-Tokens tokenize(char* src) {
+Tokens tokenize(char* src, bool tag_debug_line_info) {
     // Split up src in lines
     //StrVector lines = str_split(src, '\n');
 
@@ -20,6 +18,11 @@ Tokens tokenize(char* src) {
     }
 
     Tokens tokens = tokens_new(total_lines_length + 1);
+
+    // Tag every token with the connected code line
+    if (tag_debug_line_info) {
+        tag_tokens_with_src_lines(&tokens, &lines);
+    }
 
     // Set last token to EOF
     tokens_get(&tokens, tokens.size - 1)->type = TK_EOF;
@@ -49,6 +52,7 @@ Tokens tokens_new(int size) {
     Tokens tokens;
     tokens.size = size;
     tokens.elems = vec_new(sizeof(Token), size);
+    tokens.line_string_vec.elems = NULL;
     vec_resize(&tokens.elems, size);
     return tokens;
 }
@@ -57,11 +61,17 @@ void tokens_free(Tokens* tokens) {
     for (size_t i = 0; i < tokens->size; i++) {
         Token* t = tokens_get(tokens, i);
         if (t->requires_string_free) {
-            // We get invalid frees here for some reason.
             free(t->string_repr);
+        }
+        if (t->src_line_requires_free) {
+            free(t->src_line_str);
         }
     }
     vec_free(&tokens->elems);
+}
+
+void tokens_free_line_strings(Tokens* tokens) {
+    str_vec_free(&tokens->line_string_vec);
 }
 
 Token* tokens_get(Tokens* tokens, int i) {
@@ -69,12 +79,11 @@ Token* tokens_get(Tokens* tokens, int i) {
 }
 
 void tokens_set(Tokens* tokens, int i, TokenType type, char* string_repr,
-                bool requires_free, int line) {
+                bool requires_free) {
     Token* t = tokens_get(tokens, i);
     t->type = type;
     t->string_repr = string_repr;
     t->requires_string_free = requires_free;
-    t->src_line = line + 1;
 }
 
 // Remove NULL elements from the Token Array
@@ -112,6 +121,7 @@ void tokens_trim(Tokens* tokens) {
 Tokens* tokens_insert(Tokens* tokens1, Tokens* tokens2, int tokens1_index) {
     vec_insert(&tokens1->elems, &tokens2->elems, tokens1_index);
     tokens1->size = tokens1->elems.size;
+    str_vec_add(&tokens1->line_string_vec, &tokens2->line_string_vec);
     return tokens1;
 }
 
@@ -127,7 +137,7 @@ void tokenize_preprocessor(Tokens* tokens, StrVector* str_split) {
         char* str = str_split->elems[i];
         // Is this a preprocessor line?
         if (str_startswith(str, "#")) {
-            tokens_set(tokens, src_pos, TK_PREPROCESSOR, str_copy(str), true, i);
+            tokens_set(tokens, src_pos, TK_PREPROCESSOR, str_copy(str), true);
             str_fill(str, strlen(str), ' ');
         }
         src_pos += strlen(str);
@@ -160,7 +170,7 @@ void tokenize_comments(Tokens* tokens, StrVector* str_split) {
                 else if (!is_inside_string && *str == '/' && *(str + 1) == '/') {
                     // Single line comment, can clear out to end of line
                     tokens_set(tokens, src_pos, TK_COMMENT, str_substr(str, strlen(str)),
-                               true, i);
+                               true);
                     str_fill(str, strlen(str), ' ');
                 }
             }
@@ -168,7 +178,7 @@ void tokenize_comments(Tokens* tokens, StrVector* str_split) {
                 // Check for end of multiline comment
                 if (*str == '*' && *(str + 1) == '/') {
                     tokens_set(tokens, comment_src_pos, TK_COMMENT, "BLOCK COMMENT N/A",
-                               false, i);
+                               false);
                     seeking_block_comment_end = false;
                     *str = ' ';
                     str++;
@@ -200,7 +210,7 @@ void tokenize_strings(Tokens* tokens, StrVector* str_split) {
                     src_pos++;
                 }
                 tokens_set(tokens, src_pos, TK_LSTRING,
-                           str_substr(str_start, str - str_start), true, i);
+                           str_substr(str_start, str - str_start), true);
                 str_fill(str_start - 1, str - str_start + 2, ' ');
             }
             // Chars, single quotes ''
@@ -215,7 +225,7 @@ void tokenize_strings(Tokens* tokens, StrVector* str_split) {
                     src_pos++;
                 }
                 tokens_set(tokens, src_pos, TK_LCHAR,
-                           str_substr(char_start, str - char_start), true, i);
+                           str_substr(char_start, str - char_start), true);
                 str_fill(char_start - 1, str - char_start + 2, ' ');
             }
             str++;
@@ -267,7 +277,7 @@ void tokenize_keyword(Tokens* tokens, StrVector* str_split, char* keyword,
             char* start = str + match_i - 1;
             int keyword_src_index = src_pos + match_i - 1;
             str_fill(start, keyword_length, ' ');
-            tokens_set(tokens, keyword_src_index, type, keyword, false, i);
+            tokens_set(tokens, keyword_src_index, type, keyword, false);
         }
         src_pos += strlen(str);
     }
@@ -329,7 +339,7 @@ void tokenize_op(Tokens* tokens, StrVector* str_split, char* op, enum TokenType 
             char* start = str + match_i - 1;
             int keyword_src_index = src_pos + match_i - 1;
             str_fill(start, op_length, ' ');
-            tokens_set(tokens, keyword_src_index, type, op, false, i);
+            tokens_set(tokens, keyword_src_index, type, op, false);
         }
         src_pos += strlen(str);
     }
@@ -358,7 +368,7 @@ void tokenize_idents(Tokens* tokens, StrVector* str_split) {
                 if (!(c_isalnum(*str)) && *str != '_') { // Found end of identifier
                     int length = str - ident_start;
                     tokens_set(tokens, src_pos - length, TK_IDENT,
-                               str_substr(ident_start, length), true, i);
+                               str_substr(ident_start, length), true);
                     str_fill(ident_start, length, ' ');
                     matching_ident = false;
                 }
@@ -375,7 +385,7 @@ void tokenize_idents(Tokens* tokens, StrVector* str_split) {
         if (matching_ident) { // Found end of identifier, line ended
             int length = str - ident_start;
             tokens_set(tokens, src_pos - length, TK_IDENT,
-                       str_substr(ident_start, length), true, i);
+                       str_substr(ident_start, length), true);
             str_fill(ident_start, length, ' ');
             matching_ident = false;
         }
@@ -416,7 +426,7 @@ void tokenize_ints(Tokens* tokens, StrVector* str_split) {
                     //char* substr = str_substr(ident_start, length);
                     //printf("Found int %s\n", substr);
                     tokens_set(tokens, src_pos - length, TK_LINT,
-                               str_substr(ident_start, length), true, i);
+                               str_substr(ident_start, length), true);
                     str_fill(ident_start, length, ' ');
                     matching = false;
                 }
@@ -433,7 +443,7 @@ void tokenize_ints(Tokens* tokens, StrVector* str_split) {
         if (matching) { // Found end of identifier, line ended
             int length = str - ident_start;
             tokens_set(tokens, src_pos - length, TK_LINT, str_substr(ident_start, length),
-                       true, i);
+                       true);
             str_fill(ident_start, length, ' ');
             matching = false;
         }
@@ -482,7 +492,7 @@ void tokenize_floats(Tokens* tokens, StrVector* str_split) {
                 else if (!c_isalnum(*str)) { // End of float
                     int length = str - ident_start;
                     tokens_set(tokens, src_pos - length, TK_LFLOAT,
-                               str_substr(ident_start, length), true, i);
+                               str_substr(ident_start, length), true);
                     str_fill(ident_start, length, ' ');
                     matching = false;
                     found_dot = false;
@@ -501,7 +511,7 @@ void tokenize_floats(Tokens* tokens, StrVector* str_split) {
         if (matching) { // Found end of identifier, line ended
             int length = str - ident_start;
             tokens_set(tokens, src_pos - length, TK_LFLOAT,
-                       str_substr(ident_start, length), true, i);
+                       str_substr(ident_start, length), true);
             str_fill(ident_start, length, ' ');
             matching = false;
             found_dot = false;
@@ -715,4 +725,20 @@ char* token_type_to_string(enum TokenType type) {
         "TK_KW_VARIADIC_DOTS",
     };
     return type_strings[type];
+}
+
+void tag_tokens_with_src_lines(Tokens* tokens, StrVector* str_split) {
+    tokens->line_string_vec = str_vec_copy(str_split);
+    int tokens_i = 0;
+    for (size_t i = 0; i < str_split->size; i++) {
+        char* str_start = tokens->line_string_vec.elems[i];
+        char* str = str_start;
+        while (*str) {
+            Token* token = tokens_get(tokens, tokens_i);
+            token->src_line = i + 1;
+            tokens_get(tokens, tokens_i)->src_line_str = str_start;
+            tokens_i++;
+            str++;
+        }
+    }
 }

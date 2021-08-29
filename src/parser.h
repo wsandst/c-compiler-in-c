@@ -130,7 +130,10 @@ struct ASTNode {
     VarTypeEnum ret_type;
     ASTNode* ret; // necessary?
 
-    char* debug;
+    int debug_src_line;
+    char* debug_src_line_str;
+    char* debug_src_filename_str;
+
     ASTNode* next_mem; // Linked list used for freeing memory correctly
 };
 
@@ -156,6 +159,9 @@ void ast_node_swap(ASTNode* node1, ASTNode* node2);
 
 // Copies node2 into node1
 void ast_node_copy(ASTNode* node1, ASTNode* node2);
+
+// Tag AST Node with debug info from the Token
+void ast_node_tag_debug(ASTNode* node, Token* token);
 
 // =========== Parsing ============
 // Uses recursive decending to construct the AST

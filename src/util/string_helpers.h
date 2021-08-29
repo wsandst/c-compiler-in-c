@@ -51,6 +51,9 @@ StrVector str_vec_slice(StrVector* str_vec, int from_index, int to_index);
 // Add two string vectors, store result in str_vec1 and free str_vec2
 StrVector* str_vec_add(StrVector* str_vec1, StrVector* str_vec2);
 
+// Deep copy the string vector
+StrVector str_vec_copy(StrVector* str_vec);
+
 // Split a C string based on a delimiter and return a StrVector
 StrVector str_split(char* str, char delimiter);
 

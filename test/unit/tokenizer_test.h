@@ -73,7 +73,7 @@ void test_tokenizer_helpers() {
 void test_tokenizer_preprocessor() {
     // Preproccessor
     char* src = "#define\n   #include test\n";
-    Tokens tokens = tokenize(src);
+    Tokens tokens = tokenize(src, false);
     assert(tokens_get(&tokens, 0)->type == TK_PREPROCESSOR);
     assert(tokens_get(&tokens, 1)->type == TK_PREPROCESSOR);
     assert(tokens_get(&tokens, 2)->type == TK_EOF); // Last token should always be EOF
@@ -87,7 +87,7 @@ void test_tokenizer_comments() {
     char* src =
         "//#define\n #define \n while // hello \n/*test */ \n while /* \n if \n */while\n /**/ /**/\n \"// \\\"/* */\" \n /*\n*/";
     // "// /* */\"
-    Tokens tokens = tokenize(src);
+    Tokens tokens = tokenize(src, false);
     assert(tokens_get(&tokens, 0)->type == TK_COMMENT);
     assert(strcmp(tokens_get(&tokens, 1)->string_repr, "#define") == 0);
     assert(tokens_get(&tokens, 1)->type == TK_PREPROCESSOR);
@@ -107,7 +107,7 @@ void test_tokenizer_comments() {
 void test_tokenizer_strings() {
     // Strings
     char* src = "//\"\"\n \"hello\" \n \"hello\\\"\" \n 'c' \n '\\n' '\\\"'\n\"\"while";
-    Tokens tokens = tokenize(src);
+    Tokens tokens = tokenize(src, false);
     assert(tokens_get(&tokens, 0)->type == TK_COMMENT);
     assert(tokens_get(&tokens, 1)->type == TK_LSTRING);
     assert(strcmp(tokens_get(&tokens, 1)->string_repr, "hello") == 0);
@@ -128,7 +128,7 @@ void test_tokenizer_keywords() {
     // Keywords
     char* src =
         "unsigned.if else while do for break continue return switch case\ndefault goto typedef struct union const long short signed int float double char void hello_int int_hello _int";
-    Tokens tokens = tokenize(src);
+    Tokens tokens = tokenize(src, false);
     assert(tokens_get(&tokens, 0)->type == TK_KW_UNSIGNED);
     assert(tokens_get(&tokens, 1)->type == TK_DL_DOT);
     assert(tokens_get(&tokens, 2)->type == TK_KW_IF);
@@ -166,7 +166,7 @@ void test_tokenizer_ops() {
     // Operations
     char* src =
         "|| && >> << == != >= <= + - * / % | & ~ ^ > < ! = ? ++ -- += -= *= /= %= <<= >>= &= |= ^= sizeof ->";
-    Tokens tokens = tokenize(src);
+    Tokens tokens = tokenize(src, false);
     assert(tokens_get(&tokens, 0)->type == TK_OP_OR);
     assert(tokens_get(&tokens, 1)->type == TK_OP_AND);
     assert(tokens_get(&tokens, 2)->type == TK_OP_RIGHTSHIFT);
@@ -210,7 +210,7 @@ void test_tokenizer_ops() {
 void test_tokenizer_idents() {
     // Identifiers
     char* src = "int x = a; \n abc \n a \n _a \n 1a \n _ \na\nabc_efg";
-    Tokens tokens = tokenize(src);
+    Tokens tokens = tokenize(src, true);
     assert(tokens_get(&tokens, 0)->type == TK_KW_INT);
     assert(tokens_get(&tokens, 1)->type == TK_IDENT);
     assert(tokens_get(&tokens, 2)->type == TK_OP_ASSIGN);
@@ -226,11 +226,12 @@ void test_tokenizer_idents() {
     assert(strcmp(tokens_get(&tokens, 10)->string_repr, "abc_efg") == 0);
     assert(tokens_get(&tokens, 10)->type == TK_IDENT);
     tokens_free(&tokens);
+    tokens_free_line_strings(&tokens);
 }
 
 void test_tokenizer_delims() {
     char* src = "{}()[],.;:";
-    Tokens tokens = tokenize(src);
+    Tokens tokens = tokenize(src, false);
     assert(tokens_get(&tokens, 0)->type == TK_DL_OPENBRACE);
     assert(tokens_get(&tokens, 1)->type == TK_DL_CLOSEBRACE);
     assert(tokens_get(&tokens, 2)->type == TK_DL_OPENPAREN);
@@ -246,7 +247,7 @@ void test_tokenizer_delims() {
 
 void test_tokenizer_values() {
     char* src = "13; \n3134\n 53asd; 1.3 .3 3. 1.3b ;";
-    Tokens tokens = tokenize(src);
+    Tokens tokens = tokenize(src, false);
     // Ints
     assert(tokens_get(&tokens, 0)->type == TK_LINT);
     assert(strcmp(tokens_get(&tokens, 0)->string_repr, "13") == 0);
@@ -265,6 +266,7 @@ void test_tokenizer_values() {
 
 void test_tokenizer_large_src() {
     char* src = load_file_to_string("test/unit/examples/example_code.c");
+    //char* src = load_file_to_string("example_code.c");
 
     // Manually tokenize
     // We need access to the overwritten StrVector lines to ensure every token was grabbed

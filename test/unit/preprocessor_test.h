@@ -3,9 +3,9 @@
 #include <stdio.h>
 #include <string.h>
 
-#include "../src/tokens.h"
-#include "../src/preprocess.h"
-#include "../src/util/file_helpers.h"
+#include "../../src/tokens.h"
+#include "../../src/preprocess.h"
+#include "../../src/util/file_helpers.h"
 
 // Declarations
 void test_preprocessor();

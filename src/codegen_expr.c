@@ -82,7 +82,7 @@ void gen_asm_variable(ASTNode* node, AsmContext ctx) {
     else if (node->var.type.type == TY_INT || node->var.type.ptr_level > 0) {
         // Integer/pointer type, store value in rax
         char* move_instr = get_move_instr_for_var_type(node->var.type);
-        asm_addf(&ctx, "%s, %s", move_instr, sp2);
+        asm_addf(&ctx, "%s, %s ; var %s", move_instr, sp2, node->var.name);
         free(move_instr);
     }
     else if (node->var.type.type == TY_FLOAT) {
@@ -678,6 +678,11 @@ void gen_asm_unary_op_ptr(ASTNode* node, AsmContext ctx) {
             gen_asm_binary_op_assign_int(node->rhs, ctx);
             asm_addf(&ctx, "pop rax");
             break;
+        case UOP_NOT: // Logical not
+            asm_addf(&ctx, "cmp rax, 0");
+            asm_addf(&ctx, "mov rax, 0");
+            asm_addf(&ctx, "sete al");
+            break;
         default:
             codegen_error("Unsupported pointer unary operation encountered!");
             break;
@@ -758,6 +763,12 @@ void gen_asm_binary_op_ptr(ASTNode* node, AsmContext ctx) {
             asm_addf(&ctx, "cmp rax, rbx");
             asm_addf(&ctx, "mov rax, 0");
             asm_addf(&ctx, "setge al");
+            break;
+        case BOP_AND: // Logical and
+            gen_asm_binary_op_and_int(node, ctx);
+            break;
+        case BOP_OR: // Logical or
+            gen_asm_binary_op_or_int(node, ctx);
             break;
         case BOP_MEMBER: // Struct to pointer member
             asm_add_com(&ctx, "; pOp: struct member");

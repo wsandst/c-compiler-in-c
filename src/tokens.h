@@ -113,12 +113,15 @@ struct Token {
     int src_line;
     char* string_repr;
     char* src_filename;
+    char* src_line_str;
     bool requires_string_free;
+    bool src_line_requires_free;
 };
 
 struct Tokens {
     int size;
     Vec elems; // Token vec
+    StrVector line_string_vec; // Used for freeing
 };
 
 typedef struct Token Token;
@@ -129,15 +132,19 @@ typedef struct Tokens Tokens;
 // Create a new Tokens object
 Tokens tokens_new(int size);
 
-// Free the Token object
+// Free the Tokens object
 void tokens_free(Tokens* tokens);
+
+// Free the Tokens line strings
+// This is separate, as we do not always want to free this
+void tokens_free_line_strings(Tokens* tokens);
 
 // Get a token from index i in Tokens
 Token* tokens_get(Tokens* tokens, int i);
 
 // Set a token at index i in Tokens
 void tokens_set(Tokens* tokens, int i, TokenType type, char* string_repr,
-                bool requires_free, int line);
+                bool requires_free);
 
 // Remove NULL elements from the token array
 void tokens_trim(Tokens* tokens);
@@ -156,7 +163,7 @@ Tokens* tokens_insert(Tokens* tokens1, Tokens* tokens2, int tokens1_index);
 
 // ========= Tokenization functions ===========
 
-Tokens tokenize(char* source);
+Tokens tokenize(char* source, bool tag_debug_line_info);
 
 void tokenize_preprocessor(Tokens* tokens, StrVector* split_src);
 
@@ -181,6 +188,8 @@ void tokenize_ints(Tokens* tokens, StrVector* str_split);
 void tokenize_floats(Tokens* tokens, StrVector* str_split);
 
 void tokenize_delims(Tokens* tokens, StrVector* str_split);
+
+void tag_tokens_with_src_lines(Tokens* tokens, StrVector* str_split);
 
 // Debug helper
 char* token_type_to_string(enum TokenType type);

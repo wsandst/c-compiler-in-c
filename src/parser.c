@@ -57,6 +57,12 @@ static VarType latest_parsed_var_type;
 static Function latest_func;
 static Object latest_struct;
 
+void ast_node_tag_debug(ASTNode* node, Token* token) {
+    node->debug_src_line = token->src_line;
+    node->debug_src_line_str = token->src_line_str;
+    node->debug_src_filename_str = token->src_filename;
+}
+
 AST parse(Tokens* tokens, SymbolTable* global_symbols) {
     parse_token = tokens_get(tokens, 0);
     // Setup initial AST
@@ -482,6 +488,7 @@ void parse_func(ASTNode* node, SymbolTable* symbols) {
         expect(TK_DL_SEMICOLON);
         return;
     }
+    ast_node_tag_debug(node, parse_token - 1);
     // Function has body, is a definition
     func.is_defined = true;
     latest_func = func;
@@ -494,6 +501,8 @@ void parse_func(ASTNode* node, SymbolTable* symbols) {
 }
 
 void parse_single_statement(ASTNode* node, SymbolTable* symbols) {
+    ast_node_tag_debug(node, parse_token);
+
     if (accept(TK_COMMENT)) { // Comment, do nothing, move on to next statement
         parse_single_statement(node, symbols);
         return;

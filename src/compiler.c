@@ -25,10 +25,21 @@ TODO:
 
     The struct padding is off by 8 bytes for ValueLabel, why?
 
+    Issue:
+        I sometimes go over the arrays. See valgrind on symbol table
+        This probably causes heap corruption, which is why I get a segmentation fault
+        when all the tests are run together
+
     Super weird issue:
         In pointers/ex6.c, for some very weird reason, we get segmentation fault if we
         don't include the printf function definition. It shouldn't have any code effect, but it does
         How???
+
+    Communicate debug info down into the assembly:
+        My codegen needs to know which line is responsible for what
+        Maybe just include line info in the ASTNode.
+        Then the Token communicates the original line content by
+        initializing at runtime
 
     Types:
         Arrays:
@@ -75,6 +86,7 @@ int main(int argc, char** argv) {
     symbol_table_free(symbols);
     preprocessor_table_free(&table);
     tokens_free(&tokens);
+    tokens_free_line_strings(&tokens);
     ast_free(&ast);
     free(asm_src);
     free(compile_options.output_filename);

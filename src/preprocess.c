@@ -18,7 +18,7 @@ Tokens preprocess(char* filename, PreprocessorTable* table, bool is_stl_file) {
     char* src = load_file_to_string(filename_with_dir);
     preprocessor_table_update_current_dir(table, filename);
 
-    Tokens tokens = tokenize(src);
+    Tokens tokens = tokenize(src, true);
     tokens_tag_src_filename(&tokens, filename);
 
     preprocess_tokens(&tokens, table);
@@ -49,7 +49,12 @@ void preprocess_token(Tokens* tokens, PreprocessorTable* table) {
         }
         else if (str_startswith(token->string_repr, "#pragma once")) {
             PreprocessorItem* cur_file = preprocessor_table_get_current_file(table);
+            PreprocessorItem cur_file_no_path;
+            cur_file_no_path.name = isolate_file_from_path(cur_file->name);
+            cur_file_no_path.type = PP_INCLUDED_FILE;
+            cur_file_no_path.include_file_only_once = true;
             cur_file->include_file_only_once = true;
+            preprocessor_table_insert(table, cur_file_no_path);
         }
         else if (str_startswith(token->string_repr, "#ifdef")) {
             preprocess_ifdef(tokens, table);
@@ -90,10 +95,12 @@ void preprocess_include(Tokens* tokens, PreprocessorTable* table) {
     file_str = str_strip(file_str);
 
     // If file already is in table and has pragma once, skip
-    PreprocessorItem* item = preprocessor_table_lookup(table, file_str);
+    char* file_no_path_str = isolate_file_from_path(file_str);
+    PreprocessorItem* item = preprocessor_table_lookup(table, file_no_path_str);
     if (item && item->include_file_only_once) {
         str_vec_free(&str_vec);
         free(file_str);
+        free(file_no_path_str);
         return;
     }
     // Add it to the preprocessor table
@@ -120,6 +127,7 @@ void preprocess_include(Tokens* tokens, PreprocessorTable* table) {
     tokens = tokens_insert(tokens, &file_tokens, table->token_index);
     // Free used memory
     str_vec_free(&str_vec);
+    free(file_no_path_str);
     vec_free(&file_tokens.elems);
     table->token_index += file_tokens.size;
 }
@@ -134,7 +142,7 @@ void preprocess_define(Tokens* tokens, PreprocessorTable* table) {
 
     Tokens define_value_tokens;
     if (str_vec_value.size > 0) { // Define has a replace value we should use
-        define_value_tokens = tokenize(define_value);
+        define_value_tokens = tokenize(define_value, false);
     }
     else { // This is an empty define, if used should produce no token
         define_value_tokens = tokens_new(1);
@@ -295,11 +303,9 @@ PreprocessorTable preprocessor_table_new() {
     table.token_index = 0;
     table.current_file_dir = NULL;
     table.current_file_index = 0;
-    PreprocessorItem item;
-    item.name = str_copy("CCIC");
-    item.type = PP_DEFINE;
-    item.define_value_tokens = tokens_new(0);
-    preprocessor_table_insert(&table, item);
+    // Add a CCIC define which is unique for this compiler
+    // Useful for certain debugging
+    preprocessor_table_add_simple_define(&table, "CCIC");
     return table;
 }
 
@@ -354,6 +360,15 @@ int preprocessor_table_remove(PreprocessorTable* table, char* name) {
     // Removing items is expensive, just ignore this item from now on
     item->ignore = true;
     return 1;
+}
+
+// Add a simple define. Used for compiler specific defines etc
+void preprocessor_table_add_simple_define(PreprocessorTable* table, char* name) {
+    PreprocessorItem item;
+    item.name = str_copy(name);
+    item.type = PP_DEFINE;
+    item.define_value_tokens = tokens_new(0);
+    preprocessor_table_insert(table, item);
 }
 
 void preprocess_error(char* error_message, PreprocessorTable* table) {

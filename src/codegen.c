@@ -250,6 +250,8 @@ AsmContext asm_context_new() {
     str_vec_push(ctx.asm_text_src, "\nsection .text\n");
     ctx.label_count = calloc(1, sizeof(int));
     ctx.cstring_label_count = calloc(1, sizeof(int));
+    ctx.prev_filename_str = NULL;
+    ctx.prev_line = calloc(1, sizeof(int));
     return ctx;
 }
 
@@ -266,6 +268,7 @@ void asm_context_free(AsmContext* ctx) {
     free(ctx->asm_indent_str);
     free(ctx->label_count);
     free(ctx->cstring_label_count);
+    free(ctx->prev_line);
 }
 
 char* asm_context_join_srcs(AsmContext* ctx) {
@@ -307,6 +310,7 @@ char* generate_assembly(AST* ast, SymbolTable* symbols) {
 }
 
 void gen_asm(ASTNode* node, AsmContext ctx) {
+    gen_asm_debug_tagging(node, &ctx);
     switch (node->type) {
         case AST_PROGRAM:
             gen_asm(node->body, ctx);
@@ -883,4 +887,22 @@ void gen_asm_return(ASTNode* node, AsmContext ctx) {
     gen_asm_unary_op_cast(ctx, node->cast_type, node->ret->cast_type);
     asm_addf(&ctx, "jmp %s ; Function return", ctx.func_return_label);
     gen_asm(node->next, ctx);
+}
+
+// Generate assembly comment which tags the assembly with the corresponding C code line
+void gen_asm_debug_tagging(ASTNode* node, AsmContext* ctx) {
+    if (node->debug_src_line_str != NULL) {
+        //int prev_indent = ctx->indent_level;
+        //asm_set_indent(ctx, 0);
+        asm_add_newline(ctx, ctx->asm_text_src);
+        if (ctx->prev_filename_str != node->debug_src_filename_str) {
+            asm_addf(ctx, "; FILE | %s ", node->debug_src_filename_str);
+            ctx->prev_filename_str = node->debug_src_filename_str;
+        }
+        if (*ctx->prev_line != node->debug_src_line) {
+            asm_addf(ctx, "; L%d | %s ", node->debug_src_line, node->debug_src_line_str);
+            *ctx->prev_line = node->debug_src_line;
+        }
+        //asm_set_indent(ctx, prev_indent);
+    }
 }

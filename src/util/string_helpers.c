@@ -179,6 +179,9 @@ StrVector str_split_on_whitespace(char* str) {
 
 // Add two string vectors
 StrVector* str_vec_add(StrVector* str_vec1, StrVector* str_vec2) {
+    if (str_vec1->elems == NULL || str_vec2->elems == NULL) {
+        return str_vec1;
+    }
     str_vec1->elems = realloc(str_vec1->elems,
                               (str_vec1->size + str_vec2->size) * sizeof(char*));
     memcpy(str_vec1->elems + str_vec1->size, str_vec2->elems,
@@ -194,6 +197,17 @@ void str_vec_print(StrVector* str_vec) {
     for (size_t i = 0; i < str_vec->size; i++) {
         printf("%s\n", str_vec->elems[i]);
     }
+}
+
+// Deep copy the string vector
+StrVector str_vec_copy(StrVector* str_vec) {
+    StrVector new_vec = str_vec_new(str_vec->size);
+    new_vec.size = str_vec->size;
+    new_vec.max_size = str_vec->max_size;
+    for (size_t i = 0; i < str_vec->size; i++) {
+        new_vec.elems[i] = str_copy(str_vec->elems[i]);
+    }
+    return new_vec;
 }
 
 // ======================== String Helpers =============================

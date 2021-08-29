@@ -32,6 +32,9 @@ struct AsmContext {
     char* or_short_circuit_label;
     bool and_end_node;
     bool or_end_node;
+    // Debug line generation related
+    char* prev_filename_str;
+    int* prev_line;
 };
 
 enum RegisterEnum {
@@ -219,3 +222,6 @@ void gen_asm_add_short_circuit_jumps(ASTNode* node, AsmContext ctx);
 
 // Casting between any types
 void gen_asm_unary_op_cast(AsmContext ctx, VarType to_type, VarType from_type);
+
+// Generate assembly comment which tags the assembly with the corresponding C code line
+void gen_asm_debug_tagging(ASTNode* node, AsmContext* ctx);
