@@ -231,7 +231,8 @@ void gen_asm_unary_op_int(ASTNode* node, AsmContext ctx) {
                          node->rhs->cast_type.array_size *
                              node->rhs->cast_type.ptr_value_bytes);
             }
-            else if (node->rhs->cast_type.type == TY_STRUCT) {
+            else if (node->rhs->cast_type.type == TY_STRUCT &&
+                     node->rhs->cast_type.ptr_level == 0) {
                 asm_addf(&ctx, "mov rax, %d", node->rhs->var.struct_type.struct_type.bytes);
             }
             else {

@@ -113,12 +113,15 @@ typedef struct Function Function;
 typedef struct ValueLabel ValueLabel;
 
 struct ValueLabel { // Switch case labels
-    LiteralType type;
     int id;
+    LiteralType type;
     char* str_value;
     int value;
     bool is_default_case;
     ValueLabel* next; // Used as linked list for switch
+    long padding1;
+    long padding2;
+    long padding3;
 };
 
 typedef struct SymbolTable SymbolTable;

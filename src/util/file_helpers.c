@@ -5,8 +5,8 @@ static const bool ASSEMBLE_DEBUG = true;
 char* load_file_to_string(char* filename) {
     FILE* file = fopen(filename, "r");
     if (file == NULL) {
-        printf("The specified source file \"%s\" does not appear to exist\n", filename);
-        exit(1);
+        perror("Source file loading error");
+        exit(-1);
     }
 
     long size;

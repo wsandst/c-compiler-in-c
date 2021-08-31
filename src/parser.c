@@ -784,10 +784,11 @@ void parse_binary_op_struct_ptr_member(ASTNode* node, SymbolTable* symbols) {
     node->expr_type = EXPR_UNOP;
     node->op_type = UOP_DEREF;
     node->cast_type = get_deref_var_type(node->rhs->cast_type);
-    //if (node->var.struct_type.name == 0) {
-    //node->var.struct_type =
-    //*symbol_table_lookup_object(symbols, node->cast_type.struct_name, OBJ_STRUCT);
-    //}
+    if (node->cast_type.type == TY_STRUCT) {
+        Object* struct_obj =
+            symbol_table_lookup_object(symbols, node->cast_type.struct_name, OBJ_STRUCT);
+        node->cast_type.ptr_value_bytes = struct_obj->struct_type.bytes;
+    }
     // Pass deref node into normal struct member function
     parse_binary_op_struct_member(node, symbols);
 }
@@ -805,6 +806,13 @@ void parse_binary_op_indexing(ASTNode* node, SymbolTable* symbols) {
     add_binop->rhs = rhs;
     add_binop->lhs = lhs;
     add_binop->cast_type = return_wider_type(rhs->cast_type, lhs->cast_type);
+
+    if (add_binop->cast_type.type == TY_STRUCT) {
+        Object* struct_obj = symbol_table_lookup_object(
+            symbols, add_binop->cast_type.struct_name, OBJ_STRUCT);
+        add_binop->cast_type.ptr_value_bytes = struct_obj->struct_type.bytes;
+    }
+
     node->expr_type = EXPR_UNOP;
     node->op_type = UOP_DEREF;
     node->rhs = add_binop;
@@ -830,6 +838,14 @@ void parse_expression_atom(ASTNode* node, SymbolTable* symbols) {
             node->expr_type = EXPR_VAR;
             node->var = symbol_table_lookup_var(symbols, ident);
             node->cast_type = node->var.type;
+            if (node->var.type.type == TY_STRUCT) {
+                Object* struct_obj = symbol_table_lookup_object(
+                    symbols, node->var.type.struct_name, OBJ_STRUCT);
+                if (struct_obj != NULL) {
+                    node->var.struct_type = *struct_obj;
+                    node->cast_type.bytes = struct_obj->struct_type.bytes;
+                }
+            }
             parse_high_precedence_binary_operators(node, symbols);
         }
     }
@@ -917,6 +933,7 @@ void parse_unary_op(ASTNode* node, SymbolTable* symbols) {
             if (node->cast_type.type == TY_STRUCT && node->cast_type.ptr_level == 0) {
                 node->var.struct_type = *symbol_table_lookup_object(
                     symbols, node->cast_type.struct_name, OBJ_STRUCT);
+                node->cast_type.bytes = node->var.struct_type.struct_type.bytes;
             }
         }
     }

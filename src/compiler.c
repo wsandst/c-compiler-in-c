@@ -11,6 +11,9 @@ TODO:
         Refactor constant expression handling:
             Everything is very fragmented currently, handling of globals/cases/enums should be
             the same, not different as it is currently
+        Refactor struct type handling:
+            Currently we sometimes use cast_type and sometimes use
+            struct_type for structs. Unify this
 
     Functions:
         Variadic function definitions, not just declarations/calling:
@@ -26,9 +29,7 @@ TODO:
     The struct padding is off by 8 bytes for ValueLabel, why?
 
     Issue:
-        I sometimes go over the arrays. See valgrind on symbol table
-        This probably causes heap corruption, which is why I get a segmentation fault
-        when all the tests are run together
+        String test is checking against uninitialized values, check why
 
     Super weird issue:
         In pointers/ex6.c, for some very weird reason, we get segmentation fault if we
