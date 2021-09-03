@@ -161,6 +161,13 @@ void test_string_helper_funcs() {
     assert(c_isalpha('Z'));
     assert(c_isalnum('Z'));
     assert(c_isalnum('3'));
+
+    // nasm string escaping
+    test_str = str_copy("`cool`");
+    test_str = str_escape_nasm_chars(test_str);
+    printf("str: %s\n", test_str);
+    assert(strcmp(test_str, "\\`cool\\`") == 0);
+    free(test_str);
 }
 
 //int main() {

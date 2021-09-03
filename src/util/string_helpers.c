@@ -378,6 +378,31 @@ int str_index_of_reverse(char* str, char c) {
     return -1;
 }
 
+char* str_escape_nasm_chars(char* str) {
+    int escape_count = 0;
+    char* input_str = str;
+    while (*str) {
+        if (*str == '`') {
+            escape_count++;
+        }
+        str++;
+    }
+    char* escaped_str = calloc(str - input_str + escape_count + 1, sizeof(char));
+    str = input_str;
+    char* escaped_str_start = escaped_str;
+    while (*str) {
+        if (*str == '`') {
+            *escaped_str = '\\';
+            escaped_str++;
+        }
+        *escaped_str = *str;
+        escaped_str++;
+        str++;
+    }
+    free(input_str);
+    return escaped_str_start;
+}
+
 int max(int a, int b) {
     if (a > b)
         return a;

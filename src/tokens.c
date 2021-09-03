@@ -209,8 +209,10 @@ void tokenize_strings(Tokens* tokens, StrVector* str_split) {
                     str++;
                     src_pos++;
                 }
-                tokens_set(tokens, src_pos, TK_LSTRING,
-                           str_substr(str_start, str - str_start), true);
+                char* str_value = str_substr(str_start, str - str_start);
+                // Escape ` characters which don't play well with NASM
+                str_value = str_escape_nasm_chars(str_value);
+                tokens_set(tokens, src_pos, TK_LSTRING, str_value, true);
                 str_fill(str_start - 1, str - str_start + 2, ' ');
             }
             // Chars, single quotes ''
@@ -224,8 +226,10 @@ void tokenize_strings(Tokens* tokens, StrVector* str_split) {
                     str++;
                     src_pos++;
                 }
-                tokens_set(tokens, src_pos, TK_LCHAR,
-                           str_substr(char_start, str - char_start), true);
+                char* str_value = str_substr(char_start, str - char_start);
+                // Escape ` characters which don't play well with NASM
+                str_value = str_escape_nasm_chars(str_value);
+                tokens_set(tokens, src_pos, TK_LCHAR, str_value, true);
                 str_fill(char_start - 1, str - char_start + 2, ' ');
             }
             str++;

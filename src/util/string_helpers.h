@@ -92,6 +92,10 @@ int str_contains(char* str, char* match);
 // A word has to end with either whitespace or ({[:.
 int str_contains_word(char* str, char* match);
 
+// Escape the contents of a NASM ` ` string by placing backslashes infront of `
+// Frees the input string
+char* str_escape_nasm_chars(char* str);
+
 // Fill a str to char c, inplace. Has to be a mutable str!
 void str_fill(char* str, int length, char c);
 
