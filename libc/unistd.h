@@ -3,6 +3,8 @@
 #ifndef _UNISTD_H
 #define _UNISTD_H 1
 
-int usleep(int usec);
+extern int usleep(int usec);
+
+extern int sleep(unsigned int seconds);
 
 #endif /* unistd.h  */

@@ -76,7 +76,6 @@ AST parse(Tokens* tokens, SymbolTable* global_symbols) {
 
     // Start parsing
     parse_program(program_node->body, global_symbols);
-
     return ast;
 }
 
@@ -212,8 +211,10 @@ bool accept_type(SymbolTable* symbols) {
     }
     // We found a type, check if pointer
     while (accept(TK_OP_MULT)) {
+        if (latest_parsed_var_type.ptr_level == 0) {
+            latest_parsed_var_type.ptr_value_bytes = latest_parsed_var_type.bytes;
+        }
         latest_parsed_var_type.ptr_level += 1;
-        latest_parsed_var_type.ptr_value_bytes = latest_parsed_var_type.bytes;
         latest_parsed_var_type.bytes = 8;
     }
     // Check for ending [] which implies a pointer level
@@ -780,6 +781,12 @@ void parse_binary_op_struct_member(ASTNode* node, SymbolTable* symbols) {
     if (member_type->type == TY_STRUCT) {
         node->var.struct_type =
             *symbol_table_lookup_object(symbols, member_type->struct_name, OBJ_STRUCT);
+        if (node->cast_type.ptr_level == 0) {
+            node->cast_type.bytes = node->var.struct_type.struct_type.bytes;
+        }
+        else {
+            node->cast_type.ptr_value_bytes = node->var.struct_type.struct_type.bytes;
+        }
     }
 }
 
@@ -851,7 +858,12 @@ void parse_expression_atom(ASTNode* node, SymbolTable* symbols) {
                     symbols, node->var.type.struct_name, OBJ_STRUCT);
                 if (struct_obj != NULL) {
                     node->var.struct_type = *struct_obj;
-                    node->cast_type.bytes = struct_obj->struct_type.bytes;
+                    if (node->cast_type.ptr_level == 0) {
+                        node->cast_type.bytes = struct_obj->struct_type.bytes;
+                    }
+                    else {
+                        node->cast_type.ptr_value_bytes = struct_obj->struct_type.bytes;
+                    }
                 }
             }
             parse_high_precedence_binary_operators(node, symbols);
@@ -1347,7 +1359,9 @@ void parse_error_unexpected_symbol(enum TokenType expected, enum TokenType recie
 }
 
 bool is_const_expression(ASTNode* node, SymbolTable* symbols) {
-    return (node->type == AST_EXPR && node->expr_type == EXPR_LITERAL);
+    return (node->type == AST_EXPR && node->expr_type == EXPR_LITERAL) ||
+           (node->type == AST_EXPR && node->expr_type == EXPR_UNOP &&
+            node->op_type == UOP_CAST && node->rhs->expr_type == EXPR_LITERAL);
 }
 
 bool is_valid_const_assignment(ASTNode* node, SymbolTable* symbols) {
@@ -1356,12 +1370,17 @@ bool is_valid_const_assignment(ASTNode* node, SymbolTable* symbols) {
 }
 
 char* evaluate_const_expression(ASTNode* node, SymbolTable* symbols) {
-    return node->literal;
+    if (node->expr_type == EXPR_UNOP && node->op_type == UOP_CAST) {
+        return node->rhs->literal;
+    }
+    else {
+        return node->literal;
+    }
 }
 
 // Evaluate a constant assignment expression
 char* evaluate_const_assignment(ASTNode* node, SymbolTable* symbols) {
-    return node->rhs->literal;
+    return evaluate_const_expression(node->rhs, symbols);
 }
 
 // Issue: Currently I just set the operation to be in int, which I don't want

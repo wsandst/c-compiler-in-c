@@ -853,7 +853,7 @@ void gen_asm_binary_op_struct(ASTNode* node, AsmContext ctx) {
 // Generate assembly for a struct binary op assignment expression node
 void gen_asm_binary_op_assign_struct(ASTNode* node, AsmContext ctx) {
     // Perform a memcpy from address in rbx to address in rax
-    if (node->rhs->cast_type.bytes != node->lhs->cast_type.bytes) {
+    if (node->rhs->var.struct_type.struct_type.bytes != node->lhs->cast_type.bytes) {
         codegen_error("Attempted to assign a struct to a struct of different size!");
     }
     // memcpy: rdi: dest_ptr, rsi: src_ptr, rdx: size_t (bytes)

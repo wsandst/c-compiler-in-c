@@ -11,13 +11,6 @@ which is implemented here.
 #include "tokens.h"
 #include "symbol_table.h"
 
-typedef enum OpType OpType;
-typedef enum UnaryOpType UnaryOpType;
-typedef enum ASTNodeType ASTNodeType;
-typedef enum ExprType ExprType;
-typedef struct ASTNode ASTNode;
-typedef struct AST AST;
-
 enum OpType {
     BOP_ADD, // +
     BOP_SUB, // -
@@ -65,6 +58,8 @@ enum OpType {
     UOP_CAST,
 };
 
+typedef enum OpType OpType;
+
 enum ASTNodeType {
     AST_PROGRAM,
     AST_EXPR,
@@ -88,6 +83,8 @@ enum ASTNodeType {
     AST_NULL_STMT, // Empty statement, used in certain for loops, need to represent it
 };
 
+typedef enum ASTNodeType ASTNodeType;
+
 enum ExprType {
     EXPR_BINOP,
     EXPR_UNOP,
@@ -95,6 +92,10 @@ enum ExprType {
     EXPR_VAR,
     EXPR_FUNC_CALL,
 };
+
+typedef enum ExprType ExprType;
+
+typedef struct ASTNode ASTNode;
 
 struct ASTNode {
     ASTNodeType type;
@@ -142,6 +143,8 @@ struct AST {
     Function* functions; // Hashmap here as well
     Variable* variables; // Hashmap probably? Or map to integers
 };
+
+typedef struct AST AST;
 
 // =========== AST struct functionality ============
 

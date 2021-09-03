@@ -79,8 +79,8 @@ void gen_asm_global_variable(Variable var, AsmContext* ctx) {
         }
     }
     else {
-        asm_add_sectionf(ctx, ctx->asm_data_src, "; Uninitialized global variable");
-        asm_add_sectionf(ctx, ctx->asm_data_src, "G_%s: %s 0", var.name, data_width_str);
+        asm_add_sectionf(ctx, ctx->asm_bss_src, "; Uninitialized global variable");
+        asm_add_sectionf(ctx, ctx->asm_bss_src, "G_%s: resb %d", var.name, var.type.bytes);
     }
 }
 
@@ -107,8 +107,9 @@ void gen_asm_static_variable(Variable var, AsmContext* ctx) {
         }
     }
     else {
-        asm_add_sectionf(ctx, ctx->asm_data_src, "; Uninitialized static variable");
-        asm_add_sectionf(ctx, ctx->asm_data_src, "%s.%ds: dq 0", var.name, var.unique_id);
+        asm_add_sectionf(ctx, ctx->asm_bss_src, "; Uninitialized static variable");
+        asm_add_sectionf(ctx, ctx->asm_bss_src, "%s.%ds: resb %d", var.name,
+                         var.unique_id, var.type.bytes);
     }
 }
 

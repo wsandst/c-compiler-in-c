@@ -30,17 +30,14 @@ TODO:
 
     Issue:
         String test is checking against uninitialized values, check why
+        symbol_free has issues in parser_test.h, why?
 
     Super weird issue:
         In pointers/ex6.c, for some very weird reason, we get segmentation fault if we
         don't include the printf function definition. It shouldn't have any code effect, but it does
         How???
 
-    Communicate debug info down into the assembly:
-        My codegen needs to know which line is responsible for what
-        Maybe just include line info in the ASTNode.
-        Then the Token communicates the original line content by
-        initializing at runtime
+    Something is wrong with split_string, we access uninitialized values
 
     Types:
         Arrays:
