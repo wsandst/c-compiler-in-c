@@ -266,6 +266,10 @@ char* evaluate_const_assignment(ASTNode* node, SymbolTable* symbols);
 // Return the previous token parsed
 Token prev_token();
 
+void token_go_back(int steps);
+
+void set_parse_token(Token* token);
+
 // Return true or false whether the current token matches the sent in token
 bool accept(TokenType type);
 // Accept any token within this range

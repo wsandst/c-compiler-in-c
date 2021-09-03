@@ -29,6 +29,9 @@ void ast_node_free(ASTNode* ast_node) {
     if (ast_node->next_mem != NULL) {
         ast_node_free(ast_node->next_mem);
     }
+    else { // End of list, reset globals for next run
+        ast_node_mem_end = NULL;
+    }
     if (ast_node->type == AST_LABEL || ast_node->type == AST_GOTO) {
         // These have allocated strings which are not freed anywhere else
         free(ast_node->literal);
@@ -76,12 +79,17 @@ AST parse(Tokens* tokens, SymbolTable* global_symbols) {
 
     return ast;
 }
+
 Token prev_token() {
     return *(parse_token - 1);
 }
 
 void token_go_back(int steps) {
     parse_token = parse_token - steps;
+}
+
+void set_parse_token(Token* token) {
+    parse_token = token;
 }
 
 void expect(enum TokenType type) {
