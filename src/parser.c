@@ -299,7 +299,7 @@ void parse_enum(SymbolTable* symbols) {
             var.type.is_const = true;
             Variable* var_ptr = symbol_table_insert_var(symbols, var);
             var_ptr->const_expr = str_copy(buf);
-            var.const_expr_type = LT_INT;
+            var_ptr->const_expr_type = LT_INT;
             accept(TK_DL_COMMA);
             enum_value++;
         }
@@ -1094,6 +1094,7 @@ void parse_array_declaration(ASTNode* node, SymbolTable* symbols) {
         parse_error("Attempted to declare array with non-const size!");
     }
     var->type.array_size = atoi(const_expr);
+    free(const_expr);
     symbols->cur_stack_offset += var->type.bytes * var->type.array_size;
     var->stack_offset = symbols->cur_stack_offset;
     if (symbols->is_global) {

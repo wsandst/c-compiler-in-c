@@ -91,6 +91,7 @@ Variable variable_new() {
     var.is_global = false;
     var.type.array_has_initializer = false;
     var.is_undefined = false;
+    var.const_expr_type = LT_INT;
     return var;
 }
 
@@ -156,6 +157,7 @@ Variable* symbol_table_insert_var(SymbolTable* table, Variable var) {
     static int unique_id = 0;
     var.unique_id = unique_id++;
     var.const_expr = NULL;
+    var.const_expr_type = LT_INT;
     table->vars[table->var_count - 1] = var;
     return table->vars + table->var_count - 1;
 }

@@ -145,8 +145,14 @@ void gen_asm_array_initializer(ASTNode* node, AsmContext ctx) {
                     }
                 }
                 else if (arg_node->expr_type == EXPR_VAR && arg_node->var.is_global) {
-                    asm_add_wn_sectionf(&ctx, ctx.asm_data_src, "G_%s, ",
-                                        arg_node->var.name);
+                    if (arg_node->var.type.is_static) {
+                        asm_add_wn_sectionf(&ctx, ctx.asm_data_src, "%s.%ds, ",
+                                            arg_node->var.name, arg_node->var.unique_id);
+                    }
+                    else {
+                        asm_add_wn_sectionf(&ctx, ctx.asm_data_src, "G_%s, ",
+                                            arg_node->var.name);
+                    }
                 }
                 arg_node = arg_node->next;
             }
