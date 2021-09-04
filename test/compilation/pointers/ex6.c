@@ -1,7 +1,5 @@
 // Struct pointers
 
-void printf(char* s, ...);
-
 typedef struct Node Node;
 
 struct Node {

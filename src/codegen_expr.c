@@ -39,7 +39,7 @@ void gen_asm_variable(ASTNode* node, AsmContext ctx) {
     // Access a variable and store it in rax
     char* sp2 = var_to_stack_ptr(&node->var);
     // Handle various variable types
-    if (node->var.is_constant) { // Constant
+    if (node->var.type.is_const) { // Constant
         asm_addf(&ctx, "mov rax, %s", node->var.const_expr);
     }
     else if (node->var.type.is_struct_member) {

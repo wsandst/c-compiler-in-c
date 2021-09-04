@@ -48,6 +48,7 @@ struct VarType {
     bool is_extern;
     bool is_static;
     bool is_array;
+    bool is_const;
     int array_size;
     bool array_has_initializer;
 
@@ -88,7 +89,6 @@ struct Variable {
     bool is_enum_member;
     char* const_expr;
     LiteralType const_expr_type;
-    bool is_constant;
     int unique_id;
     Object struct_type;
 };

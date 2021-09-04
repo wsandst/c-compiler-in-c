@@ -32,7 +32,7 @@ void symbol_table_free(SymbolTable* table) {
         free(table->children_ptrs);
     }
     for (size_t i = 0; i < table->var_count; i++) {
-        if (table->vars[i].is_constant) {
+        if (table->vars[i].const_expr) {
             free(table->vars[i].const_expr);
         }
     }
@@ -155,7 +155,7 @@ Variable* symbol_table_insert_var(SymbolTable* table, Variable var) {
     var.is_global = table->is_global;
     static int unique_id = 0;
     var.unique_id = unique_id++;
-    var.is_constant = false;
+    var.const_expr = NULL;
     table->vars[table->var_count - 1] = var;
     return table->vars + table->var_count - 1;
 }

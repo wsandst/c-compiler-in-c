@@ -257,12 +257,8 @@ void parse_typedef(ASTNode* node, SymbolTable* symbols);
 void parse_error(char* error_message);
 void parse_error_unexpected_symbol(enum TokenType expected, enum TokenType recieved);
 
-bool is_const_expression(ASTNode* node, SymbolTable* symbols);
-bool is_valid_const_assignment(ASTNode* node, SymbolTable* symbols);
-
+// Evaluate a constant expression (literal or constant variable)
 char* evaluate_const_expression(ASTNode* node, SymbolTable* symbols);
-// Evaluate a constant expression
-char* evaluate_const_assignment(ASTNode* node, SymbolTable* symbols);
 
 // Various helpers
 

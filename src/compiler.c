@@ -15,6 +15,10 @@ TODO:
             Currently we sometimes use cast_type and sometimes use
             struct_type for structs. Unify this
 
+    Constant handling:
+        I need support for constant variables
+        is_
+
     Functions:
         Variadic function definitions, not just declarations/calling:
             https://blog.nelhage.com/2010/10/amd64-and-va_arg/
@@ -27,17 +31,6 @@ TODO:
         Floating point parameters + struct by value won't work, I don't save the xmm regs
 
     The struct padding is off by 8 bytes for ValueLabel, why?
-
-    Issue:
-        String test is checking against uninitialized values, check why
-        symbol_free has issues in parser_test.h, why?
-
-    Super weird issue:
-        In pointers/ex6.c, for some very weird reason, we get segmentation fault if we
-        don't include the printf function definition. It shouldn't have any code effect, but it does
-        How???
-
-    Something is wrong with split_string, we access uninitialized values
 
     Types:
         Arrays:

@@ -132,14 +132,21 @@ void gen_asm_array_initializer(ASTNode* node, AsmContext ctx) {
         }
         for (size_t i = 0; i < node->var.type.array_size; i++) {
             if (arg_node->type != AST_END) { // Grab the argument value
-                if (arg_node->literal_type == LT_STRING) {
-                    char* label_name = get_next_cstring_label_str(&ctx);
-                    asm_add_sectionf(&ctx, ctx.asm_rodata_src, "%s: db `%s`, 0",
-                                     label_name, arg_node->literal);
-                    asm_add_wn_sectionf(&ctx, ctx.asm_data_src, "%s, ", label_name);
+                if (arg_node->expr_type == EXPR_LITERAL) {
+                    if (arg_node->literal_type == LT_STRING) {
+                        char* label_name = get_next_cstring_label_str(&ctx);
+                        asm_add_sectionf(&ctx, ctx.asm_rodata_src, "%s: db `%s`, 0",
+                                         label_name, arg_node->literal);
+                        asm_add_wn_sectionf(&ctx, ctx.asm_data_src, "%s, ", label_name);
+                    }
+                    else {
+                        asm_add_wn_sectionf(&ctx, ctx.asm_data_src, "%s, ",
+                                            arg_node->literal);
+                    }
                 }
-                else {
-                    asm_add_wn_sectionf(&ctx, ctx.asm_data_src, "%s, ", arg_node->literal);
+                else if (arg_node->expr_type == EXPR_VAR && arg_node->var.is_global) {
+                    asm_add_wn_sectionf(&ctx, ctx.asm_data_src, "G_%s, ",
+                                        arg_node->var.name);
                 }
                 arg_node = arg_node->next;
             }

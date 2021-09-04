@@ -146,17 +146,19 @@ bool accept_binop() {
 
 // Accept variable/function type: float, double, char, short, int, long
 bool accept_type(SymbolTable* symbols) {
-    accept(TK_KW_CONST);
     latest_parsed_var_type.is_static = false;
     latest_parsed_var_type.is_extern = false;
     latest_parsed_var_type.is_struct_member = false;
     latest_parsed_var_type.array_has_initializer = false;
+    latest_parsed_var_type.is_const = false;
     if (accept(TK_KW_EXTERN)) {
         latest_parsed_var_type.is_extern = true;
     };
     if (accept(TK_KW_STATIC)) {
         latest_parsed_var_type.is_static = true;
-        accept(TK_KW_CONST);
+    }
+    if (accept(TK_KW_CONST)) {
+        latest_parsed_var_type.is_const = true;
     }
     latest_parsed_var_type.ptr_level = 0;
     if (accept(TK_KW_UNSIGNED)) {
@@ -205,7 +207,6 @@ bool accept_type(SymbolTable* symbols) {
     }
     else if (accept_object_type(symbols)) {
     }
-    // Add user defined types here as well
     else {
         return false;
     }
@@ -248,6 +249,7 @@ bool accept_object_type(SymbolTable* symbols) {
                 }
                 else {
                     latest_struct = *struct_obj;
+                    latest_parsed_var_type.bytes = struct_obj->struct_type.bytes;
                 }
             }
             return true;
@@ -289,15 +291,15 @@ void parse_enum(SymbolTable* symbols) {
             char* ident = prev_token().string_repr;
             Variable var = variable_new(); // Create a variable to map the value
             snprintf(buf, 64, "%d", enum_value);
-            var.const_expr = str_copy(buf);
-            var.const_expr_type = LT_INT;
             var.name = ident;
             var.is_enum_member = 0;
             var.type.bytes = 8;
             var.type.type = TY_INT;
             var.type.is_extern = false;
+            var.type.is_const = true;
             Variable* var_ptr = symbol_table_insert_var(symbols, var);
-            var_ptr->is_constant = true;
+            var_ptr->const_expr = str_copy(buf);
+            var.const_expr_type = LT_INT;
             accept(TK_DL_COMMA);
             enum_value++;
         }
@@ -1004,11 +1006,12 @@ void parse_global(ASTNode* node, SymbolTable* symbols) {
         if (accept(TK_OP_ASSIGN)) { // Assignment
             token_go_back(2);
             parse_expression(node, symbols, 1);
-            if (!is_valid_const_assignment(node, symbols)) {
-                parse_error("Non-constant global expression found");
-            }
             Variable* inserted_var = symbol_table_lookup_var_ptr(symbols, ident);
-            inserted_var->const_expr = evaluate_const_assignment(node, symbols);
+            inserted_var->const_expr = evaluate_const_expression(node->rhs, symbols);
+            if (!inserted_var->const_expr) {
+                parse_error(
+                    "Attempted to assign non-const value to global variable declaration");
+            }
             inserted_var->const_expr_type = node->rhs->literal_type;
             inserted_var->is_undefined = false;
         }
@@ -1020,11 +1023,12 @@ void parse_global(ASTNode* node, SymbolTable* symbols) {
         token_go_back(1);
         parse_expression(node, symbols, 1);
         expect(TK_DL_SEMICOLON);
-        if (!is_valid_const_assignment(node, symbols)) {
-            parse_error("Non-constant global expression found");
-        }
         Variable* inserted_var = symbol_table_lookup_var_ptr(symbols, ident);
-        inserted_var->const_expr = evaluate_const_assignment(node, symbols);
+        inserted_var->const_expr = evaluate_const_expression(node->rhs, symbols);
+        if (!inserted_var->const_expr) {
+            parse_error(
+                "Attempted to assign non-const value to global variable declaration");
+        }
         inserted_var->const_expr_type = node->rhs->literal_type;
         inserted_var->is_undefined = false;
         node->type = AST_NULL_STMT; // Declaration is virtual
@@ -1044,10 +1048,11 @@ void parse_static_declaration(ASTNode* node, SymbolTable* symbols) {
         node->type = AST_EXPR;
         node->top_level_expr = true;
         parse_expression(node, symbols, 1);
-        if (!is_valid_const_assignment(node, symbols)) {
-            parse_error("Attempted to initialize static variable with non-const value!");
+        var->const_expr = evaluate_const_expression(node->rhs, symbols);
+        if (!var->const_expr) {
+            parse_error(
+                "Attempted to assign non-const value to static variable declaration");
         }
-        var->const_expr = evaluate_const_assignment(node, symbols);
         var->const_expr_type = node->rhs->literal_type;
         var->is_undefined = false;
         expect(TK_DL_SEMICOLON);
@@ -1084,10 +1089,10 @@ void parse_array_declaration(ASTNode* node, SymbolTable* symbols) {
     ASTNode* temp_node = ast_node_new(AST_EXPR, 1);
     expect(TK_DL_OPENBRACKET);
     parse_expression(temp_node, symbols, 1);
-    if (!is_const_expression(temp_node, symbols)) {
+    char* const_expr = evaluate_const_expression(temp_node, symbols);
+    if (!const_expr) {
         parse_error("Attempted to declare array with non-const size!");
     }
-    char* const_expr = evaluate_const_expression(temp_node, symbols);
     var->type.array_size = atoi(const_expr);
     symbols->cur_stack_offset += var->type.bytes * var->type.array_size;
     var->stack_offset = symbols->cur_stack_offset;
@@ -1111,9 +1116,10 @@ void parse_array_initializer(ASTNode* node, SymbolTable* symbols) {
     while (!(accept(TK_DL_CLOSEBRACE)) ||
            prev_token().type == TK_DL_OPENBRACE) { // Go through initializer args
         parse_expression(arg_node, symbols, 1);
-        if (!is_const_expression(arg_node, symbols)) {
-            parse_error("Non-constant element found in array initializer!");
-        }
+        //char* const_expr = evaluate_const_expression(arg_node, symbols);
+        //if (!const_expr) {
+        //parse_error("Non-constant element found in array initializer!");
+        //}
         arg_node->next = ast_node_new(AST_END, 1);
         arg_node = arg_node->next;
         accept(TK_DL_COMMA);
@@ -1358,29 +1364,23 @@ void parse_error_unexpected_symbol(enum TokenType expected, enum TokenType recie
     parse_error(buff);
 }
 
-bool is_const_expression(ASTNode* node, SymbolTable* symbols) {
-    return (node->type == AST_EXPR && node->expr_type == EXPR_LITERAL) ||
-           (node->type == AST_EXPR && node->expr_type == EXPR_UNOP &&
-            node->op_type == UOP_CAST && node->rhs->expr_type == EXPR_LITERAL);
-}
-
-bool is_valid_const_assignment(ASTNode* node, SymbolTable* symbols) {
-    return (node->type == AST_EXPR && node->expr_type == EXPR_BINOP &&
-            node->op_type == BOP_ASSIGN && is_const_expression(node->rhs, symbols));
-}
-
 char* evaluate_const_expression(ASTNode* node, SymbolTable* symbols) {
-    if (node->expr_type == EXPR_UNOP && node->op_type == UOP_CAST) {
-        return node->rhs->literal;
+    if (node->type != AST_EXPR) {
+        return NULL;
+    }
+    if (node->expr_type == EXPR_LITERAL) {
+        return str_copy(node->literal);
+    }
+    else if (node->expr_type == EXPR_VAR && node->var.type.is_const) {
+        return str_copy(node->var.const_expr);
+    }
+    else if (node->expr_type == EXPR_UNOP && node->op_type == UOP_CAST) {
+        // Manual check for (void*) 0, which makes NULL const
+        return str_copy(node->rhs->literal);
     }
     else {
-        return node->literal;
+        return NULL;
     }
-}
-
-// Evaluate a constant assignment expression
-char* evaluate_const_assignment(ASTNode* node, SymbolTable* symbols) {
-    return evaluate_const_expression(node->rhs, symbols);
 }
 
 // Issue: Currently I just set the operation to be in int, which I don't want
