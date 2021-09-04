@@ -197,7 +197,7 @@ Function symbol_table_lookup_func(SymbolTable* table, char* func_name) {
 }
 
 // Insert a variable in this scope of the symbol table
-Function symbol_table_insert_func(SymbolTable* table, Function func) {
+Function* symbol_table_insert_func(SymbolTable* table, Function func) {
     if (!table->is_global) {
         symbol_error("Only global functions are allowed, encountered local definition");
     }
@@ -207,16 +207,18 @@ Function symbol_table_insert_func(SymbolTable* table, Function func) {
         if (strcmp(lookup_func->name, func.name) == 0) {
             // We already have a function of this name, overwrite it
             *lookup_func = func;
-            return func;
+            return lookup_func;
         }
     }
     // Otherwise, create new entry
     table->func_count++;
+    func.is_builtin = false;
+    func.builtin_type = BUILTIN_NONE;
     if (table->func_count > table->func_max_count) {
         symbol_table_funcs_realloc(table, table->func_max_count * 2);
     }
     table->funcs[table->func_count - 1] = func;
-    return func;
+    return table->funcs + table->func_count - 1;
 }
 
 void symbol_table_funcs_realloc(SymbolTable* table, int new_size) {
@@ -281,6 +283,23 @@ ValueLabel symbol_table_insert_label(SymbolTable* table, ValueLabel label) {
 void symbol_table_labels_realloc(SymbolTable* table, int new_size) {
     table->labels = realloc(table->labels, sizeof(ValueLabel) * new_size);
     table->label_max_count = new_size;
+}
+
+void symbol_table_insert_builtin_funcs(SymbolTable* table) {
+    BuiltinFuncEnum builtin_types[2] = { BUILTIN_VA_BEGIN, BUILTIN_VA_END };
+    char* builtin_names[2] = { "va_start", "va_end" };
+    int builtin_arg_count[2] = { 2, 1 };
+    Function func;
+    func.stack_space_used = 0;
+    func.return_type.type = TY_VOID;
+    func.is_defined = true;
+    for (size_t i = 0; i < 2; i++) {
+        func.name = builtin_names[i];
+        func.def_param_count = builtin_arg_count[i];
+        Function* func_ptr = symbol_table_insert_func(table, func);
+        func_ptr->is_builtin = true;
+        func_ptr->builtin_type = builtin_types[i];
+    }
 }
 
 // ================= Objects ===================

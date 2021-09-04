@@ -33,9 +33,16 @@ enum VarTypeEnum {
     TY_STRUCT,
 };
 
+enum BuiltinFuncEnum {
+    BUILTIN_NONE,
+    BUILTIN_VA_BEGIN,
+    BUILTIN_VA_END,
+};
+
 typedef enum LiteralType LiteralType;
 typedef enum VarTypeEnum VarTypeEnum;
 typedef enum ObjectTypeEnum ObjectTypeEnum;
+typedef enum BuiltinFuncEnum BuiltinFuncEnum;
 
 typedef struct VarType VarType;
 
@@ -107,6 +114,8 @@ struct Function {
     int stack_space_used;
     bool is_defined; // Has this function been defined? Otherwise, declare as extern
     bool is_variadic;
+    bool is_builtin;
+    BuiltinFuncEnum builtin_type;
 };
 
 typedef struct Function Function;
@@ -198,7 +207,7 @@ Function symbol_table_lookup_func(SymbolTable* table, char* func_name);
 Function* symbol_table_lookup_func_ptr(SymbolTable* table, char* func_name);
 
 // Insert a variable in this scope of the symbol table
-Function symbol_table_insert_func(SymbolTable* table, Function func);
+Function* symbol_table_insert_func(SymbolTable* table, Function func);
 
 void symbol_table_funcs_realloc(SymbolTable* table, int new_size);
 
@@ -208,6 +217,9 @@ int func_get_aligned_stack_usage(Function func);
 int align_stack_address(int addr, int type_bytes);
 
 int align_stack_address_no_add(int addr, int type_bytes);
+
+// Insert builtin compiler functions
+void symbol_table_insert_builtin_funcs(SymbolTable* table);
 
 // ================= Labels ====================
 

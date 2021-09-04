@@ -35,6 +35,9 @@ struct AsmContext {
     // Debug line generation related
     char* prev_filename_str;
     int* prev_line;
+    // Variadic function related
+    int overflow_arg_area_offset;
+    int reg_save_area_offset;
 };
 
 enum RegisterEnum {
@@ -124,6 +127,12 @@ void gen_asm_push_future_call_regs(int current_reg, AsmContext* ctx);
 
 // Pop call argument registers if necessary
 void gen_asm_pop_future_call_regs(int current_reg, AsmContext* ctx);
+
+// Generate assembly for a compiler built-in function call
+void gen_asm_builtin_func_call(ASTNode* node, AsmContext ctx);
+
+// Builtin va_begin(), set up the va_list object
+void gen_asm_builtin_va_begin(ASTNode* node, AsmContext ctx);
 
 // Generate assembly for an if conditional node
 void gen_asm_if(ASTNode* node, AsmContext ctx);

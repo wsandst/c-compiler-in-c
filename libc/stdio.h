@@ -5,6 +5,7 @@
 #define _STDIO_H 1
 
 #include <stddef.h>
+#include <stdarg.h>
 
 /* The possibilities for the third argument to `setvbuf'.  */
 #define _IOFBF 0 /* Fully buffered.  */
@@ -70,15 +71,15 @@ extern int printf(const char* __format, ...);
 
 extern int sprintf(char* __s, const char* __format, ...);
 
-//extern int vfprintf(FILE* __s, const char* __format, _G_va_list __arg);
+extern int vfprintf(FILE* __s, const char* __format, va_list __arg);
 
-//extern int vprintf(const char* __format, _G_va_list __arg);
+extern int vprintf(const char* __format, va_list __arg);
 
-//extern int vsprintf(char* __s, const char* __format, _G_va_list __arg);
+extern int vsprintf(char* __s, const char* __format, va_list __arg);
 
 extern int snprintf(char* __s, size_t __maxlen, const char* __format, ...);
 
-//extern int vsnprintf(char* __s, size_t __maxlen, const char* __format, _G_va_list __arg);
+extern int vsnprintf(char* __s, size_t __maxlen, const char* __format, va_list __arg);
 
 extern int fscanf(FILE* __stream, const char* __format, ...);
 
@@ -86,11 +87,11 @@ extern int scanf(const char* __format, ...);
 
 extern int sscanf(const char* __s, const char* __format, ...);
 
-//extern int vfscanf(FILE* __s, const char* __format, _G_va_list __arg);
+extern int vfscanf(FILE* __s, const char* __format, va_list __arg);
 
-//extern int vscanf(const char* __format, _G_va_list __arg);
+extern int vscanf(const char* __format, va_list __arg);
 
-//extern int vsscanf(const char* __s, const char* __format, _G_va_list __arg);
+extern int vsscanf(const char* __s, const char* __format, va_list __arg);
 
 extern int fgetc(FILE* __stream);
 extern int getc(FILE* __stream);

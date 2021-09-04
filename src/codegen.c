@@ -387,6 +387,12 @@ void gen_asm_func_call(ASTNode* node, AsmContext ctx) {
     Callee-saved RBX, RSP, RBP, and R12–R15
     Return: RAX 
     */
+
+    if (node->func.is_builtin) {
+        gen_asm_builtin_func_call(node, ctx);
+        return;
+    }
+
     static char* reg_strs[6] = { "rdi", "rsi", "rdx", "rcx", "r8", "r9" };
     static char* float_reg_strs[8] = { "xmm0", "xmm1", "xmm2", "xmm3",
                                        "xmm4", "xmm5", "xmm6", "xmm7" };
@@ -578,6 +584,9 @@ void gen_asm_func(ASTNode* node, AsmContext ctx) {
     Callee-saved RBX, RSP, RBP, and R12–R15
     Return: RAX 
     */
+    if (node->func.is_builtin) { // These are virtual
+        return;
+    }
     static RegisterEnum arg_regs[6] = { RDI, RSI, RDX, RCX, R8, R9 };
     static char* float_reg_strs[8] = { "xmm0", "xmm1", "xmm2", "xmm3",
                                        "xmm4", "xmm5", "xmm6", "xmm7" };
@@ -659,6 +668,17 @@ void gen_asm_func(ASTNode* node, AsmContext ctx) {
         free(param_ptr);
         param++;
     }
+
+    if (node->func.is_variadic) { // Store function parameters on stack
+        asm_addf(&ctx, "push r9");
+        asm_addf(&ctx, "push r8");
+        asm_addf(&ctx, "push rcx");
+        asm_addf(&ctx, "push rdx");
+        if (node->func.def_param_count == 1) {
+            asm_addf(&ctx, "push rsi");
+        }
+    }
+
     asm_add_com(&ctx, "; Function code start");
     // Function body
     gen_asm(node->body, ctx);
@@ -680,6 +700,15 @@ void gen_asm_func(ASTNode* node, AsmContext ctx) {
         asm_addf(&ctx, "call memcpy");
         asm_addf(&ctx, "pop rsp");
         asm_addf(&ctx, "mov rax, [rbp+%d]", 8 * (stack_arg_count + 2));
+    }
+
+    if (node->func.is_variadic) { // Restore variadic pushes
+        if (node->func.def_param_count == 1) {
+            asm_addf(&ctx, "add rsp, 40");
+        }
+        else {
+            asm_addf(&ctx, "add rsp, 32");
+        }
     }
 
     asm_addf(&ctx, "add rsp, %d ; Restore function stack allocation", stack_space);
@@ -733,6 +762,32 @@ void gen_asm_pop_future_call_regs(int current_reg, AsmContext* ctx) {
             asm_addf(ctx, "pop r9");
             break;
     }
+}
+
+// Generate assembly for a compiler built-in function call
+void gen_asm_builtin_func_call(ASTNode* node, AsmContext ctx) {
+    asm_addf(&ctx, "; Builtin %s function called", node->func.name);
+    switch (node->func.builtin_type) {
+        case BUILTIN_VA_BEGIN:
+            gen_asm_builtin_va_begin(node, ctx);
+            break;
+        case BUILTIN_VA_END:
+        case BUILTIN_NONE:
+            return;
+    }
+}
+
+// Builtin va_begin(), set up the va_list object
+void gen_asm_builtin_va_begin(ASTNode* node, AsmContext ctx) {
+    // arg1 is va_list, arg2 is the last argument before the variadic dots
+    // gp_offset = +0, fp_offset = +4, overflow_area = +8, save_area = +16
+    // move va_list into memory
+    asm_addf(&ctx, "lea rax, [rbp-%d]", node->args->var.stack_offset);
+    asm_addf(&ctx, "mov dword [rax+0], 0");
+    asm_addf(&ctx, "mov dword [rax+4], 6");
+    // This does not quite work, need to offset into rbp for stack values
+    asm_addf(&ctx, "mov qword [rax+8], rbp");
+    asm_addf(&ctx, "mov qword [rax+16], rsp");
 }
 
 // Generate assembly for an if conditional node

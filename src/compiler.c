@@ -8,22 +8,16 @@ TODO:
         Refactor parser:
             parse_program should run a subset of parse_statement, this should
             decrease code duplication (and allow for local functions in the future)
-        Refactor constant expression handling:
-            Everything is very fragmented currently, handling of globals/cases/enums should be
-            the same, not different as it is currently
         Refactor struct type handling:
             Currently we sometimes use cast_type and sometimes use
             struct_type for structs. Unify this
 
-    Constant handling:
-        I need support for constant variables
-        is_
-
     Functions:
-        Variadic function definitions, not just declarations/calling:
-            https://blog.nelhage.com/2010/10/amd64-and-va_arg/
-            Just recreate that struct with va_start, push the registers to stack, pass it by pointer  
-            Compare with godbolt output
+        Variadic function definitions:
+            Fix arguments on stack, currently doesn't work due to variadic type promotion issues
+            Currently only 1 or 2 normal arguments work, fix this hardcoded issue
+            Implement floating point support
+            Implement va_arg builtin
 
     Implement __LINE__ and __FILE__?
 

@@ -73,6 +73,7 @@ AST parse(Tokens* tokens, SymbolTable* global_symbols) {
     ASTNode* program_node = ast_node_new(AST_PROGRAM, 1);
     ast.program = program_node;
     program_node->body = ast_node_new(AST_END, 1);
+    symbol_table_insert_builtin_funcs(global_symbols);
 
     // Start parsing
     parse_program(program_node->body, global_symbols);
@@ -495,7 +496,7 @@ void parse_func(ASTNode* node, SymbolTable* symbols) {
 
     if (!accept(TK_DL_OPENBRACE)) { // No function body, this is a declaration
         node->type = AST_NULL_STMT; // Definitions are virtual
-        node->func = symbol_table_insert_func(symbols, func);
+        node->func = *symbol_table_insert_func(symbols, func);
         expect(TK_DL_SEMICOLON);
         return;
     }
@@ -503,7 +504,7 @@ void parse_func(ASTNode* node, SymbolTable* symbols) {
     // Function has body, is a definition
     func.is_defined = true;
     latest_func = func;
-    node->func = symbol_table_insert_func(symbols, func);
+    node->func = *symbol_table_insert_func(symbols, func);
     node->body = ast_node_new(AST_END, 1);
     parse_scope(node->body, func_symbols);
     node->next = ast_node_new(AST_END, 1);
@@ -1147,6 +1148,7 @@ void parse_func_call(ASTNode* node, SymbolTable* symbols) {
         if (arg_count > node->func.def_param_count && !node->func.is_variadic) {
             parse_error("Function call error, too many parameters!");
         }
+        // We want to cast to the widest type here for variadic arguments
     }
     node->func.call_param_count = arg_count;
     node->args_end = arg_node;
