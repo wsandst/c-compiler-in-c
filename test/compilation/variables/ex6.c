@@ -7,10 +7,9 @@ int w;
 w = 5;
 
 const int a = 10;
-int b = a;
 
 int main() {
     z = 10;
     x++;
-    return x + y + w + z + b + a;
+    return x + y + w + z + a;
 }
