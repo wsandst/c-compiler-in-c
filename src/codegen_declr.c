@@ -149,6 +149,10 @@ void gen_asm_array_initializer(ASTNode* node, AsmContext ctx) {
                         asm_add_wn_sectionf(&ctx, ctx.asm_data_src, "%s.%ds, ",
                                             arg_node->var.name, arg_node->var.unique_id);
                     }
+                    else if (arg_node->var.type.is_const) {
+                        asm_add_wn_sectionf(&ctx, ctx.asm_data_src, "%s, ",
+                                            arg_node->var.const_expr);
+                    }
                     else {
                         asm_add_wn_sectionf(&ctx, ctx.asm_data_src, "G_%s, ",
                                             arg_node->var.name);
@@ -172,17 +176,37 @@ void gen_asm_array_initializer(ASTNode* node, AsmContext ctx) {
         char* addr_size = bytes_to_addr_width(deref_type.bytes);
         while (stack_ptr > end_stack_ptr) {
             if (arg_node->type != AST_END) { // Grab the argument value
-                if (arg_node->literal_type == LT_STRING) {
-                    char* label_name = get_next_cstring_label_str(&ctx);
-                    asm_add_sectionf(&ctx, ctx.asm_rodata_src, "%s: db `%s`, 0",
-                                     label_name, arg_node->literal);
+                if (arg_node->expr_type == EXPR_LITERAL) {
+                    if (arg_node->literal_type == LT_STRING) {
+                        char* label_name = get_next_cstring_label_str(&ctx);
+                        asm_add_sectionf(&ctx, ctx.asm_rodata_src, "%s: db `%s`, 0",
+                                         label_name, arg_node->literal);
 
-                    asm_addf(&ctx, "lea rax, [%s]", label_name);
-                    asm_addf(&ctx, "mov %s [rbp-%d], rax", addr_size, stack_ptr);
+                        asm_addf(&ctx, "lea rax, [%s]", label_name);
+                        asm_addf(&ctx, "mov %s [rbp-%d], rax", addr_size, stack_ptr);
+                    }
+                    else {
+                        asm_addf(&ctx, "mov %s [rbp-%d], %s", addr_size, stack_ptr,
+                                 arg_node->literal);
+                    }
+                }
+                else if (arg_node->expr_type == EXPR_VAR && arg_node->var.is_global) {
+                    if (arg_node->var.type.is_static) {
+                        asm_addf(&ctx, "mov rax, [%s.%ds]", arg_node->var.name,
+                                 arg_node->var.unique_id);
+                        asm_addf(&ctx, "mov %s [rbp-%d], rax", addr_size, stack_ptr);
+                    }
+                    else if (arg_node->var.type.is_const) {
+                        asm_addf(&ctx, "mov %s [rbp-%d], %s", addr_size, stack_ptr,
+                                 arg_node->var.const_expr);
+                    }
+                    else {
+                        asm_addf(&ctx, "mov rax, [G_%s]", arg_node->var.name);
+                        asm_addf(&ctx, "mov %s [rbp-%d], rax", addr_size, stack_ptr);
+                    }
                 }
                 else {
-                    asm_addf(&ctx, "mov %s [rbp-%d], %s", addr_size, stack_ptr,
-                             arg_node->literal);
+                    codegen_error("Invalid initializer element in array!");
                 }
                 arg_node = arg_node->next;
             }

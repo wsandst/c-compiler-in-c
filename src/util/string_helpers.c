@@ -24,7 +24,7 @@ char* str_copy(char* str) {
 }
 
 // Copy a substring of a string. Remember to free it later!
-char* str_substr(const char* string, int length) {
+char* str_substr(char* string, int length) {
     // +5 is required to prevent memory leaks, why?
     char* output_string = calloc(length + 5, sizeof(char));
     memcpy(output_string, string, length * sizeof(char));

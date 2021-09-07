@@ -1,4 +1,4 @@
-# This test script compiles various examples in test/compilation in both gcc and ccompiler
+# This test script compiles various examples in test/compilation in both gcc and ccic
 # and then compares the exit codes. If the exit codes do not match, the test fails
 use_valgrind=false
 silence_valgrind=false
@@ -26,13 +26,14 @@ function run_compilation_test {
     gcc -w -g $1     #compile with gcc
     ./a.out       #run it
     expected=$?   #get exit code
-    #compile with ccompiler, optionally use valgrind to check for mem issues
+    rm a.out
+    #compile with ccic, optionally use valgrind to check for mem issues
     if [ "$use_valgrind" = true ] ; then
         echo -e "${YELLOW}Running compiler with valgrind, expect slow compilation!${CLEAR}"
         if [ "$silence_valgrind" = true ] ; then
-            valgrind --leak-check=full --error-exitcode=1 --log-fd=2 2>/dev/null ./build/ccompiler $1
+            valgrind --leak-check=full --error-exitcode=1 --log-fd=2 2>/dev/null ./build/ccic $1
         else
-            valgrind --leak-check=full --error-exitcode=1 ./build/ccompiler $1
+            valgrind --leak-check=full --error-exitcode=1 ./build/ccic $1
         fi
         if [ $? -ne 0 ]; then
             echo -e "${RED}VALGRIND FAIL ${CLEAR}"
@@ -40,7 +41,7 @@ function run_compilation_test {
             exit 1
         fi
     else
-        ./build/ccompiler $1 
+        ./build/ccic $1 
     fi
     ./a.out    # Run the binary we assembled
     actual=$?   # get exit code from binary
@@ -50,7 +51,6 @@ function run_compilation_test {
         echo -e "${RED}FAIL: expected ${expected}, got ${actual}${CLEAR}"
         failed_test=true
     else
-        #echo "Returned: ${actual}"
         echo -e "${GREEN}OK${CLEAR}"
     fi
     rm a.out.asm
@@ -62,16 +62,16 @@ function run_compilation_test_mt {
     gcc -w -g -o gcc$2.out $1     #compile with gcc
     ./gcc$2.out > /dev/null      #run it
     expected=$?   #get exit code
-    #compile with ccompiler, optionally use valgrind to check for mem issues
+    #compile with ccic, optionally use valgrind to check for mem issues
     if [ "$use_valgrind" = true ] ; then
-        valgrind --leak-check=full --error-exitcode=1 --log-fd=2 2>/dev/null ./build/ccompiler $1 -o output$2 > /dev/null
+        valgrind --leak-check=full --error-exitcode=1 --log-fd=2 2>/dev/null ./build/ccic $1 -o output$2 > /dev/null
         if [ $? -ne 0 ]; then
             echo -e "[TEST] $1: ${RED}VALGRIND FAIL ${CLEAR}"
             failed_test=true
             exit 1
         fi
     else
-        ./build/ccompiler $1 -o output$2 > /dev/null
+        ./build/ccic $1 -o output$2 > /dev/null
     fi
     ./output$2 > /dev/null   # Run the binary we assembled
     actual=$?   # get exit code from binary

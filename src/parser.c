@@ -240,7 +240,9 @@ bool accept_object_type(SymbolTable* symbols) {
         char* ident = prev_token().string_repr;
         Object* typedef_obj = symbol_table_lookup_object(symbols, ident, OBJ_TYPEDEF);
         if (typedef_obj != NULL) {
+            bool is_static = latest_parsed_var_type.is_static;
             latest_parsed_var_type = typedef_obj->typedef_type;
+            latest_parsed_var_type.is_static = is_static;
             if (latest_parsed_var_type.type == TY_STRUCT) {
                 Object* struct_obj = symbol_table_lookup_object(
                     symbols, latest_parsed_var_type.struct_name, OBJ_STRUCT);

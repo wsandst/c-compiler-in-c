@@ -71,7 +71,7 @@ StrVector str_split_lines(char* str);
 char* str_copy(char* str);
 
 // Copy a C String substring
-char* str_substr(const char* string, int length);
+char* str_substr(char* string, int length);
 
 // Add str1 to str2
 char* str_add(char* str1, char* str2);

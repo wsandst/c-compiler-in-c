@@ -201,6 +201,8 @@ Function* symbol_table_insert_func(SymbolTable* table, Function func) {
     if (!table->is_global) {
         symbol_error("Only global functions are allowed, encountered local definition");
     }
+    func.is_builtin = false;
+    func.builtin_type = BUILTIN_NONE;
     // Check if this function already exists, if so, overwrite it
     for (size_t i = 0; i < table->func_count; i++) {
         Function* lookup_func = &table->funcs[i];
@@ -212,8 +214,6 @@ Function* symbol_table_insert_func(SymbolTable* table, Function func) {
     }
     // Otherwise, create new entry
     table->func_count++;
-    func.is_builtin = false;
-    func.builtin_type = BUILTIN_NONE;
     if (table->func_count > table->func_max_count) {
         symbol_table_funcs_realloc(table, table->func_max_count * 2);
     }
