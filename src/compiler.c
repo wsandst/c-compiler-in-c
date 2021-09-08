@@ -3,31 +3,29 @@
 #include "codegen.h"
 
 /*
-TODO:
-    Refactoring:
-        Refactor parser:
-            parse_program should run a subset of parse_statement, this should
-            decrease code duplication (and allow for local functions in the future)
-        Refactor struct type handling:
-            Currently we sometimes use cast_type and sometimes use
-            struct_type for structs. Unify this
-
-    Functions:
+INFO:
+    TODO:
+        Simple macro functions
+        Implement __LINE__ and __FILE__ defines
+        Better constant evaluation (perform constant operations)        
         Variadic function definitions:
             Implement floating point support
             Implement va_arg builtin
-
-    Implement __LINE__ and __FILE__?
-
-    The struct padding is off by 8 bytes for ValueLabel, why?
-
-    Types:
         Arrays:
             Infer array size from initializer size
             Treat x[] as *x
             These are connected. int x[] is equivalent with int* x;
             char* x = {"a", "b", "c"} should work if char x[] works, same construct
             Variable length arrays: just add to rsp, then set address to this
+        The struct padding is off by 8 bytes for ValueLabel, why?
+
+        Refactoring:
+            Refactor parser:
+                parse_program should run a subset of parse_statement, this should
+                decrease code duplication (and allow for local functions in the future)
+            Refactor struct type handling:
+                Currently we sometimes use cast_type and sometimes use
+                struct_type for structs. Unify this
 
     Intentional deficits:
         Constants variables are not evaluated at compile-time

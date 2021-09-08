@@ -1,7 +1,7 @@
 [![Build Status](https://travis-ci.com/wsandst/c-compiler-in-c.svg?branch=main)](https://travis-ci.com/wsandst/c-compiler-in-c)
-# C Compiler written in C
-This project is a C compiler, written completely in C. The aim of the project create a compiler which can compile itself. For this reason, no external dependencies are used. The compiler generates Linux x86-64 executables.
-The compiler uses a handwritten tokenizer, a recursive decent parser and a code generator which generates NASM assembly. GCC is then used as a linker. The compiler includes headers for commonly used parts of the C standard library, which have been modified from GCC to accommodate for fewer macro features. These headers can be found under `clib/`
+# ccic - a C Compiler written in C
+ **ccic** is a self-hosting/bootstrapping C compiler, written completely in C. The compiler uses no dependencies to simplify bootstrapping. It generates Linux x86-64 executables.
+The compiler uses a handwritten tokenizer, a recursive decent parser and a code generator which generates NASM assembly. GCC is then used as a linker. It includes headers for commonly used parts of the C standard library, which have been modified from GCC to accommodate for fewer macro features. These headers can be found under `clib/`
 
 ## Supported constructs
 * Variables
@@ -16,12 +16,19 @@ The compiler uses a handwritten tokenizer, a recursive decent parser and a code 
     * Logical short circuiting
     * Most floating point operations
     * Pointer operations
+    * Struct operations
 * Functions
     * Integer function arguments
     * Float function arguments
-    * Issues with large amounts of mixed integer and float args
-    * Return values (integer/float)
-    * Variadic function calling (no support for variadic function implementations yet)
+    * Struct arguments by value
+        * No support for struct unpacking, always sent as a pointer
+            and then dereffed
+    * Return values (integer/float/struct)
+    * Variadic functions
+        * Full variadic function calling support (ex printf)
+        * Limited support for variadic function definitions
+            * Missing support for va_arg macro, can only call va_begin and va_end
+            * No support for floating point or struct arguments
 * Loops
     * While loops
     * Do while loops
@@ -33,8 +40,8 @@ The compiler uses a handwritten tokenizer, a recursive decent parser and a code 
     * Default case
     * Breaks
 * Types
-    * Integers (8, 16, 32, 64 bit)
-    * Floats (64 bit)
+    * Integers
+    * Floats (only 64 bit)
     * Pointers
     * Arrays
     * Type casting (explicit and implicit)
@@ -42,25 +49,23 @@ The compiler uses a handwritten tokenizer, a recursive decent parser and a code 
     * Enums
     * Structs
 * Preprocessor
-    * Includes (normal and STL includes)
+    * Includes (normal and standard library includes)
     * Pragma once
-    * Simple defines, undef (no function macros)
+    * Simple defines, undef
     * Ifdef, ifndef
+    * Missing support for macro functions
 * Gotos, labels
-* Structs
-    * Access operators
-    * Structs within structs
-    * Pass structs by value to functions
-    * Struct return values
-
 
 ## Build instructions
 ### Compiler
 Compile: `make`  
-Run: `./build/ccompiler <source>` 
+Run: `./build/ccic <source>`  
+The compiler expects a `clib/` folder in the working folder
 ### Tests
 Run tests: `make test`  
-Extensive valgrind tests: `make test-full`
+Extensive valgrind tests: `make test-full`  
+Run tests with a bootstrapped compiler: `make bootstrap-test`  
+Triangle bootstrapping test: `make bootstrap-triangle-test`
 
 ## Dependencies
 `nasm` - Assembler for the generated Intel-syntax assembly  
@@ -70,4 +75,4 @@ Extensive valgrind tests: `make test-full`
 ## Testing
 The project contains an extensive testing suite, which 
 includes both unit tests and compilation tests. These 
-compilation tests compile example programs, found under `test/compilation/`, with both GCC and this compiler. The return values are then compared to make sure the compiler behaves identical to GCC. These example programs have been constructed to test various C language constructs. All of the tests are also run with valgrind to make sure there are no memory leaks.
+compilation tests compile example programs, found under `test/compilation/`, with both GCC and this compiler. The return values are then compared to make sure the compiler behaves identical to GCC. These example programs have been constructed to test various C language constructs. All of the tests are also run with valgrind to make sure there are no memory leaks. The bootstrapping tests compile the compiler using itself and then performs the tests with this self-hosted compiler.
