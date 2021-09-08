@@ -1097,12 +1097,8 @@ void parse_array_declaration(ASTNode* node, SymbolTable* symbols) {
         parse_error("Attempted to declare array with non-const size!");
     }
     var->type.array_size = atoi(const_expr);
-    //printf("array | size: %s %d, bytes: %d\n", const_expr, var->type.array_size,
-    //var->type.bytes);
     free(const_expr);
-    //printf("val: %d\n", var->type.bytes * var->type.array_size);
     symbols->cur_stack_offset += var->type.bytes * var->type.array_size;
-    //printf("symbols->cur_stack_offset: %d\n", symbols->cur_stack_offset);
     var->stack_offset = symbols->cur_stack_offset;
     if (symbols->is_global) {
         var->is_global = true;

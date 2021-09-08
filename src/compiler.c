@@ -14,15 +14,10 @@ TODO:
 
     Functions:
         Variadic function definitions:
-            Fix arguments on stack, currently doesn't work due to variadic type promotion issues
-            Currently only 1 or 2 normal arguments work, fix this hardcoded issue
             Implement floating point support
             Implement va_arg builtin
 
     Implement __LINE__ and __FILE__?
-
-    Known issue:
-        Floating point parameters + struct by value won't work, I don't save the xmm regs
 
     The struct padding is off by 8 bytes for ValueLabel, why?
 
@@ -44,6 +39,8 @@ TODO:
         Floats are 64 bit, not 32 bit. Only really messes with scanf
         All integers are signed no matter what
         No unions
+        Floating point and struct parameters in vararg function definition
+        var_arg builtin
 
 */
 

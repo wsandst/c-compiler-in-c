@@ -431,8 +431,17 @@ void gen_asm_binary_op_assign_int(ASTNode* node, AsmContext ctx) {
 
 void gen_asm_binary_op_and_int(ASTNode* node, AsmContext ctx) {
     asm_add_com(&ctx, "; Op: && (AND)");
-    asm_addf(&ctx, "and rax, rbx");
+
+    // rax != 0
     asm_addf(&ctx, "cmp rax, 0");
+    asm_addf(&ctx, "setne al");
+
+    // rbx != 0
+    asm_addf(&ctx, "cmp rbx, 0");
+    asm_addf(&ctx, "setne bl");
+
+    // rax & rbx
+    asm_addf(&ctx, "and al, bl");
     asm_addf(&ctx, "mov rax, 0");
     asm_addf(&ctx, "setne al");
     if (ctx.and_end_node) { // Add short circuit end jump label
@@ -697,12 +706,15 @@ void gen_asm_binary_op_ptr(ASTNode* node, AsmContext ctx) {
         // incase rhs contains another lvalue
         asm_addf(&ctx, "push r12");
     }
-
+    // Check if we need to cast lhs
+    gen_asm_unary_op_cast(ctx, node->cast_type, node->lhs->cast_type);
     gen_asm_add_short_circuit_jumps(node, ctx); // AND/OR Short circuiting related
 
     asm_addf(&ctx, "push rax"); // Save RAX
     gen_asm(node->rhs, ctx); // LHS now in RAX
     asm_addf(&ctx, "mov rbx, rax"); // Move RHS to RBX
+    // Check if we need to cast rhs
+    gen_asm_unary_op_cast(ctx, node->cast_type, node->rhs->cast_type);
     asm_addf(&ctx, "pop rax"); // LHS now in RAX
     // We are now ready for the binary operation
     switch (node->op_type) { // These are all integer operations

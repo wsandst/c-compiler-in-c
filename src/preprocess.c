@@ -97,7 +97,12 @@ void preprocess_include(Tokens* tokens, PreprocessorTable* table) {
     // If file already is in table and has pragma once, skip
     char* file_no_path_str = isolate_file_from_path(file_str);
     PreprocessorItem* item = preprocessor_table_lookup(table, file_no_path_str);
+    /*if (item) {
+        printf("item %s: include only once: %d, %d\n", item->name,
+               item->include_file_only_once, item && item->include_file_only_once);
+    }*/
     if (item && item->include_file_only_once) {
+        //printf("Skipping include!\n");
         str_vec_free(&str_vec);
         free(file_str);
         free(file_no_path_str);

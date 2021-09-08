@@ -22,8 +22,8 @@ while [[ "$#" -gt 0 ]]; do
     shift
 done
 
-failed_count = 0
-count = 0
+failed_count=0
+count=0
 
 function run_compilation_test {
     gcc -w -g $1     #compile with gcc

@@ -39,7 +39,6 @@ void test_codegen_helpers() {
 
     asm_add_sectionf(&ctx, ctx.asm_data_src, "global %s", str);
     joined_str = str_vec_join(ctx.asm_data_src);
-    printf("%s\n", joined_str);
     assert(strcmp("\nglobal x", joined_str) == 0);
     free(joined_str);
 
