@@ -30,7 +30,7 @@ LDFLAGS  := -Llib
 LDLIBS   := -lm -Isrc
 LD := $(CC)
 
-.PHONY: all clean testexe test unit-test test-full test-full-mt bootstrap bootstrap-testexe bootstrap-unit-test bootstrap-test
+.PHONY: all clean testexe test unit-test test-full test-full-mt bootstrap bootstrap-testexe bootstrap-unit-test bootstrap-test bootstrap-no-initial-build bootstrap-triangle-test
 
 # ============== Normal Compilation ===================
 
@@ -89,6 +89,8 @@ test-full-mt: unit-test all
 
 bootstrap: $(EXE) $(EXE_BS)
 
+bootstrap-no-initial-build: force $(EXE_BS)
+
 $(EXE_BS): $(OBJ_BS) | $(BIN_DIR)
 	gcc -g -no-pie $^ -o $@
 
@@ -120,5 +122,15 @@ bootstrap-unit-test: bootstrap-testexe
 bootstrap-test: bootstrap-unit-test bootstrap 
 	mv build/ccic-bs build/ccic
 	bash ./test/compilation/test_compilation.sh
+
+bootstrap-triangle-test: bootstrap
+	mv build/ccic-bs ccic-temp
+	make clean
+	mkdir build
+	mv ccic-temp build/ccic
+	make bootstrap-no-initial-build
+	mv build/ccic-bs build/ccic
+	bash ./test/compilation/test_compilation.sh
+	
 
 -include $(OBJ:.o=.d)
