@@ -6,6 +6,7 @@
 #include "preprocessor_test.h"
 #include "symbol_table_test.h"
 #include "parser_test.h"
+#include "codegen_test.h"
 
 int main() {
     printf("[CTEST] Running all unit tests...\n");
@@ -15,6 +16,7 @@ int main() {
     test_preprocessor();
     test_symbol_table();
     test_parser();
+    test_codegen();
     printf("[CTEST] Passed all unit tests!\n");
     return 0;
 }

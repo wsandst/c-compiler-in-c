@@ -652,14 +652,14 @@ void gen_asm_func(ASTNode* node, AsmContext ctx) {
             // memcpy from  param->stack_offset
             // memcpy: rdi: dest_ptr, rsi: src_ptr, rdx: size_t (bytes)
             asm_addf(&ctx, "; Struct passed by value, memcpy required");
-            gen_asm_push_future_call_regs(int_arg_count, &ctx);
+            gen_asm_push_future_call_regs(int_arg_count + 1, &ctx);
             asm_addf(&ctx, "lea rdi, [rbp-%d]", param->stack_offset);
             asm_addf(&ctx, "mov rsi, rax");
             asm_addf(&ctx, "mov rdx, %d", param->type.bytes);
             gen_asm_align_stack_for_func_call(0, &ctx);
             asm_addf(&ctx, "call memcpy"); // we are not aligned properly here
             asm_addf(&ctx, "pop rsp");
-            gen_asm_pop_future_call_regs(int_arg_count, &ctx);
+            gen_asm_pop_future_call_regs(int_arg_count + 1, &ctx);
             int_arg_count++;
         }
         else {
@@ -670,13 +670,7 @@ void gen_asm_func(ASTNode* node, AsmContext ctx) {
     }
 
     if (node->func.is_variadic) { // Store function parameters on stack
-        asm_addf(&ctx, "push r9");
-        asm_addf(&ctx, "push r8");
-        asm_addf(&ctx, "push rcx");
-        asm_addf(&ctx, "push rdx");
-        if (node->func.def_param_count == 1) {
-            asm_addf(&ctx, "push rsi");
-        }
+        gen_asm_push_future_call_regs(node->func.def_param_count, &ctx);
     }
 
     asm_add_com(&ctx, "; Function code start");
@@ -703,12 +697,7 @@ void gen_asm_func(ASTNode* node, AsmContext ctx) {
     }
 
     if (node->func.is_variadic) { // Restore variadic pushes
-        if (node->func.def_param_count == 1) {
-            asm_addf(&ctx, "add rsp, 40");
-        }
-        else {
-            asm_addf(&ctx, "add rsp, 32");
-        }
+        asm_addf(&ctx, "add rsp, %d", 48 - node->func.def_param_count * 8);
     }
 
     asm_addf(&ctx, "add rsp, %d ; Restore function stack allocation", stack_space);
@@ -719,46 +708,39 @@ void gen_asm_func(ASTNode* node, AsmContext ctx) {
 }
 
 void gen_asm_push_future_call_regs(int current_reg, AsmContext* ctx) {
-    switch (current_reg) {
-        case 0:
-            asm_addf(ctx, "push rsi");
-        case 1:
-            asm_addf(ctx, "push rdx");
-        case 2:
-            asm_addf(ctx, "push rcx");
-        case 3:
-            asm_addf(ctx, "push r8");
-        case 4:
-            asm_addf(ctx, "push r9");
-            break;
+    if (current_reg < 6) {
+        asm_addf(ctx, "push r9"); // 5,4,3,2,1,0
+    }
+    if (current_reg < 5) {
+        asm_addf(ctx, "push r8"); // 4,3,2,1,0
+    }
+    if (current_reg < 4) {
+        asm_addf(ctx, "push rcx"); // 3,2,1,0
+    }
+    if (current_reg < 3) {
+        asm_addf(ctx, "push rdx"); // 2,1,0
+    }
+    if (current_reg < 2) {
+        asm_addf(ctx, "push rsi"); // 1,0
+    }
+    if (current_reg < 1) {
+        asm_addf(ctx, "push rdi"); // 0
     }
 }
 
 void gen_asm_pop_future_call_regs(int current_reg, AsmContext* ctx) {
     switch (current_reg) {
         case 0:
-            asm_addf(ctx, "pop r9");
-            asm_addf(ctx, "pop r8");
-            asm_addf(ctx, "pop rcx");
-            asm_addf(ctx, "pop rdx");
-            asm_addf(ctx, "pop rsi");
-            break;
+            asm_addf(ctx, "pop rdi");
         case 1:
-            asm_addf(ctx, "pop r9");
-            asm_addf(ctx, "pop r8");
-            asm_addf(ctx, "pop rcx");
-            asm_addf(ctx, "pop rdx");
-            break;
+            asm_addf(ctx, "pop rsi");
         case 2:
-            asm_addf(ctx, "pop r9");
-            asm_addf(ctx, "pop r8");
-            asm_addf(ctx, "pop rcx");
-            break;
+            asm_addf(ctx, "pop rdx");
         case 3:
-            asm_addf(ctx, "pop r9");
-            asm_addf(ctx, "pop r8");
-            break;
+            asm_addf(ctx, "pop rcx");
         case 4:
+            asm_addf(ctx, "pop r8");
+        case 5:
             asm_addf(ctx, "pop r9");
             break;
     }
