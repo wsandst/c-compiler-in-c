@@ -14,6 +14,5 @@ char* asm_addf(int x, int y, char* format_string, ...) {
 int main() {
     char* str = "3";
     char* output = asm_addf(1, 2, "%s %d", str, 1);
-    printf("asm_addf: %s\n", output);
     return *output == '3' && *(output + 2) == '1';
 }

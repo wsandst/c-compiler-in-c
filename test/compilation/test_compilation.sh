@@ -22,6 +22,9 @@ while [[ "$#" -gt 0 ]]; do
     shift
 done
 
+failed_count = 0
+count = 0
+
 function run_compilation_test {
     gcc -w -g $1     #compile with gcc
     ./a.out       #run it
@@ -50,11 +53,13 @@ function run_compilation_test {
     if [ "$expected" -ne "$actual" ] ; then
         echo -e "${RED}FAIL: expected ${expected}, got ${actual}${CLEAR}"
         failed_test=true
+        ((failed_count++))
     else
         echo -e "${GREEN}OK${CLEAR}"
     fi
     rm a.out.asm
     rm a.out
+    ((count++))
 }
 
 # Multi-threaded variant, uses less printing
@@ -110,7 +115,7 @@ fi
 wait
 
 if [ "$failed_test" = true ] ; then
-    echo -e "[TEST] ${RED}Compilation test failed. ${CLEAR}"
+    echo -e "[TEST] ${RED}Compilation test failed. ${failed_count} of ${count} tests failed ${CLEAR}"
     exit 1
 fi
 echo -e "[TEST] ${GREEN}All compilation tests passed!${CLEAR}"
