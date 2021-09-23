@@ -5,7 +5,7 @@ static const bool ASSEMBLE_DEBUG = true;
 char* load_file_to_string(char* filename) {
     FILE* file = fopen(filename, "r");
     if (file == NULL) {
-        perror("Source file loading error");
+        perror(filename);
         exit(-1);
     }
 

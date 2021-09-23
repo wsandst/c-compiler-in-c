@@ -34,7 +34,6 @@ INFO:
         Comma operator and ternary operator is not implemented
         Certain float operators have been skipped
         No function pointers or local functions
-        Floats are 64 bit, not 32 bit. Only really messes with scanf
         All integers are signed no matter what
         No unions
         Floating point and struct parameters in vararg function definition

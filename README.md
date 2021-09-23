@@ -41,7 +41,7 @@ The compiler uses a handwritten tokenizer, a recursive decent parser and a code 
     * Breaks
 * Types
     * Integers
-    * Floats (only 64 bit)
+    * Floats
     * Pointers
     * Arrays
     * Type casting (explicit and implicit)
