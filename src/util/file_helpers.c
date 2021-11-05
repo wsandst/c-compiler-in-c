@@ -80,50 +80,47 @@ char* isolate_file_from_path(char* filepath) {
     return str_copy(filepath + index + 1);
 }
 
-// Parse compiler command line options
+// Parse commandline options using getopt
 CompileOptions parse_compiler_options(int argc, char** argv) {
-    // cases:
-    //    ccic file.c (compile to a.out)
-    //    ccic file.c -o executable (compile to executable)
-    //    ccic -c file.c (compile to object file, name same as file)
-    //    ccic -c file.c -o object_file (compile to object file of specified name)
+    opterr = 0;
     CompileOptions options;
     options.link_with_gcc = true;
-    if (argc > 1) {
-        if (strcmp(argv[1], "-c") == 0 && argc > 2) { // Compile to object file
-            options.link_with_gcc = false;
-            options.src_filename = argv[2];
-            if (argc == 3) {
-                options.output_filename = isolate_file_from_path(argv[2]);
-                options.output_filename[strlen(options.output_filename) - 2] = '\0';
-                return options;
-            }
-            else if (argc > 4 && strcmp(argv[3], "-o") == 0) {
-                options.output_filename = str_copy(argv[4]);
-            }
-            else {
-                fprintf(stderr, "Error: Please specify a source file\n");
-                exit(1);
-            }
-        } // Compile to executable
-        else {
-            options.src_filename = argv[1];
-            if (argc == 2) {
-                options.output_filename = str_copy("a.out");
-                return options;
-            }
-            else if (argc > 3 && strcmp(argv[2], "-o") == 0) {
-                options.output_filename = str_copy(argv[3]);
-            }
-            else {
-                fprintf(stderr, "Error: Please specify a source file\n");
-                exit(1);
-            }
+    options.output_filename = "a.out";
+    bool output_file_set = false;
+    int arg_c;
+    while ((arg_c = getopt(argc, argv, "co:")) != -1) {
+        switch (arg_c) {
+            case 'o':
+                options.output_filename = optarg;
+                output_file_set = true;
+                break;
+            case 'c':
+                options.link_with_gcc = false;
+                break;
+            case '?':
+                if (optopt == 'c' || optopt == 'o') {
+                    fprintf(stderr, "Option '-%c' requires a file argument\n", optopt);
+                }
+                else {
+                    fprintf(stderr, "Unknown option '-%c' provided\n", optopt);
+                }
+                exit(EXIT_FAILURE);
+            default:
+                exit(EXIT_FAILURE);
         }
     }
-    else {
-        fprintf(stderr, "Error: Please specify a source file\n");
-        exit(1);
+
+    if (optind < argc) {
+        options.src_filename = argv[optind];
+        if (!output_file_set && !options.link_with_gcc) {
+            // If an output filename was not given and we are linking, use
+            // the source file as output name
+            options.output_filename = isolate_file_from_path(options.src_filename);
+            options.output_filename[strlen(options.output_filename) - 1] = 'o';
+        }
+        else {
+            options.output_filename = str_copy(options.output_filename);
+        }
     }
     return options;
 }

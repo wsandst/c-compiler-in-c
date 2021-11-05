@@ -2,6 +2,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>
+#include <getopt.h>
+#include <unistd.h>
 #include "string_helpers.h"
 
 struct CompileOptions {
@@ -27,4 +29,6 @@ char* isolate_file_dir(char* filepath);
 char* isolate_file_from_path(char* filepath);
 
 // Parse compiler command line options
+CompileOptions parse_compiler_options_old(int argc, char** argv);
+
 CompileOptions parse_compiler_options(int argc, char** argv);
