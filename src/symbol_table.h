@@ -16,6 +16,7 @@
 
 #include "util/string_helpers.h"
 
+// Represents a literal type
 enum LiteralType {
     LT_NONE,
     LT_INT,
@@ -24,6 +25,7 @@ enum LiteralType {
     LT_CHAR,
 };
 
+// Represents the various possible variable types
 enum VarTypeEnum {
     TY_VOID,
     TY_BOOL,
@@ -33,6 +35,7 @@ enum VarTypeEnum {
     TY_STRUCT,
 };
 
+// Represents compiler builtin functions
 enum BuiltinFuncEnum {
     BUILTIN_NONE,
     BUILTIN_VA_BEGIN,
@@ -46,6 +49,7 @@ typedef enum BuiltinFuncEnum BuiltinFuncEnum;
 
 typedef struct VarType VarType;
 
+// Represents a variable type (ex int)
 struct VarType {
     VarTypeEnum type;
     int bytes;
@@ -54,12 +58,15 @@ struct VarType {
     bool is_unsigned;
     bool is_extern;
     bool is_static;
-    bool is_array;
     bool is_const;
+    // Array related information
+    bool is_array;
     int array_size;
     bool array_has_initializer;
 
+    // Struct type information
     char* struct_name;
+    // Keep track of the members of the struct
     VarType* next_struct_member;
     char* struct_member_name;
     int struct_bytes_offset;
@@ -67,6 +74,7 @@ struct VarType {
     int widest_struct_member;
 };
 
+// Type of an Object
 enum ObjectTypeEnum {
     OBJ_STRUCT,
     OBJ_ENUM,
@@ -122,7 +130,8 @@ typedef struct Function Function;
 
 typedef struct ValueLabel ValueLabel;
 
-struct ValueLabel { // Switch case labels
+// Switch case labels
+struct ValueLabel {
     int id;
     LiteralType type;
     char* str_value;
@@ -171,11 +180,14 @@ struct SymbolTable {
     Object* objects;
 };
 
+// Helpers for reporting symbol errors
 void symbol_error(char* error_message);
 void symbol_error2(char* symbol_name, char* error_message);
 
+// Create a new variable
 Variable variable_new();
 
+// Create a dynamically allocated symbol table
 SymbolTable* symbol_table_new();
 
 void symbol_table_init(SymbolTable* table);

@@ -13,6 +13,7 @@ Normally a task like this is more suited to regex.
 #include "util/vector.h"
 #include "util/string_helpers.h"
 
+// Represents different token types in the C language
 enum TokenType {
     TK_NONE,
     TK_IDENT,
@@ -107,10 +108,12 @@ enum TokenType {
 
 typedef enum TokenType TokenType;
 
+// Represents a token object with various useful information
 struct Token {
     enum TokenType type;
     int src_pos;
     int src_line;
+    // Further token origin information used for error messages and debugging
     char* string_repr;
     char* src_filename;
     char* src_line_str;
@@ -118,6 +121,7 @@ struct Token {
     bool src_line_requires_free;
 };
 
+// Represents a vector of tokens
 struct Tokens {
     int size;
     Vec elems; // Token vec
@@ -154,8 +158,10 @@ Tokens tokens_copy(Tokens* tokens);
 
 void tokens_tag_src_filename(Tokens* tokens, char* filename);
 
+// Print a Tokens object
 void tokens_print(Tokens* tokens);
 
+// Pretty print of a Tokens object, approximates the original source code.
 void tokens_pretty_print(Tokens* tokens);
 
 // Insert the entire tokens2 into tokens1 at a specific index in tokens1
@@ -163,32 +169,43 @@ Tokens* tokens_insert(Tokens* tokens1, Tokens* tokens2, int tokens1_index);
 
 // ========= Tokenization functions ===========
 
+// Convert a source string into a tokens object
 Tokens tokenize(char* source, bool tag_debug_line_info);
 
+// Tokenize preprocessor tokens
 void tokenize_preprocessor(Tokens* tokens, StrVector* split_src);
 
+// Tokenize comments
 void tokenize_comments(Tokens* tokens, StrVector* str_split);
 
+// Tokenize strings
 void tokenize_strings(Tokens* tokens, StrVector* str_split);
+// Tokenize characters
 void tokenize_chars(Tokens* tokens, StrVector* str_split);
 
+// Tokenize keywords
 void tokenize_keywords(Tokens* tokens, StrVector* str_split);
+// Helper for tokenize_keywords, tokenize a specific keyword
 void tokenize_keyword(Tokens* tokens, StrVector* str_split, char* keyword,
                       enum TokenType type);
 
 void tokenize_ops(Tokens* tokens, StrVector* str_split);
-// Helper for tokenize_ops
+// Helper for tokenize_ops, tokenize a specific op
 void tokenize_op(Tokens* tokens, StrVector* str_split, char* op, enum TokenType type);
 
+// Tokenize all identifiers
 void tokenize_idents(Tokens* tokens, StrVector* str_split);
 
+// Tokenize all literal values
 void tokenize_values(Tokens* tokens, StrVector* str_split);
 // Helpers for tokenize_values()
 void tokenize_ints(Tokens* tokens, StrVector* str_split);
 void tokenize_floats(Tokens* tokens, StrVector* str_split);
 
+// Tokenize delimiters
 void tokenize_delims(Tokens* tokens, StrVector* str_split);
 
+// Tag tokens with their original source line
 void tag_tokens_with_src_lines(Tokens* tokens, StrVector* str_split);
 
 // Debug helper

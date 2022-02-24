@@ -81,6 +81,8 @@ char* isolate_file_from_path(char* filepath) {
 }
 
 // Parse commandline options using getopt
+// switch to getopt_long to allow more arguments?
+// Future arguments to support: --keepasm, -g (debug info as comments in the assembly)
 CompileOptions parse_compiler_options(int argc, char** argv) {
     opterr = 0;
     CompileOptions options;
@@ -98,7 +100,7 @@ CompileOptions parse_compiler_options(int argc, char** argv) {
                 options.link_with_gcc = false;
                 break;
             case '?':
-                if (optopt == 'c' || optopt == 'o') {
+                if (optopt == 'o') {
                     fprintf(stderr, "Option '-%c' requires a file argument\n", optopt);
                 }
                 else {
