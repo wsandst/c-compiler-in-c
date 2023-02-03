@@ -18,7 +18,6 @@ INFO:
             char* x = {"a", "b", "c"} should work if char x[] works, same construct
             Variable length arrays: just add to rsp, then set address to this
         The struct padding is off by 8 bytes for ValueLabel, why?
-
         Refactoring:
             Refactor parser:
                 parse_program should run a subset of parse_statement, this should
@@ -26,7 +25,6 @@ INFO:
             Refactor struct type handling:
                 Currently we sometimes use cast_type and sometimes use
                 struct_type for structs. Unify this
-
     Intentional deficits:
         Constants variables are not evaluated at compile-time
         Only literals are allowed for most constant expressions
@@ -34,12 +32,10 @@ INFO:
         Comma operator and ternary operator is not implemented
         Certain float operators have been skipped
         No function pointers or local functions
-        Floats are 64 bit, not 32 bit. Only really messes with scanf
         All integers are signed no matter what
         No unions
         Floating point and struct parameters in vararg function definition
         var_arg builtin
-
 */
 
 int main(int argc, char** argv) {

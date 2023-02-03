@@ -25,12 +25,12 @@ TEST_EXE_BS := $(BIN_DIR)/ccic-bs-test
 TEST_OBJ_BS := $(TEST_SRC:$(TEST_DIR)/%.c=$(TEST_OBJ_DIR_BS)/%.o)
 OBJ_NO_MAIN_BS := $(SRC_NO_MAIN:$(SRC_DIR)/%.c=$(OBJ_DIR_BS)/%.o)
 
-CFLAGS   := -Wall -g -O0
+CFLAGS   := -Wall -O3
 LDFLAGS  := -Llib
 LDLIBS   := -lm -Isrc
 LD := $(CC)
 
-.PHONY: all clean testexe test unit-test test-full test-full-mt bootstrap bootstrap-testexe bootstrap-unit-test bootstrap-test bootstrap-no-initial-build bootstrap-triangle-test
+.PHONY: all clean testexe test unit-test test-full test-full-mt bootstrap bootstrap-testexe bootstrap-unit-test bootstrap-test bootstrap-no-initial-build bootstrap-triangle-test bootstrap-testexe-no-clean
 
 # ============== Normal Compilation ===================
 
@@ -103,6 +103,8 @@ force:
 
 # Compile unit test executable
 bootstrap-testexe: clean $(EXE) force $(TEST_EXE_BS) $(LIBC_DIR)
+
+bootstrap-testexe-no-clean: force $(TEST_EXE_BS)
 
 $(TEST_EXE_BS): $(TEST_OBJ_BS) $(OBJ_NO_MAIN_BS) | $(BIN_DIR)
 	gcc -g -no-pie $^ -o $@
