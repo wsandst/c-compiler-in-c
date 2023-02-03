@@ -87,7 +87,13 @@ void gen_asm_variable(ASTNode* node, AsmContext ctx) {
     }
     else if (node->var.type.type == TY_FLOAT) {
         // Floating point type, store in xmm0
-        asm_addf(&ctx, "movq xmm0, %s", sp2);
+        if (node->var.type.bytes == 4) {
+            asm_addf(&ctx, "movd xmm0, %s", sp2);
+            asm_addf(&ctx, "cvtss2sd xmm0, xmm0");
+        }
+        else { // 8 bytes
+            asm_addf(&ctx, "movq xmm0, %s", sp2);
+        }
     }
     else {
         codegen_error("Unsupported variable type encountered");
@@ -490,7 +496,13 @@ void gen_asm_unary_op_float(ASTNode* node, AsmContext ctx) {
             char* move_instr = get_move_instr_for_var_type(node->cast_type);
             asm_addf(&ctx, "mov r12, rax"); // Save rax for potential deref assignment
             asm_addf(&ctx, "%s, %s [rax]", move_instr, addr_size);
-            asm_addf(&ctx, "movq xmm0, rax");
+            if (node->cast_type.bytes == 4) {
+                asm_addf(&ctx, "movd xmm0, eax");
+                asm_addf(&ctx, "cvtss2sd xmm0, xmm0");
+            }
+            else {
+                asm_addf(&ctx, "movq xmm0, rax");
+            }
             free(move_instr);
             break;
         }
@@ -611,16 +623,20 @@ void gen_asm_binary_op_float(ASTNode* node, AsmContext ctx) {
 }
 // Generate assembly for a binary op assignment expression node
 void gen_asm_binary_op_assign_float(ASTNode* node, AsmContext ctx) {
+    char* move_instr = get_float_move_for_byte_size(node->cast_type.bytes);
+    if (node->cast_type.bytes == 4) { // Convert to 32 bit float if assigning to 32 bit
+        asm_addf(&ctx, "cvtsd2ss xmm0, xmm0");
+    }
     if (node->expr_type == EXPR_VAR) {
         char* var_sp = var_to_stack_ptr(&node->var);
-        asm_addf(&ctx, "movq %s, xmm0", var_sp);
+        asm_addf(&ctx, "%s %s, xmm0", move_instr, var_sp);
         free(var_sp);
     }
     else if (node->expr_type == EXPR_UNOP && node->op_type == UOP_DEREF) {
-        asm_addf(&ctx, "movq [r12], xmm0");
+        asm_addf(&ctx, "%s [r12], xmm0", move_instr);
     }
     else if (node->expr_type == EXPR_BINOP && node->op_type == BOP_MEMBER) {
-        asm_addf(&ctx, "movq [r12], xmm0");
+        asm_addf(&ctx, "%s [r12], xmm0", move_instr);
     }
     else {
         codegen_error("Only variables can be assigned to");
@@ -919,12 +935,22 @@ void gen_asm_unary_op_cast(AsmContext ctx, VarType to_type, VarType from_type) {
     else if (to_type.type == TY_INT && from_type.type == TY_FLOAT) {
         // Float to int
         asm_add_com(&ctx, "; Float to int cast");
-        asm_addf(&ctx, "cvttsd2si rax, xmm0");
+        if (from_type.bytes == 4) {
+            asm_addf(&ctx, "cvttsd2si eax, xmm0");
+        }
+        else { // 8 bytes
+            asm_addf(&ctx, "cvttsd2si rax, xmm0");
+        }
     }
     else if (to_type.type == TY_FLOAT && from_type.type == TY_INT) {
         // Int to float
         asm_add_com(&ctx, "; Int to float cast");
-        asm_addf(&ctx, "cvtsi2sd xmm0, rax");
+        if (to_type.bytes == 4) {
+            asm_addf(&ctx, "cvtsi2sd xmm0, eax");
+        }
+        else { // 8 bytes
+            asm_addf(&ctx, "cvtsi2sd xmm0, rax");
+        }
     }
     else if (to_type.type == TY_INT && from_type.ptr_level > 0) {
         // Pointer to int
@@ -950,4 +976,11 @@ void gen_asm_unary_op_cast(AsmContext ctx, VarType to_type, VarType from_type) {
         codegen_error("Unsupported cast attempted!");
     }
     // Int to int, float to float is ignored for now
+}
+
+VarType promote_type(VarType type) {
+    if (type.type == TY_FLOAT && type.ptr_level == 0) {
+        type.bytes = 8;
+    }
+    return type;
 }

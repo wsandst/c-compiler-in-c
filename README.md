@@ -1,4 +1,4 @@
-[![Build Status](https://travis-ci.com/wsandst/c-compiler-in-c.svg?branch=main)](https://travis-ci.com/wsandst/c-compiler-in-c)
+![Build Status](https://github.com/wsandst/ccic/actions/workflows/ci.yml/badge.svg?branch=main)
 # ccic - a C Compiler written in C
  **ccic** is a self-hosting/bootstrapping C compiler, written completely in C. The compiler uses no dependencies to simplify bootstrapping. It generates Linux x86-64 executables.
 The compiler uses a handwritten tokenizer, a recursive decent parser and a code generator which generates NASM assembly. GCC is then used as a linker. It includes headers for commonly used parts of the C standard library, which have been modified from GCC to accommodate for fewer macro features. These headers can be found under `clib/`
@@ -41,7 +41,7 @@ The compiler uses a handwritten tokenizer, a recursive decent parser and a code 
     * Breaks
 * Types
     * Integers
-    * Floats (only 64 bit)
+    * Floats
     * Pointers
     * Arrays
     * Type casting (explicit and implicit)

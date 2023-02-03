@@ -104,6 +104,10 @@ char* bytes_to_reserve_data_width(int bytes);
 char* var_to_stack_ptr(Variable* var);
 // Get the corresponding move instr for a certain memory size, ex movzx for 2
 char* get_move_instr_for_var_type(VarType var_type);
+// Get the move instruction for different float sizes (float or double)
+char* get_float_move_for_byte_size(int bytes);
+// Up-promote a type, used for variadic arguments (ex float -> double)
+VarType promote_type(VarType type);
 
 // ============= ASM Generation ================
 

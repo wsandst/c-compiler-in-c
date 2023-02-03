@@ -196,7 +196,7 @@ bool accept_type(SymbolTable* symbols) {
     }
     else if (accept(TK_KW_FLOAT)) {
         latest_parsed_var_type.type = TY_FLOAT;
-        latest_parsed_var_type.bytes = 8; // Temp fix for now
+        latest_parsed_var_type.bytes = 4;
     }
     else if (accept(TK_KW_DOUBLE)) {
         latest_parsed_var_type.type = TY_FLOAT;

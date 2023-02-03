@@ -142,6 +142,17 @@ char* bytes_to_reserve_data_width(int bytes) {
     }
 }
 
+char* get_float_move_for_byte_size(int bytes) {
+    switch (bytes) {
+        case 8:
+            return "movq";
+        case 4:
+            return "movd";
+        default:
+            return "error";
+    }
+}
+
 char* var_to_stack_ptr(Variable* var) {
     static char buf[64];
     if (var->type.is_static) {
@@ -192,6 +203,9 @@ char* get_reg_width_str(int bytes, RegisterEnum reg) {
 char* get_move_instr_for_var_type(VarType var_type) {
     if (var_type.bytes == 8) {
         return str_copy("mov rax");
+    }
+    else if (var_type.type == TY_FLOAT && var_type.bytes == 4) {
+        return str_copy("mov eax");
     }
     else if (var_type.bytes == 1 || var_type.bytes == 2 || var_type.bytes == 4) {
         return str_copy("movsx rax"); // Sign set the upper unused bits
@@ -443,14 +457,21 @@ void gen_asm_func_call(ASTNode* node, AsmContext ctx) {
     for (int i = node->func.call_param_count; i > 0; i--) {
         VarType arg_type = current_func_def_arg->type;
         if (i > node->func.def_param_count) {
-            // Variadic argument, we don't want to cast
-            arg_type = current_arg->cast_type;
+            // Variadic argument, we don't want to cast to the function def args anymore
+            arg_type = promote_type(current_arg->cast_type);
         }
         if (arg_type.type == TY_FLOAT && arg_type.ptr_level == 0) {
             if (temp_float_param_count > 8) {
                 gen_asm(current_arg, ctx);
                 gen_asm_unary_op_cast(ctx, arg_type, current_arg->cast_type);
-                asm_addf(&ctx, "movq rax, xmm0");
+                char* move_instr = get_float_move_for_byte_size(arg_type.bytes);
+                if (arg_type.bytes == 4) {
+                    asm_addf(&ctx, "cvtsd2ss xmm0, xmm0");
+                    asm_addf(&ctx, "%s eax, xmm0", move_instr);
+                }
+                else {
+                    asm_addf(&ctx, "%s rax, xmm0", move_instr);
+                }
                 asm_addf(&ctx, "push rax");
             }
             temp_float_param_count--;
@@ -477,14 +498,21 @@ void gen_asm_func_call(ASTNode* node, AsmContext ctx) {
     for (int i = node->func.call_param_count; i > 0; i--) {
         VarType arg_type = current_func_def_arg->type;
         if (i > node->func.def_param_count) {
-            // Variadic argument, we don't want to cast
-            arg_type = current_arg->cast_type;
+            // Variadic argument, we don't want to cast to the function def args anymore
+            arg_type = promote_type(current_arg->cast_type);
         }
         if (arg_type.type == TY_FLOAT && arg_type.ptr_level == 0) {
             if (temp_float_param_count <= 8) {
                 gen_asm(current_arg, ctx);
                 gen_asm_unary_op_cast(ctx, arg_type, current_arg->cast_type);
-                asm_addf(&ctx, "movq rax, xmm0");
+                char* move_instr = get_float_move_for_byte_size(arg_type.bytes);
+                if (arg_type.bytes == 4) {
+                    asm_addf(&ctx, "cvtsd2ss xmm0, xmm0");
+                    asm_addf(&ctx, "%s eax, xmm0", move_instr);
+                }
+                else {
+                    asm_addf(&ctx, "%s rax, xmm0", move_instr);
+                }
                 asm_addf(&ctx, "push rax");
             }
             temp_float_param_count--;
@@ -629,7 +657,15 @@ void gen_asm_func(ASTNode* node, AsmContext ctx) {
         }
         else if (param->type.type == TY_FLOAT) {
             if (float_arg_count < 8) {
-                asm_addf(&ctx, "movq %s, %s", param_ptr, float_reg_strs[float_arg_count]);
+                if (param->type.bytes == 4) {
+                    //asm_addf(&ctx, "cvtsd2ss xmm0, xmm0");
+                    asm_addf(&ctx, "movd %s, %s", param_ptr,
+                             float_reg_strs[float_arg_count]);
+                }
+                else {
+                    asm_addf(&ctx, "movq %s, %s", param_ptr,
+                             float_reg_strs[float_arg_count]);
+                }
             }
             else {
                 asm_addf(&ctx, "mov rax, qword [rbp+%d]", 8 * (stack_arg_count + 2));
@@ -929,8 +965,6 @@ void gen_asm_return(ASTNode* node, AsmContext ctx) {
 // Generate assembly comment which tags the assembly with the corresponding C code line
 void gen_asm_debug_tagging(ASTNode* node, AsmContext* ctx) {
     if (node->debug_src_line_str != NULL) {
-        //int prev_indent = ctx->indent_level;
-        //asm_set_indent(ctx, 0);
         asm_add_newline(ctx, ctx->asm_text_src);
         if (ctx->prev_filename_str != node->debug_src_filename_str) {
             asm_addf(ctx, "; FILE | %s ", node->debug_src_filename_str);
@@ -940,6 +974,5 @@ void gen_asm_debug_tagging(ASTNode* node, AsmContext* ctx) {
             asm_addf(ctx, "; L%d | %s ", node->debug_src_line, node->debug_src_line_str);
             *ctx->prev_line = node->debug_src_line;
         }
-        //asm_set_indent(ctx, prev_indent);
     }
 }
