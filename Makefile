@@ -95,7 +95,7 @@ $(EXE_BS): $(OBJ_BS) | $(BIN_DIR)
 	gcc -g -no-pie $^ -o $@
 
 $(OBJ_DIR_BS)/%.o: $(SRC_DIR)/%.c | $(OBJ_DIR_BS)
-	build/ccic -c $< -o $@
+	build/ccic -k -c $< -o $@
 
 force:
 	touch src/compiler.c
@@ -110,7 +110,7 @@ $(TEST_EXE_BS): $(TEST_OBJ_BS) $(OBJ_NO_MAIN_BS) | $(BIN_DIR)
 	gcc -g -no-pie $^ -o $@
 
 $(TEST_OBJ_DIR_BS)/%.o: $(TEST_DIR)/%.c | $(TEST_OBJ_DIR_BS)
-	build/ccic -c $< -o $@
+	build/ccic --keepasm -c $< -o $@
 
 bootstrap-unit-test: bootstrap-testexe
 	@echo [TEST] Running unit tests compiled using CCIC...

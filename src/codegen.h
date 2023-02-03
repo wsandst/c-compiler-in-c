@@ -38,6 +38,7 @@ struct AsmContext {
     // Variadic function related
     int overflow_arg_area_offset;
     int reg_save_area_offset;
+    bool include_comments;
 };
 
 enum RegisterEnum {
@@ -112,7 +113,7 @@ VarType promote_type(VarType type);
 // ============= ASM Generation ================
 
 // Generate NASM assembly from the AST
-char* generate_assembly(AST* ast, SymbolTable* symbols);
+char* generate_assembly(AST* ast, SymbolTable* symbols, bool include_asm_comments);
 
 // Generate assembly from the node. Used recursively
 void gen_asm(ASTNode* node, AsmContext ctx);

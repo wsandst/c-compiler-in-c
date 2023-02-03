@@ -40,7 +40,7 @@ void compile_asm(char* asm_src, CompileOptions compile_options) {
     write_string_to_file(cmd_str, asm_src);
 
     // Includes debug symbols
-    if (ASSEMBLE_DEBUG) {
+    if (compile_options.debug_annotate_assembly) {
         if (compile_options.link_with_gcc) {
             snprintf(
                 cmd_str, 255,
@@ -68,61 +68,8 @@ void compile_asm(char* asm_src, CompileOptions compile_options) {
             system(cmd_str);
         }
     }
-}
-
-char* isolate_file_dir(char* filepath) {
-    int index = str_index_of_reverse(filepath, '/');
-    return str_substr(filepath, index + 1);
-}
-
-char* isolate_file_from_path(char* filepath) {
-    int index = str_index_of_reverse(filepath, '/');
-    return str_copy(filepath + index + 1);
-}
-
-// Parse commandline options using getopt
-// switch to getopt_long to allow more arguments?
-// Future arguments to support: --keepasm, -g (debug info as comments in the assembly)
-CompileOptions parse_compiler_options(int argc, char** argv) {
-    opterr = 0;
-    CompileOptions options;
-    options.link_with_gcc = true;
-    options.output_filename = "a.out";
-    bool output_file_set = false;
-    int arg_c;
-    while ((arg_c = getopt(argc, argv, "co:")) != -1) {
-        switch (arg_c) {
-            case 'o':
-                options.output_filename = optarg;
-                output_file_set = true;
-                break;
-            case 'c':
-                options.link_with_gcc = false;
-                break;
-            case '?':
-                if (optopt == 'o') {
-                    fprintf(stderr, "Option '-%c' requires a file argument\n", optopt);
-                }
-                else {
-                    fprintf(stderr, "Unknown option '-%c' provided\n", optopt);
-                }
-                exit(EXIT_FAILURE);
-            default:
-                exit(EXIT_FAILURE);
-        }
+    if (!compile_options.keep_assembly) {
+        snprintf(cmd_str, 255, "rm %1$s.asm", compile_options.output_filename);
+        system(cmd_str);
     }
-
-    if (optind < argc) {
-        options.src_filename = argv[optind];
-        if (!output_file_set && !options.link_with_gcc) {
-            // If an output filename was not given and we are linking, use
-            // the source file as output name
-            options.output_filename = isolate_file_from_path(options.src_filename);
-            options.output_filename[strlen(options.output_filename) - 1] = 'o';
-        }
-        else {
-            options.output_filename = str_copy(options.output_filename);
-        }
-    }
-    return options;
 }

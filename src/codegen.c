@@ -62,7 +62,7 @@ void asm_add_wn_sectionf(AsmContext* ctx, StrVector* section, char* format_strin
 }
 
 void asm_add_com(AsmContext* ctx, char* comment) {
-    if (INCLUDE_COMMENTS) {
+    if (ctx->include_comments) {
         asm_add_newline(ctx, ctx->asm_text_src);
         asm_add(ctx->asm_text_src, comment);
     }
@@ -303,9 +303,10 @@ char* asm_context_join_srcs(AsmContext* ctx) {
     return asm_src_str;
 }
 
-char* generate_assembly(AST* ast, SymbolTable* symbols) {
+char* generate_assembly(AST* ast, SymbolTable* symbols, bool include_asm_comments) {
     // Setup context object
     AsmContext ctx = asm_context_new();
+    ctx.include_comments = include_asm_comments;
 
     // Setup globals/functions
     asm_set_indent(&ctx, 0);

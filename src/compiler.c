@@ -1,6 +1,7 @@
 #include "preprocess.h"
 #include "parser.h"
 #include "codegen.h"
+#include "util/args.h"
 
 /*
 INFO:
@@ -39,13 +40,13 @@ INFO:
 */
 
 int main(int argc, char** argv) {
-    CompileOptions compile_options = parse_compiler_options(argc, argv);
+    CompileOptions options = parse_compiler_options(argc, argv);
 
-    printf("Compiling source file \"%s\"\n", compile_options.src_filename);
+    printf("Compiling source file \"%s\"\n", options.src_filename);
 
     // Step 1: Preprocessing + Tokenization
     PreprocessorTable table = preprocessor_table_new();
-    Tokens tokens = preprocess_first(compile_options.src_filename, &table);
+    Tokens tokens = preprocess_first(options.src_filename, &table);
     //tokens_pretty_print(&tokens);
 
     // Step 2: AST Parsing
@@ -53,10 +54,10 @@ int main(int argc, char** argv) {
     AST ast = parse(&tokens, symbols);
 
     // Step 3: ASM Code Generation
-    char* asm_src = generate_assembly(&ast, symbols);
+    char* asm_src = generate_assembly(&ast, symbols, options.debug_annotate_assembly);
 
     // Save ASM src to file and compile with NASM
-    compile_asm(asm_src, compile_options);
+    compile_asm(asm_src, options);
 
     // Free memory
     symbol_table_free(symbols);
@@ -65,7 +66,7 @@ int main(int argc, char** argv) {
     tokens_free_line_strings(&tokens);
     ast_free(&ast);
     free(asm_src);
-    free(compile_options.output_filename);
+    free(options.output_filename);
 
     printf("Compilation complete\n");
 
